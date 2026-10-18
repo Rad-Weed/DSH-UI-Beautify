@@ -1,5 +1,7 @@
 # DSH界面美化 · DSH UI Beautify
 
+**语言 / Languages:** 中文（本页） ｜ [English ↓](#english-version)
+
 > 给 DSH 页面加壁纸与毛玻璃。项目名 **DSH UI Beautify**：包名 `dsh-ui-beautify`，路由 `/dsh-ui-beautify/*`，全局 `__DSHUI__`，存储键 `__dshui.*`。
 > 原包名 `dsh-dsniang-beautify` 的旧存档会自动迁移；旧 hash（`#dsniang-off` / `#dsniang-diag`）与旧 URL 参数（`?dsniang=`）仍兼容。
 > 仓库：`Rad-Weed/DSH-UI-Beautify`（私有）
@@ -762,3 +764,150 @@ node test\client.test.mjs   # 76 项：挂载、交互、淡入淡出、回归�
 - 路由套轻量栅栏：拒绝 `Sec-Fetch-Site: cross-site`、畸形/缺失 Host、
   以及「非回环 Host + 外部 Origin」（防 DNS 重绑定）。
 - 前端任何异常都只记日志，不影响页面。
+
+---
+
+# English version
+
+**DSH UI Beautify** — a wallpaper + frosted-glass beautifier for the DeepSeek Harness (DSH) desktop client.
+
+Package `dsh-ui-beautify` · routes `/dsh-ui-beautify/*` · global API `__DSHUI__` · storage keys `__dshui.*`.
+Settings stored under the old package name (`dsh-dsniang-beautify`) are migrated automatically; the legacy hashes
+`#dsniang-off` / `#dsniang-diag` and the legacy URL parameter `?dsniang=` still work.
+Repository: `Rad-Weed/DSH-UI-Beautify`.
+
+> This is the English manual. The Chinese manual above is the full one (troubleshooting, internals, release tooling).
+
+## What it does
+
+- **Three modes**: **Off** (factory default — touches nothing) / **Texture** (multiply blending; the wallpaper is
+  tinted into the UI) / **Backdrop** (the image is truly behind the content, with a scrim slider).
+- **Real frosted glass** (`backdrop-filter`): composer card, user bubbles, DSH dialogs and menus, the whale-widget
+  panel, and — in Backdrop mode — code blocks and attachment cards in the chat. All share one parameter set.
+- **Two wallpapers**: drop `deepseek 4k.png` / `deepseek 黑白无水面.png` on your Desktop and those are used;
+  otherwise the bundled WebP fallbacks are used (you always have two options on any machine). Switching is a
+  cross-fade (no blank frame).
+- **Click the background** → fades to the default background (420 ms), then restores the wallpaper after **2 s**.
+- Clicking bubbles, the composer, buttons, links or icons is **never intercepted**.
+- **Built-in diagnostics** (`Ctrl+Shift+Alt+I`): mode, wallpaper source and health, glass state, frame rate —
+  no DevTools required.
+- **Motion**: the shared foundation is in place (master switch **off** by default); decorative animations are
+  deliberately left for later.
+
+## Three buttons
+
+| Button | Effect | Does it touch the page layout? |
+|---|---|---|
+| **Off** (default) | Everything restored; nothing is mounted | No |
+| **Texture** | Multiply wallpaper (default concentration 0.49) + frosted glass (with "clearing" of the composer seat's own scrim) | Adds our own layers, a class toggle, and clears background colors (byte-exact restore) |
+| **Backdrop** | The image really sits behind everything (`z-index:-1`), with theme-aware scrim; the shell's full-screen opaque background is overridden by a class toggle; frosted glass works here too | Only our own layers + one class-toggle rule |
+
+## Factory defaults
+
+| Item | Default | Stored in |
+|---|---|---|
+| Startup mode | **Off** | `localStorage['__dshui.mode']` |
+| Texture concentration | **0.49** | `localStorage['__dshui.opacities']` |
+| Backdrop concentration | **0.5** | same |
+| Scrim strength | 0 (slider 0–90%, 1% steps) | `localStorage['__dshui.scrim']` |
+| Wallpaper | **`deepseek 4k.png`** (shown as `deepseek`) | `localStorage['__dshui.image']` |
+| Frosted glass | **on** | `localStorage['__dshui.frost.v3']` |
+| Glass blur / white layer | **2 px / 25%** | same |
+| Panel white layer (top/bottom) | **97% / 83%** | same |
+| Bubble transparency / color / blur | **45% / original color / 12 px** | same |
+| DSH panel blur | **20 px** | same |
+| Motion | **off** (master switch; `Ctrl+Shift+Alt+M`) | `localStorage['__dshui.motion.v1']` |
+| Pill position | `10, 10` (top-left) | `localStorage['__dshui.pill']` |
+
+Defaults apply only when nothing is stored yet; once you move a slider, the stored value wins.
+
+## Install
+
+1. Extract `dsh-ui-beautify-0.7.3.zip` → you get a `dsh-ui-beautify/` directory
+   (`package.json` / `cordis.patch.yml` / `lib` / `assets` (both fallback images) / `test` /
+   `scripts/uninstall-cleanup.ps1` / `README.md` / `HANDOFF.md` / `LICENSE` — 13 entries);
+2. Put it somewhere that won't be deleted (an ASCII-only path is recommended);
+3. Install it through the official plugin channel with the extracted directory as `target`:
+   `pluginManager.installBundle('file:D:\\dsh-plugins\\dsh-ui-beautify')` (same as `dsh plugin add file:...`);
+4. **Restart the DSH client** (the bundle stack is collected once at startup);
+5. Self-check: `node test/host.test.mjs && node test/client.test.mjs` inside the extracted directory — all green.
+
+The official channel registers three things (all of them are needed, otherwise the plugin manager treats the
+bundle as a stray entry): the `node_modules/dsh-ui-beautify` junction, the profile `package.json`
+`dsh.profile.bundles` + `dependencies`, and the `pnpm-lock.yaml` importer record.
+
+## Uninstall
+
+1. **Quickest** (no restart): `__DSHUI__.setMode('off')`, or open `...#dshui-off` and reload;
+2. **Proper**: Settings → Plugins → `dsh-ui-beautify` → Uninstall (or `pluginManager.removeBundle('dsh-ui-beautify')`);
+3. **Manual fallback**: `.rollback/` holds a copy of the pre-install profile config; restore it, remove the
+   junction with `cmd /c rmdir "<profile>\node_modules\dsh-ui-beautify"` (links only), then restart DSH.
+
+After uninstalling, `scripts/uninstall-cleanup.ps1` runs the post-uninstall self-check: it asserts the
+"four-piece" state (`package.json`, `pnpm-lock.yaml`, `node_modules/.modules.yaml`, `cordis.yml`) and removes a
+leftover `node_modules` junction (link only, never the target). Idempotent, supports `-DryRun`, writes a log,
+exit codes `0/1/2/3/4`.
+
+## External side effects
+
+Pure Cordis plugin: it does **not** modify `app.asar`, the registry, scheduled tasks, environment variables or
+ports; no daemon, no child processes, no external network requests. Only five read-only loopback routes
+(`/dsh-ui-beautify/*`). Runtime changes are limited to our own DOM nodes, class toggles and CSS variables, all
+restored byte-exactly on teardown.
+
+### User data
+
+All settings live in `localStorage` under `__dshui.*` (mode, opacities, scrim, frost, motion, pill, image).
+Uninstalling **keeps** them by default. To wipe:
+
+```js
+Object.keys(localStorage).filter(k => k.startsWith('__dshui.')).forEach(k => localStorage.removeItem(k))
+```
+
+## Diagnostics
+
+- Panel: `Ctrl+Shift+Alt+I` (or open `...#dshui-diag` and reload).
+- HTTP: `/dsh-ui-beautify/status.json` (wallpaper resolution) and `/dsh-ui-beautify/diag.json` (last report).
+- Console API: `__DSHUI__.status()` / `.wallpaper()` / `.reapply()` / `.uninstall()` / `.setMode('off'|'multiply'|'backdrop')`.
+
+## Motion
+
+The motion foundation (master switch, `prefers-reduced-motion`, pause on blur) and the `requestAnimationFrame`
+frame-time probe are in place. Motion is **off** by default; `Ctrl+Shift+Alt+M` toggles it. All future
+animations must go through `motionAllowed()`.
+
+## Wallpaper
+
+Replace the two Desktop files (same names) or the bundled ones; Desktop wins over bundled. PNG and WebP are both
+accepted, and the `/bg.png` route serves the correct Content-Type from magic bytes. The panel switches between
+the two identities with a cross-fade.
+
+## Composition & host API
+
+- `lib/index.js` — host half: injects the client script into the page (web and desktop channels), serves the
+  read-only routes (`status.json`, `diag.json`, `bg.png`, `client.js`).
+- `lib/client.js` — browser half (plain IIFE, no build step): layers, glass, layering guard, diagnostics.
+- `assets/` — the two bundled WebP fallbacks; `test/` — offline tests; `scripts/` — uninstall self-check.
+
+## Development & tests
+
+```powershell
+node test/host.test.mjs      # 21 tests
+node test/client.test.mjs    # 75 tests (includes the storage-migration case)
+```
+
+The tests run fully offline against a minimal DOM stub (controllable clock, geometry model, MutationObserver,
+localStorage) — no browser and no running DSH needed. A "regression guard" case snapshots every element's
+layout-related inline styles before/after mounting, so any future layout-writing change fails the tests.
+
+## Safety baseline
+
+- All routes are **read-only**: they only serve this plugin's own image and script bytes; nothing is written to
+  disk and no user data is returned.
+- Routes are fenced: cross-site `Sec-Fetch-Site`, malformed/missing `Host`, and non-loopback Host with external
+  Origin are rejected (DNS-rebinding defence).
+- Any client-side exception is logged only; the page is never affected.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
