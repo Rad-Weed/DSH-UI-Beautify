@@ -238,7 +238,7 @@ class FakeNode {
     const view = doc && doc.defaultView
     // 我们自己的两个图层在**静态样式表**里就是 `position:fixed; inset:0` —— 桩里没有样式表，
     // 所以按 id 直接给视口几何（否则 0.6.4 的"壁纸体检"会把图层误判成塌成 0 尺寸）。
-    if (this.id === '__dsniang-layer' || this.id === '__dsniang-layer2') {
+    if (this.id === '__dshui-layer' || this.id === '__dshui-layer2') {
       const w = (view && view.innerWidth) || 0
       const h = (view && view.innerHeight) || 0
       return { top: 0, left: 0, right: w, bottom: h, width: w, height: h }
@@ -491,9 +491,18 @@ export function createDom(options) {
     _listeners: {},
     location: { href: 'http://localhost/', hash: '', search: '' },
     localStorage: {
+      // 与真实 Storage 对齐：length / key(i) 用于枚举（存储迁移要用）
+      get length() {
+        return storage.size
+      },
+      key: (index) => {
+        const keys = Array.from(storage.keys())
+        return index >= 0 && index < keys.length ? keys[index] : null
+      },
       getItem: (key) => (storage.has(String(key)) ? storage.get(String(key)) : null),
       setItem: (key, value) => storage.set(String(key), String(value)),
       removeItem: (key) => storage.delete(String(key)),
+      clear: () => storage.clear(),
     },
     /** 桩里没有真实选区：默认「没有选中文本」（collapsed）。 */
     getSelection() {

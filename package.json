@@ -1,7 +1,7 @@
 {
-  "name": "dsh-dsniang-beautify",
-  "version": "0.7.2",
-  "description": "DSH界面美化（DSH UI Beautify）· 用于 DSH 的 DS 娘美化插件 v0.3：给 DSH 页面加 DS 娘背景。模式：关闭（恢复默认）/ 纹理（乘法混合 + 毛玻璃）/ 背景（图真正垫底，文字/面板都在图上，主题薄纱）；可切换 deepseek / deepseek 黑白无水面（桌面图优先、包内兜底）；点击背景渐变恢复默认背景，2 秒后渐变恢复。",
+  "name": "dsh-ui-beautify",
+  "version": "0.7.3",
+  "description": "DSH UI Beautify（DSH 界面美化）· 给 DSH 页面加壁纸 + 真毛玻璃。模式：关闭（恢复默认）/ 纹理（乘法混合 + 毛玻璃）/ 背景（图真正垫底，文字/面板都在图上，主题薄纱）；可切换 deepseek / deepseek 黑白无水面（桌面图优先、包内兜底）；点击背景渐变恢复默认背景，2 秒后渐变恢复。",
   "keywords": [
     "dsh",
     "dsh-plugin",

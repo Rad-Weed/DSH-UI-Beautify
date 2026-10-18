@@ -1,5 +1,5 @@
 ﻿<#
-  卸载后自检与清理 · dsh-dsniang-beautify
+  卸载后自检与清理 · dsh-ui-beautify
   ===========================================================================
   对应《DSH 插件作者安装卸载与外部副作用规范建议 v0.1》：
     §3.1 M1 安装/卸载对称、幂等、可重入（连跑两次第二次只输出"已是目标状态"）
@@ -34,7 +34,7 @@
 [CmdletBinding()]
 param(
   [string]$ProfileDir = (Join-Path $env:USERPROFILE '.dsh\profiles\desktop'),
-  [string]$PackageName = 'dsh-dsniang-beautify',
+  [string]$PackageName = 'dsh-ui-beautify',
   [int]$TimeoutSeconds = 900,
   [switch]$NoCleanup,
   [switch]$DryRun,
@@ -164,9 +164,9 @@ if (-not $junction) {
 # ── 4) 用户数据（§3.5：默认保留，清除必须显式）────────────────────────────────
 if ($PurgeData) {
   Write-Log '用户数据：本插件的数据全在浏览器侧 localStorage（脚本无法直接删除），请打开 DSH 页面后在控制台执行：' 'Yellow'
-  Write-Log "  Object.keys(localStorage).filter(function(k){return k.indexOf('__dsniang.')===0}).forEach(function(k){localStorage.removeItem(k)})" 'Yellow'
+  Write-Log "  Object.keys(localStorage).filter(function(k){return k.indexOf('__dshui.')===0}).forEach(function(k){localStorage.removeItem(k)})" 'Yellow'
 } else {
-  Write-Log '用户数据：默认保留（localStorage 的 __dsniang.* 键；卸载不会删除它们）。想清除见 README「用户数据」一节，或加 -PurgeData 查看命令。' 'DarkGray'
+  Write-Log '用户数据：默认保留（localStorage 的 __dshui.* 键；卸载不会删除它们）。想清除见 README「用户数据」一节，或加 -PurgeData 查看命令。' 'DarkGray'
 }
 
 # ── 5) 最终清单（作为"真的卸载干净了"的证据）──────────────────────────────────

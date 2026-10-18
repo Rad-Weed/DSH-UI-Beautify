@@ -53,7 +53,7 @@ function runClient(dom, options) {
             ok: true,
             source: 'desktop',
             file,
-            url: '/dsh-dsniang/bg.png' + (name ? '?img=' + encodeURIComponent(name) : ''),
+            url: '/dsh-ui-beautify/bg.png' + (name ? '?img=' + encodeURIComponent(name) : ''),
             bytes: 123,
             images,
           })
@@ -65,17 +65,17 @@ function runClient(dom, options) {
   context.self = context
   vm.createContext(context)
   new vm.Script(CLIENT_SOURCE, { filename: 'client.js' }).runInContext(context)
-  return { context, api: dom.window.__DSNIANG__, logs, requested }
+  return { context, api: dom.window.__DSHUI__, logs, requested }
 }
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
 
-const layerOf = (dom) => dom.document.querySelectorAll('#__dsniang-layer')[0] || null
-const styleTagOf = (dom) => dom.document.getElementById('__dsniang-style')
-const pillOf = (dom) => dom.document.getElementById('__dsniang-pill')
+const layerOf = (dom) => dom.document.querySelectorAll('#__dshui-layer')[0] || null
+const styleTagOf = (dom) => dom.document.getElementById('__dshui-style')
+const pillOf = (dom) => dom.document.getElementById('__dshui-pill')
 const pillText = (dom) => {
   const pill = pillOf(dom)
-  const span = pill && pill.querySelector('.__dsniang-pill-text')
+  const span = pill && pill.querySelector('.__dshui-pill-text')
   return span ? span.textContent : null
 }
 
@@ -88,7 +88,7 @@ function clickOn(dom, node) {
 /** 页面里所有元素（不含插件自己的节点）的"布局相关内联样式"快照。 */
 function layoutSnapshot(dom) {
   const out = []
-  const OURS = new Set(['__dsniang-layer', '__dsniang-layer2', '__dsniang-diag', '__dsniang-switcher', '__dsniang-pill', '__dsniang-style'])
+  const OURS = new Set(['__dshui-layer', '__dshui-layer2', '__dshui-diag', '__dshui-switcher', '__dshui-pill', '__dshui-style'])
   const walk = (node) => {
     const ours = node.nodeType === 1 && OURS.has(node.id)
     if (ours) return // 插件自己的节点连同子树一起跳过
@@ -136,12 +136,12 @@ test('常驻入口：默认回到 v0.2.11 的位置（窗口左上角 10,10）�
   assert.equal(pill.style.getPropertyValue('left'), '10px', '默认位置 = 上一版（窗口左上角）')
   assert.equal(pill.style.getPropertyValue('top'), '10px', '默认位置 = 上一版（窗口左上角）')
   assert.equal(pill.style.getPropertyValue('cursor'), 'grab', '应提示可以拖动')
-  assert.equal(pill.getAttribute('data-dsniang-ignore'), '', '入口必须标记为插件自己的节点，不算"点背景"')
-  assert.equal(pillText(dom), 'DS娘 · 关闭', '关闭模式下入口显示当前模式')
+  assert.equal(pill.getAttribute('data-dshui-ignore'), '', '入口必须标记为插件自己的节点，不算"点背景"')
+  assert.equal(pillText(dom), 'DSH UI · 关闭', '关闭模式下入口显示当前模式')
 
   // 点入口 → 开面板，面板贴在入口正下方
   pill._listeners.click[0]({ type: 'click', target: pill, stopPropagation() {} })
-  const box = dom.document.querySelectorAll('#__dsniang-switcher')[0]
+  const box = dom.document.querySelectorAll('#__dshui-switcher')[0]
   assert.ok(box, '点入口应开面板')
   assert.equal(box.style.getPropertyValue('left'), '10px', '面板应与入口左对齐')
   assert.equal(box.style.getPropertyValue('top'), '52px', '面板应贴在入口下方（10 + 42）')
@@ -149,7 +149,7 @@ test('常驻入口：默认回到 v0.2.11 的位置（窗口左上角 10,10）�
 
   // 再点 → 收面板
   pill._listeners.click[0]({ type: 'click', target: pill, stopPropagation() {} })
-  assert.equal(dom.document.querySelectorAll('#__dsniang-switcher').length, 0, '再点入口应收起面板')
+  assert.equal(dom.document.querySelectorAll('#__dshui-switcher').length, 0, '再点入口应收起面板')
 })
 
 /** 模拟一次拖动手势（pointerdown → pointermove → pointerup）。 */
@@ -178,18 +178,18 @@ test('常驻入口：可拖动，位置写入 localStorage 并在重启后恢复
   assert.equal(pill.style.getPropertyValue('left'), '370px', '横向应跟随鼠标位移（100→460 即 +360）')
   assert.equal(pill.style.getPropertyValue('top'), '290px', '纵向应跟随鼠标位移（100→380 即 +280）')
   assert.equal(
-    dom.window.localStorage.getItem('__dsniang.pill'),
+    dom.window.localStorage.getItem('__dshui.pill'),
     JSON.stringify({ left: 370, top: 290 }),
     '拖动结束后应记住位置',
   )
 
   // 拖动结束后浏览器会补发一个 click —— 不应被当成点击（面板不打开）
   pill._listeners.click[0]({ type: 'click', target: pill, stopPropagation() {} })
-  assert.equal(dom.document.querySelectorAll('#__dsniang-switcher').length, 0, '拖动补发的 click 不应开面板')
+  assert.equal(dom.document.querySelectorAll('#__dshui-switcher').length, 0, '拖动补发的 click 不应开面板')
 
   // 真正的点击 → 开面板，且面板跟随入口位置
   pill._listeners.click[0]({ type: 'click', target: pill, stopPropagation() {} })
-  const box = dom.document.querySelectorAll('#__dsniang-switcher')[0]
+  const box = dom.document.querySelectorAll('#__dshui-switcher')[0]
   assert.ok(box, '点击应开面板')
   assert.equal(box.style.getPropertyValue('left'), '370px', '面板应跟随入口横向位置')
   assert.equal(box.style.getPropertyValue('top'), '332px', '面板应贴在入口下方（290 + 42）')
@@ -197,7 +197,7 @@ test('常驻入口：可拖动，位置写入 localStorage 并在重启后恢复
 
   // 模拟重启：新页面 + 同一份 localStorage
   const dom2 = buildChatDom()
-  dom2.window.localStorage.setItem('__dsniang.pill', dom.window.localStorage.getItem('__dsniang.pill'))
+  dom2.window.localStorage.setItem('__dshui.pill', dom.window.localStorage.getItem('__dshui.pill'))
   runClient(dom2)
   await flush()
   assert.equal(pillOf(dom2).style.getPropertyValue('left'), '370px', '重启后应记得位置（left）')
@@ -214,12 +214,12 @@ test('常驻入口：拖动时不会误触发点击，轻微抖动仍算点击',
   const pill = pillOf(dom)
   assert.equal(pill.style.getPropertyValue('left'), '10px', '小于阈值的抖动不移动位置')
   pill._listeners.click[0]({ type: 'click', target: pill, stopPropagation() {} })
-  assert.equal(dom.document.querySelectorAll('#__dsniang-switcher').length, 1, '抖动后点一下应正常开面板')
+  assert.equal(dom.document.querySelectorAll('#__dshui-switcher').length, 1, '抖动后点一下应正常开面板')
 })
 
 test('常驻入口：位置会被夹在视口内（记录坏值也能恢复）', async () => {
   const dom = buildChatDom()
-  dom.window.localStorage.setItem('__dsniang.pill', JSON.stringify({ left: -500, top: 99999 }))
+  dom.window.localStorage.setItem('__dshui.pill', JSON.stringify({ left: -500, top: 99999 }))
   runClient(dom)
   await flush()
 
@@ -234,11 +234,11 @@ test('左上角 GUI：入口标签跟随模式变化', async () => {
   const { api } = runClient(dom)
   await flush()
 
-  assert.equal(pillText(dom), 'DS娘 · 关闭')
+  assert.equal(pillText(dom), 'DSH UI · 关闭')
   api.setMode('multiply')
-  assert.equal(pillText(dom), 'DS娘 · 纹理', '切到纹理后入口应更新')
+  assert.equal(pillText(dom), 'DSH UI · 纹理', '切到纹理后入口应更新')
   api.setMode('off')
-  assert.equal(pillText(dom), 'DS娘 · 关闭', '切回关闭后入口应更新')
+  assert.equal(pillText(dom), 'DSH UI · 关闭', '切回关闭后入口应更新')
   assert.ok(pillOf(dom), '关闭模式也保留入口（否则没有入口再打开面板）')
 
   // 只有显式 uninstall() 才会移除入口
@@ -275,7 +275,7 @@ test('纹理模式：挂 multiply 层 + 浓度默认 0.49', async () => {
   assert.match(style, /mix-blend-mode:multiply/)
 
   // 毛玻璃 = 半透明白 + backdrop-filter（不再用伪元素贴图）
-  assert.match(style, /body\.__dsniang-frost \.__dsniang-frost-surface\{/)
+  assert.match(style, /body\.__dshui-frost \.__dshui-frost-surface\{/)
   assert.match(style, /background-color:rgba\(var\(--dsniang-frost-rgb,255,255,255\)/)
   assert.match(style, /backdrop-filter:blur\(var\(--dsniang-frost-blur,2px\)\)/, '必须是真正的背景模糊')
   assert.match(style, /-webkit-backdrop-filter:blur/, 'Safari/旧内核也要有')
@@ -311,7 +311,7 @@ test('背景模式：挂 z-index:-1 的垫底层 + 浓度默认 0.5 + 图不写 
   const style = styleTagOf(dom).textContent
   assert.match(
     style,
-    /#__dsniang-layer\[data-mode="backdrop"\],#__dsniang-layer2\[data-mode="backdrop"\]\{z-index:-1;mix-blend-mode:normal;\}/,
+    /#__dshui-layer\[data-mode="backdrop"\],#__dshui-layer2\[data-mode="backdrop"\]\{z-index:-1;mix-blend-mode:normal;\}/,
     '背景模式 = 负 z 垫底 + 不参与混合',
   )
   assert.match(style, /z-index:2147483000;mix-blend-mode:multiply/, '纹理规则仍在（两种模式并存）')
@@ -322,10 +322,10 @@ test('背景模式：挂 z-index:-1 的垫底层 + 浓度默认 0.5 + 图不写 
 
   // 关键护栏：旧版 applyLayerBackground 只认 multiply → 背景模式会把图写成 none（什么都没有）
   assert.match(layer.style.getPropertyValue('background-image'), /bg\.png/, '背景模式下图必须写在层上')
-  assert.equal(dom.window.localStorage.getItem('__dsniang.mode'), 'backdrop', '模式要持久化')
+  assert.equal(dom.window.localStorage.getItem('__dshui.mode'), 'backdrop', '模式要持久化')
 
   // 0.4.0 起：背景模式也开毛玻璃 —— frost 类照挂、面板照有毛玻璃控件
-  assert.equal(dom.body.classList.contains('__dsniang-frost'), true, '背景模式要挂 frost 类（0.4.0）')
+  assert.equal(dom.body.classList.contains('__dshui-frost'), true, '背景模式要挂 frost 类（0.4.0）')
   api.switcher()
   assert.equal(dom.document.querySelectorAll('[data-frost-toggle]').length, 1, '背景模式有毛玻璃开关（0.4.0）')
   assert.equal(dom.document.querySelectorAll('[data-dsh-blur-slider]').length, 1, '背景模式也有 DSH 面板模糊滑块')
@@ -388,7 +388,7 @@ test('背景模式：输入区座位的渐变擦除带也要清（不开毛玻�
   assert.equal(dom.seat.style.getPropertyValue('background-image'), 'none')
   assert.equal(dom.seat.style.getPropertyValue('border-radius'), '12px', '别的内联样式一律不碰')
   // 0.4.0 起背景模式也有毛玻璃；这里只验证"座位擦除带"照旧清、且不依赖毛玻璃开关
-  assert.equal(dom.body.classList.contains('__dsniang-frost'), true, '背景模式现在挂 frost 类（0.4.0）')
+  assert.equal(dom.body.classList.contains('__dshui-frost'), true, '背景模式现在挂 frost 类（0.4.0）')
 
   // 关闭背景模式 → 座位遮罩逐字还原
   api.setMode('off')
@@ -500,7 +500,7 @@ test('壁纸体检（0.6.4）：图层被 React 摘掉/抹成透明时自己补�
 
   // ① 节点被摘掉（整个 div 从 body 里消失）
   dom.body.removeChild(layer)
-  assert.equal(dom.document.querySelectorAll('#__dsniang-layer').length, 0, '先确认真的摘掉了')
+  assert.equal(dom.document.querySelectorAll('#__dshui-layer').length, 0, '先确认真的摘掉了')
   assert.match(api.reapply(), /已重贴/)
   const layer2 = layerOf(dom)
   assert.ok(layer2, '体检发现缺层 → 补回来')
@@ -712,25 +712,25 @@ test('背景模式：外壳 frame 的不透明底色被类开关覆盖成透明�
   await flush()
 
   api.setMode('backdrop')
-  assert.equal(dom.body.classList.contains('__dsniang-backdrop'), true, '背景模式要挂开关类')
+  assert.equal(dom.body.classList.contains('__dshui-backdrop'), true, '背景模式要挂开关类')
 
   // 0.3.0 的教训：DSH 外壳 .BynINW_frame 有全屏不透明底色，把 -1 的图整块盖住
   const style = styleTagOf(dom).textContent
   assert.match(
     style,
-    /body\.__dsniang-backdrop \.BynINW_frame,html\[data-windows-titlebar\] body\.__dsniang-backdrop \.BynINW_centerCol,html\[data-platform=darwin\] body\.__dsniang-backdrop \.BynINW_centerCol\{background-color:transparent!important;background-image:none!important;\}/,
+    /body\.__dshui-backdrop \.BynINW_frame,html\[data-windows-titlebar\] body\.__dshui-backdrop \.BynINW_centerCol,html\[data-platform=darwin\] body\.__dshui-backdrop \.BynINW_centerCol\{background-color:transparent!important;background-image:none!important;\}/,
     '样式表要有 frame 透明覆盖规则',
   )
 
   // 淡出到关闭 → 卸载后开关类摘掉（页面逐字还原）
   api.setMode('off')
-  assert.equal(dom.body.classList.contains('__dsniang-backdrop'), true, '淡出期间先留着（避免底色闪回）')
+  assert.equal(dom.body.classList.contains('__dshui-backdrop'), true, '淡出期间先留着（避免底色闪回）')
   dom.advance(600)
-  assert.equal(dom.body.classList.contains('__dsniang-backdrop'), false, '卸载后开关类摘除')
+  assert.equal(dom.body.classList.contains('__dshui-backdrop'), false, '卸载后开关类摘除')
 
   // 切到纹理也不许带这个类
   api.setMode('multiply')
-  assert.equal(dom.body.classList.contains('__dsniang-backdrop'), false)
+  assert.equal(dom.body.classList.contains('__dshui-backdrop'), false)
 })
 
 test('背景模式：面板上有「薄纱」滑块（亮白纱/暗深纱），可存档、刷新读回', async () => {
@@ -753,7 +753,7 @@ test('背景模式：面板上有「薄纱」滑块（亮白纱/暗深纱），�
   scrim._listeners.input[0]({ type: 'input', target: scrim, stopPropagation() {} })
   assert.equal(api.status().scrim, 0.5)
   assert.match(layerOf(dom).style.getPropertyValue('background-image'), /rgba\(255,255,255,0\.5\)/, '白纱写进层内联')
-  assert.equal(dom.window.localStorage.getItem('__dsniang.scrim'), '0.5', '薄纱要存档')
+  assert.equal(dom.window.localStorage.getItem('__dshui.scrim'), '0.5', '薄纱要存档')
 
   // 1% 也要真的生效（用户要的"最低数值再调低一点"）
   scrim.value = '0.01'
@@ -765,7 +765,7 @@ test('背景模式：面板上有「薄纱」滑块（亮白纱/暗深纱），�
     '1% 也要写进层内联（不能被取整成 0 或被下限挡掉）',
   )
   assert.equal(
-    dom.document.querySelectorAll('.__dsniang-scrim-value')[0].textContent,
+    dom.document.querySelectorAll('.__dshui-scrim-value')[0].textContent,
     '1%',
     '数值文案要跟着滑块走',
   )
@@ -774,8 +774,8 @@ test('背景模式：面板上有「薄纱」滑块（亮白纱/暗深纱），�
 
   // 刷新读回
   const next = buildChatDom()
-  next.window.localStorage.setItem('__dsniang.scrim', '0.5')
-  next.window.localStorage.setItem('__dsniang.mode', 'backdrop')
+  next.window.localStorage.setItem('__dshui.scrim', '0.5')
+  next.window.localStorage.setItem('__dshui.mode', 'backdrop')
   const two = runClient(next)
   await flush()
   assert.equal(two.api.status().scrim, 0.5, '刷新后读回薄纱')
@@ -801,9 +801,9 @@ test('背景模式：毛玻璃整套生效（0.4.0 起，与纹理共用参数�
   dom.advance(600)
 
   // 卡片与用户气泡都打上玻璃；页链底色照旧清
-  assert.ok(dom.composerWrap.classList.contains('__dsniang-frost-surface'), '背景模式下输入卡片要糊')
-  assert.ok(mine.classList.contains('__dsniang-frost-surface'), '背景模式下用户气泡要糊')
-  assert.equal(dom.bubble.classList.contains('__dsniang-frost-surface'), false, '助手气泡不糊')
+  assert.ok(dom.composerWrap.classList.contains('__dshui-frost-surface'), '背景模式下输入卡片要糊')
+  assert.ok(mine.classList.contains('__dshui-frost-surface'), '背景模式下用户气泡要糊')
+  assert.equal(dom.bubble.classList.contains('__dshui-frost-surface'), false, '助手气泡不糊')
   assert.equal(api.status().frost.enabled, true)
   assert.equal(dom.panel.style.getPropertyValue('background-color'), 'transparent', '页链透明化仍生效')
 
@@ -814,14 +814,14 @@ test('背景模式：毛玻璃整套生效（0.4.0 起，与纹理共用参数�
   toggle._listeners.click[0]({ type: 'click', target: toggle, stopPropagation() {} })
   dom.advance(600)
   assert.equal(api.status().frost.enabled, false, '背景模式下关毛玻璃要生效')
-  assert.equal(dom.composerWrap.classList.contains('__dsniang-frost-surface'), false)
-  assert.equal(mine.classList.contains('__dsniang-frost-surface'), false)
+  assert.equal(dom.composerWrap.classList.contains('__dshui-frost-surface'), false)
+  assert.equal(mine.classList.contains('__dshui-frost-surface'), false)
 
   // 切走再切回：参数记忆不丢
   api.setMode('multiply')
   api.setMode('backdrop')
   dom.advance(600)
-  assert.equal(dom.body.classList.contains('__dsniang-frost'), false, '关过毛玻璃后背景模式也不该再挂类')
+  assert.equal(dom.body.classList.contains('__dshui-frost'), false, '关过毛玻璃后背景模式也不该再挂类')
 })
 
 test('DSH 面板独立模糊滑块（0.4.0）：独立变量 + 独立规则 + 可存档 + 旧档回落 20', async () => {
@@ -840,7 +840,7 @@ test('DSH 面板独立模糊滑块（0.4.0）：独立变量 + 独立规则 + �
   const css = styleTagOf(dom).textContent
   assert.match(
     css,
-    /body\.__dsniang-frost \[role="dialog"\]\.__dsniang-frost-panel,body\.__dsniang-frost \[role="menu"\]\.__dsniang-frost-panel\{backdrop-filter:blur\(var\(--dsniang-frost-dsh-blur,20px\)\) saturate\(1\.15\)!important;/,
+    /body\.__dshui-frost \[role="dialog"\]\.__dshui-frost-panel,body\.__dshui-frost \[role="menu"\]\.__dshui-frost-panel\{backdrop-filter:blur\(var\(--dsniang-frost-dsh-blur,20px\)\) saturate\(1\.15\)!important;/,
     'DSH 面板要有独立模糊规则（0.4.0）',
   )
   assert.equal(dom.body.style.getPropertyValue('--dsniang-frost-dsh-blur'), '20px', '默认 20px')
@@ -854,15 +854,15 @@ test('DSH 面板独立模糊滑块（0.4.0）：独立变量 + 独立规则 + �
   slider._listeners.input[0]({ type: 'input', target: slider, stopPropagation() {} })
   assert.equal(api.status().frost.dshBlur, 8)
   assert.equal(dom.body.style.getPropertyValue('--dsniang-frost-dsh-blur'), '8px')
-  assert.equal(JSON.parse(dom.window.localStorage.getItem('__dsniang.frost.v3')).dshBlur, 8)
+  assert.equal(JSON.parse(dom.window.localStorage.getItem('__dshui.frost.v3')).dshBlur, 8)
 
   // 旧档（没有 dshBlur 字段）→ 回落默认 20，不炸
   const old = buildChatDom()
   old.window.localStorage.setItem(
-    '__dsniang.frost.v3',
+    '__dshui.frost.v3',
     JSON.stringify({ enabled: true, blur: 2, alpha: 0.5, panelTop: 0.97, panelBottom: 0.83, bubbleTransparency: 45, bubbleBlur: 12 }),
   )
-  old.window.localStorage.setItem('__dsniang.mode', 'multiply')
+  old.window.localStorage.setItem('__dshui.mode', 'multiply')
   const two = runClient(old)
   await flush()
   assert.equal(two.api.status().frost.dshBlur, 20, '旧档没有 dshBlur → 回落 20')
@@ -879,7 +879,7 @@ function addUserBubble(dom, tag, rect) {
   return el
 }
 
-const floatShellsOf = (dom) => dom.document.querySelectorAll('.__dsniang-bubble-float') // 0.7.1：仅供"已删除"用例断言零残留
+const floatShellsOf = (dom) => dom.document.querySelectorAll('.__dshui-bubble-float') // 0.7.1：仅供"已删除"用例断言零残留
 
 test('「气泡浮层」已在 0.7.1 删除（纹理模式下它必然糊住文字，气泡玻璃改走背景模式）', async () => {
   const dom = buildChatDom()
@@ -897,10 +897,10 @@ test('「气泡浮层」已在 0.7.1 删除（纹理模式下它必然糊住文�
   )
   // ② 样式表里不再有壳的规则；print 规则只藏我们自己那两个图层
   const css = styleTagOf(dom).textContent
-  assert.equal(/__dsniang-bubble-float/.test(css), false, '样式表里不该再有浮层壳规则')
+  assert.equal(/__dshui-bubble-float/.test(css), false, '样式表里不该再有浮层壳规则')
   assert.match(
     css,
-    /@media print\{#__dsniang-layer,#__dsniang-layer2\{display:none !important;\}\}/,
+    /@media print\{#__dshui-layer,#__dshui-layer2\{display:none !important;\}\}/,
     'print 规则只隐藏我们自己的图层',
   )
   // ③ 状态/诊断里不再有相关字段
@@ -910,7 +910,7 @@ test('「气泡浮层」已在 0.7.1 删除（纹理模式下它必然糊住文�
   // ④ 旧存档里就算写着 bubbleFloat=true 也一律忽略（不建壳、不回读）
   const next = buildChatDom()
   next.window.localStorage.setItem(
-    '__dsniang.frost.v3',
+    '__dshui.frost.v3',
     JSON.stringify({ enabled: true, bubbleFloat: true }),
   )
   const two = runClient(next)
@@ -918,7 +918,7 @@ test('「气泡浮层」已在 0.7.1 删除（纹理模式下它必然糊住文�
   two.api.setMode('multiply')
   next.advance(600)
   assert.equal(
-    next.document.querySelectorAll('.__dsniang-bubble-float').length,
+    next.document.querySelectorAll('.__dshui-bubble-float').length,
     0,
     '旧档的 bubbleFloat 必须被忽略（不再生成任何壳）',
   )
@@ -945,14 +945,14 @@ test('背景模式：代码块与文件卡片也要气泡效果（0.6.0 贴玻�
 
   // 纹理模式：不碰它们（壁纸压顶，多糊一层只会一起被染色）
   api.setMode('multiply')
-  assert.equal(code.classList.contains('__dsniang-frost-chat'), false, '纹理模式不糊代码块')
-  assert.equal(file.classList.contains('__dsniang-frost-chat'), false, '纹理模式不糊文件卡片')
+  assert.equal(code.classList.contains('__dshui-frost-chat'), false, '纹理模式不糊代码块')
+  assert.equal(file.classList.contains('__dshui-frost-chat'), false, '纹理模式不糊文件卡片')
 
   // 背景模式：糊上 + 原色落内联变量（深浅主题自动跟）
   api.setMode('backdrop')
   dom.advance(600)
-  assert.ok(code.classList.contains('__dsniang-frost-chat'), '背景模式要糊代码块')
-  assert.ok(file.classList.contains('__dsniang-frost-chat'), '背景模式要糊文件卡片')
+  assert.ok(code.classList.contains('__dshui-frost-chat'), '背景模式要糊代码块')
+  assert.ok(file.classList.contains('__dshui-frost-chat'), '背景模式要糊文件卡片')
   assert.equal(code.style.getPropertyValue('--dsniang-chat-color'), 'rgb(30,30,40)', '代码块原色落内联变量')
   assert.equal(file.style.getPropertyValue('--dsniang-chat-color'), 'rgb(245,245,245)', '文件卡片原色落内联变量')
   assert.equal(api.status().frost.chatExtras, 2, '状态要能数出来')
@@ -965,19 +965,19 @@ test('背景模式：代码块与文件卡片也要气泡效果（0.6.0 贴玻�
   const css = styleTagOf(dom).textContent
   assert.match(
     css,
-    /body\.__dsniang-frost \.__dsniang-frost-chat\{background-color:color-mix\(in srgb,var\(--dsniang-chat-color,var\(--dsw-specific-code-bg,#f0f0f0\)\) var\(--dsniang-frost-bubble-mix,55%\),transparent\)!important;/,
+    /body\.__dshui-frost \.__dshui-frost-chat\{background-color:color-mix\(in srgb,var\(--dsniang-chat-color,var\(--dsw-specific-code-bg,#f0f0f0\)\) var\(--dsniang-frost-bubble-mix,55%\),transparent\)!important;/,
     '代码块/文件卡片的玻璃规则要和气泡同款（原色 + 气泡透明度）',
   )
   // 0.6.1 根因修复：外层卡片贴了玻璃，可内层各自又刷了一层不透明底 —— 玻璃被整块盖住，
   // 用户看到的就是"完全没效果"。这三条规则负责把内层底清干净。
   assert.match(
     css,
-    /body\.__dsniang-frost \.__dsniang-frost-chat :where\(pre,\[data-code-block-content\]\),body\.__dsniang-frost \.__dsniang-frost-chat :has\(> \[data-code-block-banner\]\)\{background:transparent!important;\}/,
+    /body\.__dshui-frost \.__dshui-frost-chat :where\(pre,\[data-code-block-content\]\),body\.__dshui-frost \.__dshui-frost-chat :has\(> \[data-code-block-banner\]\)\{background:transparent!important;\}/,
     '代码块内层（pre / 内容节点 / banner 外壳）的不透明底要清掉，外层玻璃才看得见',
   )
   assert.match(
     css,
-    /body\.__dsniang-frost \.__dsniang-frost-chat \[data-code-block-banner\]\{background:color-mix\(in srgb,var\(--dsniang-chat-color,var\(--dsw-alias-markdown-code-block,#f9fafb\)\) var\(--dsniang-frost-bubble-mix,55%\),transparent\)!important;backdrop-filter:blur\(var\(--dsniang-frost-bubble-blur,12px\)\) saturate\(1\.15\)!important;/,
+    /body\.__dshui-frost \.__dshui-frost-chat \[data-code-block-banner\]\{background:color-mix\(in srgb,var\(--dsniang-chat-color,var\(--dsw-alias-markdown-code-block,#f9fafb\)\) var\(--dsniang-frost-bubble-mix,55%\),transparent\)!important;backdrop-filter:blur\(var\(--dsniang-frost-bubble-blur,12px\)\) saturate\(1\.15\)!important;/,
     '顶部标题条要和卡片用同一套配方（用户要的"标签也一起生成气泡"）—— 两层透明叠加后约 80% 实，滚动时代码从下面过也不叠字',
   )
   assert.equal(/url\(/.test(css), false, '静态表永远不许出现 url(（回归哨兵）')
@@ -985,7 +985,7 @@ test('背景模式：代码块与文件卡片也要气泡效果（0.6.0 贴玻�
   // 关闭 → 逐字还原
   api.setMode('off')
   dom.advance(600)
-  assert.equal(code.classList.contains('__dsniang-frost-chat'), false)
+  assert.equal(code.classList.contains('__dshui-frost-chat'), false)
   assert.equal(code.style.getPropertyValue('--dsniang-chat-color'), '', '卸载后颜色变量还原')
   assert.equal(file.style.getPropertyValue('--dsniang-chat-color'), '', '卸载后文件卡片颜色变量还原')
 })
@@ -1012,8 +1012,8 @@ test('背景模式：弹窗里的代码块不重复贴玻璃（0.6.1 先糊面�
   api.setMode('backdrop')
   dom.advance(600)
 
-  assert.ok(dlg.classList.contains('__dsniang-frost-panel'), '对话框自己要被糊（0.3.3 的 :has() 规则）')
-  assert.equal(inner.classList.contains('__dsniang-frost-chat'), false, '面板里的代码块不再重复贴一层玻璃')
+  assert.ok(dlg.classList.contains('__dshui-frost-panel'), '对话框自己要被糊（0.3.3 的 :has() 规则）')
+  assert.equal(inner.classList.contains('__dshui-frost-chat'), false, '面板里的代码块不再重复贴一层玻璃')
   assert.equal(api.status().frost.chatBlocks, 0, '计数里也不该算它')
 })
 
@@ -1037,17 +1037,17 @@ test('毛玻璃：DSH 自己的二级面板（role=dialog / role=menu）也要�
   await flush()
   api.setMode('multiply')
 
-  assert.ok(dlg.classList.contains('__dsniang-frost-panel'), 'DSH 对话框要糊（面板参数）')
-  assert.ok(menu.classList.contains('__dsniang-frost-panel'), 'DSH 菜单要糊')
-  assert.equal(item.classList.contains('__dsniang-frost-panel'), false, 'menuitem 本身不打标')
+  assert.ok(dlg.classList.contains('__dshui-frost-panel'), 'DSH 对话框要糊（面板参数）')
+  assert.ok(menu.classList.contains('__dshui-frost-panel'), 'DSH 菜单要糊')
+  assert.equal(item.classList.contains('__dshui-frost-panel'), false, 'menuitem 本身不打标')
   assert.equal(api.status().frost.dshPanels, 2, '诊断要能数出 DSH 面板')
   assert.match(api.diagnose(), /DSH 面板 2 个/, '诊断文案要有 DSH 面板')
 
   // 关掉毛玻璃 → 摘干净
   api.setFrostEnabled(false)
   dom.advance(600)
-  assert.equal(dlg.classList.contains('__dsniang-frost-panel'), false)
-  assert.equal(menu.classList.contains('__dsniang-frost-panel'), false)
+  assert.equal(dlg.classList.contains('__dshui-frost-panel'), false)
+  assert.equal(menu.classList.contains('__dshui-frost-panel'), false)
 })
 
 test('毛玻璃：糊输入卡片 + 用户气泡，不碰输入框本身；参数可调可存', async () => {
@@ -1058,14 +1058,14 @@ test('毛玻璃：糊输入卡片 + 用户气泡，不碰输入框本身；参�
 
   const card = dom.composerWrap
   assert.equal(card.getAttribute('data-composer-card'), 'true', '桩环境应与真实 DSH 一致')
-  assert.ok(card.classList.contains('__dsniang-frost-surface'), '输入卡片应被标记')
+  assert.ok(card.classList.contains('__dshui-frost-surface'), '输入卡片应被标记')
   assert.equal(
-    dom.textarea.classList.contains('__dsniang-frost-surface'),
+    dom.textarea.classList.contains('__dshui-frost-surface'),
     false,
     '输入框本身不打标（它自己就是卡片的一部分，不需要单独糊）',
   )
-  assert.equal(dom.bubble.classList.contains('__dsniang-frost-surface'), false, '靠左的元素不是"我的气泡"，不糊')
-  assert.ok(dom.body.classList.contains('__dsniang-frost'), 'body 应带上毛玻璃开关类')
+  assert.equal(dom.bubble.classList.contains('__dshui-frost-surface'), false, '靠左的元素不是"我的气泡"，不糊')
+  assert.ok(dom.body.classList.contains('__dshui-frost'), 'body 应带上毛玻璃开关类')
 
   // 参数：默认 2px / 25%（作者实机取值，出厂默认），可通过 API 调整并持久化
   assert.equal(api.status().frost.blur, 2)
@@ -1076,18 +1076,18 @@ test('毛玻璃：糊输入卡片 + 用户气泡，不碰输入框本身；参�
   assert.match(api.setFrostAlpha(0.7), /白层 = 0\.7/)
   assert.equal(dom.body.style.getPropertyValue('--dsniang-frost-alpha'), '0.7')
   assert.deepEqual(
-    JSON.parse(dom.window.localStorage.getItem('__dsniang.frost.v3')),
+    JSON.parse(dom.window.localStorage.getItem('__dshui.frost.v3')),
     { enabled: true, layered: true, blur: 22, alpha: 0.7, panelTop: 0.97, panelBottom: 0.83, bubbleTransparency: 45, bubbleBlur: 12, bubbleColor: '', dshBlur: 20 },
     '毛玻璃参数应写入 localStorage（v3 键，v0.2.17 及更早的旧参数不再沿用）',
   )
 
   // 关掉 → 先淡出（类还在、参数补间到 0），动画结束再摘类清变量
   assert.match(api.setFrostEnabled(false), /毛玻璃：关/)
-  assert.equal(dom.body.classList.contains('__dsniang-frost'), true, '淡出期间类应还在')
+  assert.equal(dom.body.classList.contains('__dshui-frost'), true, '淡出期间类应还在')
   assert.equal(api.status().transition.frostAnimating, true, '参数应在补间淡出')
   dom.advance(600)
-  assert.equal(dom.body.classList.contains('__dsniang-frost'), false)
-  assert.equal(card.classList.contains('__dsniang-frost-surface'), false)
+  assert.equal(dom.body.classList.contains('__dshui-frost'), false)
+  assert.equal(card.classList.contains('__dshui-frost-surface'), false)
   assert.equal(dom.body.style.getPropertyValue('--dsniang-frost-blur'), '')
   assert.equal(api.status().transition.frostAnimating, false)
 })
@@ -1106,8 +1106,8 @@ test('毛玻璃：右侧（我发的）气泡也会被糊上', async () => {
   await flush()
   api.setMode('multiply')
 
-  assert.ok(mine.classList.contains('__dsniang-frost-surface'), '我发的消息气泡应该有毛玻璃')
-  assert.equal(dom.bubble.classList.contains('__dsniang-frost-surface'), false, '靠左的（助手）不糊')
+  assert.ok(mine.classList.contains('__dshui-frost-surface'), '我发的消息气泡应该有毛玻璃')
+  assert.equal(dom.bubble.classList.contains('__dshui-frost-surface'), false, '靠左的（助手）不糊')
   assert.equal(api.status().frost.targets, 2, '表面数 = 输入卡片 + 1 个我的气泡')
 
   // 方案 B：气泡**自己的背景色**要写进元素的内联变量（玻璃层靠它做 color-mix）
@@ -1139,7 +1139,7 @@ test('毛玻璃：右侧（我发的）气泡也会被糊上', async () => {
   dom.setComputedStyle(tagged, { backgroundColor: 'rgb(240,240,240)', position: 'static', overflow: 'visible' })
   api.setMode('off')
   api.setMode('multiply')
-  assert.ok(tagged.classList.contains('__dsniang-frost-surface'), 'data-role=user 的元素应被糊')
+  assert.ok(tagged.classList.contains('__dshui-frost-surface'), 'data-role=user 的元素应被糊')
 
   // 明确标了 assistant 的一律排除
   const ai = dom.document.createElement('div')
@@ -1150,7 +1150,7 @@ test('毛玻璃：右侧（我发的）气泡也会被糊上', async () => {
   dom.setComputedStyle(ai, { backgroundColor: 'rgb(240,240,240)', position: 'static', overflow: 'visible' })
   api.setMode('off')
   api.setMode('multiply')
-  assert.equal(ai.classList.contains('__dsniang-frost-surface'), false, 'data-role=assistant 的必须排除')
+  assert.equal(ai.classList.contains('__dshui-frost-surface'), false, 'data-role=assistant 的必须排除')
 })
 
 test('毛玻璃：长消息气泡也要糊（v0.2.37 修 —— 旧版 400px 绝对高度上限把长气泡静默丢了）', async () => {
@@ -1175,8 +1175,8 @@ test('毛玻璃：长消息气泡也要糊（v0.2.37 修 —— 旧版 400px 绝
 
   api.setMode('multiply')
 
-  assert.ok(longOne.classList.contains('__dsniang-frost-surface'), '长消息气泡也必须糊（旧版会静默丢掉）')
-  assert.ok(shortOne.classList.contains('__dsniang-frost-surface'), '短消息气泡照旧')
+  assert.ok(longOne.classList.contains('__dshui-frost-surface'), '长消息气泡也必须糊（旧版会静默丢掉）')
+  assert.ok(shortOne.classList.contains('__dshui-frost-surface'), '短消息气泡照旧')
   assert.equal(api.status().frost.targets, 3, '主表面 = 输入卡片 + 长气泡 + 短气泡')
   assert.equal(api.status().frost.bubbleScan.tall, 0, '不该再有"因太高被丢"的气泡（诊断要能看见）')
 
@@ -1196,8 +1196,8 @@ test('毛玻璃：长消息气泡也要糊（v0.2.37 修 —— 旧版 400px 绝
 
   api.setMode('off')
   api.setMode('multiply')
-  assert.equal(wrap.classList.contains('__dsniang-frost-surface'), false, '装得下另一个气泡的是容器，不糊')
-  assert.ok(inner.classList.contains('__dsniang-frost-surface'), '糊的是里面那个气泡')
+  assert.equal(wrap.classList.contains('__dshui-frost-surface'), false, '装得下另一个气泡的是容器，不糊')
+  assert.ok(inner.classList.contains('__dshui-frost-surface'), '糊的是里面那个气泡')
   assert.ok(api.status().frost.bubbleScan.container >= 1, '诊断要能看见"因装得下气泡被跳过"的条数')
 })
 
@@ -1239,9 +1239,9 @@ test('毛玻璃：认 DSH 的 data-chat-flow-kind 标记（气泡父层不右对
 
   api.setMode('multiply')
 
-  assert.ok(userBubble.classList.contains('__dsniang-frost-surface'), 'flow-kind=user 的行的气泡要糊（即使靠左）')
-  assert.equal(aiBubble.classList.contains('__dsniang-frost-surface'), false, 'flow-kind=assistant 的必须排除（即使靠右）')
-  assert.equal(userRow.classList.contains('__dsniang-frost-surface'), false, '糊的是气泡，不是整行')
+  assert.ok(userBubble.classList.contains('__dshui-frost-surface'), 'flow-kind=user 的行的气泡要糊（即使靠左）')
+  assert.equal(aiBubble.classList.contains('__dshui-frost-surface'), false, 'flow-kind=assistant 的必须排除（即使靠右）')
+  assert.equal(userRow.classList.contains('__dshui-frost-surface'), false, '糊的是气泡，不是整行')
 })
 
 test('分层：把输入区座位抬成覆盖层 + 给消息区补底部留白，关闭时完整还原', async () => {
@@ -1292,7 +1292,7 @@ test('分层（内部钩子）：关掉就不动布局；结构认不出来时�
   api.setMode('multiply')
   assert.equal(dom.panel.style.cssText, panelInline, '关掉分层就不该改父容器')
   assert.equal(dom.seat.style.cssText, seatInline, '关掉分层就不该改输入区座位')
-  assert.ok(dom.composerWrap.classList.contains('__dsniang-frost-surface'), '毛玻璃本身仍然生效')
+  assert.ok(dom.composerWrap.classList.contains('__dshui-frost-surface'), '毛玻璃本身仍然生效')
   assert.equal(api.status().frost.layeredApplied, false)
 
   // ② 没有滚动标记、也没有 overflow 滚动容器 → 认不出消息区，必须原样不动
@@ -1307,7 +1307,7 @@ test('分层（内部钩子）：关掉就不动布局；结构认不出来时�
   assert.equal(dom2.panel.style.cssText, panel2, '认不出消息区时一行都不许改')
   assert.equal(dom2.seat.style.cssText, seat2, '认不出消息区时座位也不许改')
   assert.equal(r2.api.status().frost.layeredApplied, false)
-  assert.ok(dom2.composerWrap.classList.contains('__dsniang-frost-surface'), '毛玻璃照旧生效')
+  assert.ok(dom2.composerWrap.classList.contains('__dshui-frost-surface'), '毛玻璃照旧生效')
 })
 
 test('分层：CSS 上不是滚动容器、但"实际可滚动"的消息区也能认出来', async () => {
@@ -1456,7 +1456,7 @@ test('分层：输入区嵌在滚动容器内部（真实 DSH 形状）→ 认�
   assert.equal(dom.transcript.style.cssText, transcriptInline, '滚动容器一行不动')
   assert.equal(dom.seat.style.cssText, seatInline, '嵌在滚动区里的座位一行不动')
   assert.equal(decoy.style.cssText, decoyInline, '诱饵也不许动')
-  assert.ok(dom.composerWrap.classList.contains('__dsniang-frost-surface'), '毛玻璃照旧生效')
+  assert.ok(dom.composerWrap.classList.contains('__dshui-frost-surface'), '毛玻璃照旧生效')
 })
 
 test('毛玻璃通透化：清掉输入区座位的不透明遮罩，关掉后逐字还原', async () => {
@@ -1598,20 +1598,20 @@ test('扩展毛玻璃表面：问答窗口跟主表面同参数，二级面板�
   await flush()
   api.setMode('multiply')
 
-  assert.ok(questionCard.classList.contains('__dsniang-frost-surface'), '问答窗口要糊')
+  assert.ok(questionCard.classList.contains('__dshui-frost-surface'), '问答窗口要糊')
   assert.equal(
-    questionCard.classList.contains('__dsniang-frost-panel'),
+    questionCard.classList.contains('__dshui-frost-panel'),
     false,
     '问答窗口走主表面那套参数（跟滑块走）',
   )
-  assert.ok(whaleMenu.classList.contains('__dsniang-frost-panel'), '鲸鱼主菜单要糊（二级面板独自一套参数）')
-  assert.equal(whaleMenu.classList.contains('__dsniang-frost-surface'), false, '二级面板不许混进主表面类')
+  assert.ok(whaleMenu.classList.contains('__dshui-frost-panel'), '鲸鱼主菜单要糊（二级面板独自一套参数）')
+  assert.equal(whaleMenu.classList.contains('__dshui-frost-surface'), false, '二级面板不许混进主表面类')
   assert.equal(
-    audioWin.classList.contains('__dsniang-frost-panel'),
+    audioWin.classList.contains('__dshui-frost-panel'),
     false,
     '有 fixed 后代的面板一律不糊（否则里面的浮层会跑位）',
   )
-  assert.ok(slotList.classList.contains('__dsniang-frost-panel'), '它自己是 fixed 叶子浮层，糊它没事')
+  assert.ok(slotList.classList.contains('__dshui-frost-panel'), '它自己是 fixed 叶子浮层，糊它没事')
   assert.equal(api.status().frost.targets, 1, '"主表面"语义不变：这个桩里只有输入卡片')
   assert.equal(api.status().frost.panels, 2, '二级面板 = 菜单 + 那个小下拉')
   assert.ok(api.status().frost.extra >= 3, '扩展表面要计数（诊断可见）')
@@ -1623,21 +1623,21 @@ test('扩展毛玻璃表面：问答窗口跟主表面同参数，二级面板�
 
   // 样式表必须静态锁住作者定的值（模糊 20px + 白层竖向渐变 97→83% + 遮罩径向渐变 16→34%）
   const css = styleTagOf(dom).textContent
-  assert.match(css, /body\.__dsniang-frost \.__dsniang-frost-panel\{/)
+  assert.match(css, /body\.__dshui-frost \.__dshui-frost-panel\{/)
   assert.match(css, /blur\(var\(--dsniang-frost-panel-blur,20px\)\)/)
   // 底色必须被简写一起重置成透明：否则渐变叠在实心底色上，两端差不到 1.5%（等于白做）
-  assert.match(css, /__dsniang-frost-panel\{background:linear-gradient\(180deg,/)
+  assert.match(css, /__dshui-frost-panel\{background:linear-gradient\(180deg,/)
   assert.match(css, /var\(--dsniang-frost-panel-top,0\.97\)\) 0%/)
   assert.match(css, /var\(--dsniang-frost-panel-bottom,0\.83\)\) 100%\)!important/)
   // 全屏变暗遮罩：每个 mask 类都必须带 body 开关前缀（不带前缀的会变成全局规则）
-  assert.match(css, /body\.__dsniang-frost \.dshwv-usage-mask,body\.__dsniang-frost \.dshwv-resmask/)
+  assert.match(css, /body\.__dshui-frost \.dshwv-usage-mask,body\.__dshui-frost \.dshwv-resmask/)
   // 0.3.1 起：DSH 自己的全屏遮罩（DropOverlay）也进同一个名单（渐变 + 抬层级）
-  assert.match(css, /body\.__dsniang-frost \.XPF3fq_mask\{/)
+  assert.match(css, /body\.__dshui-frost \.XPF3fq_mask\{/)
   // DSH 自带模态框（0.3.3）：装有 dialog 的容器整体抬升 + 垫径向渐变变暗
   // （dialog 是 relative + z:1，出不了容器的叠层上下文，抬 dialog 本身没用）
   assert.match(
     css,
-    /body\.__dsniang-frost :has\(> \[role="dialog"\]\)\{z-index:2147483005!important;background:radial-gradient\(ellipse at center, rgba\(15,23,42,var\(--dsniang-panel-mask-center,0\.16\)\)/,
+    /body\.__dshui-frost :has\(> \[role="dialog"\]\)\{z-index:2147483005!important;background:radial-gradient\(ellipse at center, rgba\(15,23,42,var\(--dsniang-panel-mask-center,0\.16\)\)/,
   )
   assert.match(css, /radial-gradient\(ellipse at center, rgba\(15,23,42,var\(--dsniang-panel-mask-center,0\.16\)\) 0%/)
   assert.match(css, /var\(--dsniang-panel-mask-edge,0\.34\)\) 100%\)!important;/)
@@ -1652,11 +1652,11 @@ test('扩展毛玻璃表面：问答窗口跟主表面同参数，二级面板�
   assert.match(css, /backdrop-filter:blur\(var\(--dsniang-frost-bubble-blur,12px\)\) saturate\(1\.15\)!important;/)
   // 层级（v0.2.37）：二级窗口与遮罩必须抬到**壁纸层（z-index 2147483000）之上**，
   // 于是绘制顺序 = 背景图/UI → 变暗 → 二级窗口，面板的玻璃才糊得到壁纸。
-  assert.match(css, /__dsniang-frost-panel\{[^}]*z-index:2147483010!important;/)
+  assert.match(css, /__dshui-frost-panel\{[^}]*z-index:2147483010!important;/)
   assert.match(css, /\.dshwv-usage-mask[^{]*\{background:radial-gradient[^}]*z-index:2147483005!important;/)
   // 主表面（输入卡片 / 我的气泡）**不许**动 z-index：它们要留在壁纸下面（multiply 作用在它们身上）
   assert.equal(
-    /__dsniang-frost-surface\{[^}]*z-index/.test(css),
+    /__dshui-frost-surface\{[^}]*z-index/.test(css),
     false,
     '主表面不许被抬高（panel/mask 才抬）',
   )
@@ -1670,9 +1670,9 @@ test('扩展毛玻璃表面：问答窗口跟主表面同参数，二级面板�
   // 关掉毛玻璃：两类标记都必须摘干净（不许留一堆半透明面板）
   api.setFrostEnabled(false)
   dom.advance(600)
-  assert.equal(questionCard.classList.contains('__dsniang-frost-surface'), false)
-  assert.equal(whaleMenu.classList.contains('__dsniang-frost-panel'), false)
-  assert.equal(slotList.classList.contains('__dsniang-frost-panel'), false)
+  assert.equal(questionCard.classList.contains('__dshui-frost-surface'), false)
+  assert.equal(whaleMenu.classList.contains('__dshui-frost-panel'), false)
+  assert.equal(slotList.classList.contains('__dshui-frost-panel'), false)
 })
 
 test('面板白层滑块：拖动即时生效、写进存档、刷新后读回（只管二级面板）', async () => {
@@ -1708,13 +1708,13 @@ test('面板白层滑块：拖动即时生效、写进存档、刷新后读回�
   assert.equal(dom.body.style.getPropertyValue('--dsniang-frost-bubble-mix'), '20%', '透明度 80 → 保留 20')
   assert.equal(api.status().frost.bubbleTransparency, 80)
   assert.equal(
-    dom.document.querySelectorAll('.__dsniang-bubble-transparency-value')[0].textContent,
+    dom.document.querySelectorAll('.__dshui-bubble-transparency-value')[0].textContent,
     '80%',
     '数值文案要跟着滑块走',
   )
   assert.match(api.diagnose(), /气泡 80%透/, '诊断里要看得见气泡透明度')
   assert.equal(
-    JSON.parse(dom.window.localStorage.getItem('__dsniang.frost.v3')).bubbleTransparency,
+    JSON.parse(dom.window.localStorage.getItem('__dshui.frost.v3')).bubbleTransparency,
     80,
     '气泡透明度要存档',
   )
@@ -1735,13 +1735,13 @@ test('面板白层滑块：拖动即时生效、写进存档、刷新后读回�
   assert.equal(dom.body.style.getPropertyValue('--dsniang-frost-bubble-blur'), '20px')
   assert.equal(api.status().frost.bubbleBlur, 20)
   assert.equal(
-    dom.document.querySelectorAll('.__dsniang-bubble-blur-value')[0].textContent,
+    dom.document.querySelectorAll('.__dshui-bubble-blur-value')[0].textContent,
     '20px',
     '数值文案要跟着滑块走',
   )
   assert.match(api.diagnose(), /气泡 45%透·20px/, '诊断里要看得见气泡模糊')
   assert.equal(
-    JSON.parse(dom.window.localStorage.getItem('__dsniang.frost.v3')).bubbleBlur,
+    JSON.parse(dom.window.localStorage.getItem('__dshui.frost.v3')).bubbleBlur,
     20,
     '气泡模糊要存档',
   )
@@ -1757,7 +1757,7 @@ test('面板白层滑块：拖动即时生效、写进存档、刷新后读回�
   assert.equal(api.status().frost.bubbleColor, '#123abc')
   assert.equal(dom.body.style.getPropertyValue('--dsniang-bubble-color'), '#123abc', '自选色写到 body 变量')
   assert.equal(
-    JSON.parse(dom.window.localStorage.getItem('__dsniang.frost.v3')).bubbleColor,
+    JSON.parse(dom.window.localStorage.getItem('__dshui.frost.v3')).bubbleColor,
     '#123abc',
     '自选色要存档',
   )
@@ -1771,7 +1771,7 @@ test('面板白层滑块：拖动即时生效、写进存档、刷新后读回�
   assert.equal(api.status().frost.bubbleColor, '', '点原色要清掉自选色')
   assert.equal(dom.body.style.getPropertyValue('--dsniang-bubble-color'), '', 'body 变量要摘掉')
   assert.equal(
-    JSON.parse(dom.window.localStorage.getItem('__dsniang.frost.v3')).bubbleColor,
+    JSON.parse(dom.window.localStorage.getItem('__dshui.frost.v3')).bubbleColor,
     '',
     '原色也要存档',
   )
@@ -1792,15 +1792,15 @@ test('面板白层滑块：拖动即时生效、写进存档、刷新后读回�
   assert.equal(api.status().frost.panelAlphaTop, 0.62)
   assert.equal(api.status().frost.panelAlphaBottom, 0.4)
   assert.equal(
-    dom.document.querySelectorAll('.__dsniang-panel-top-value')[0].textContent,
+    dom.document.querySelectorAll('.__dshui-panel-top-value')[0].textContent,
     '62%',
     '数值文案要跟着滑块走',
   )
   assert.match(api.diagnose(), /白层 62→40% 渐变/, '诊断里要看得见这两个值')
-  assert.equal(dom.document.querySelectorAll('#__dsniang-switcher').length, 1, '拖滑块不许关面板')
+  assert.equal(dom.document.querySelectorAll('#__dshui-switcher').length, 1, '拖滑块不许关面板')
   assert.equal(styleTagOf(dom).textContent, cssBefore, '拖滑块不许改写样式表（静态表）')
 
-  const saved = JSON.parse(dom.window.localStorage.getItem('__dsniang.frost.v3'))
+  const saved = JSON.parse(dom.window.localStorage.getItem('__dshui.frost.v3'))
   assert.equal(saved.panelTop, 0.62, '要存档')
   assert.equal(saved.panelBottom, 0.4)
 
@@ -1811,7 +1811,7 @@ test('面板白层滑块：拖动即时生效、写进存档、刷新后读回�
 
   // 刷新：新会话从存档读回，变量也要重新落上
   const next = buildChatDom()
-  next.window.localStorage.setItem('__dsniang.frost.v3', JSON.stringify(saved))
+  next.window.localStorage.setItem('__dshui.frost.v3', JSON.stringify(saved))
   const two = runClient(next)
   await flush()
   two.api.setMode('multiply')
@@ -1837,12 +1837,12 @@ test('v0.6.2 把「薄纱 / 白层 / 面板白层」的最低值都往下放（�
   assert.equal(api.status().frost.alpha, 0.05, '5% 白层要接受（以前被下限挡掉）')
   assert.equal(dom.body.style.getPropertyValue('--dsniang-frost-alpha'), '0.05')
   assert.equal(
-    JSON.parse(dom.window.localStorage.getItem('__dsniang.frost.v3')).alpha,
+    JSON.parse(dom.window.localStorage.getItem('__dshui.frost.v3')).alpha,
     0.05,
     '5% 白层要存档',
   )
   assert.equal(
-    dom.document.querySelectorAll('.__dsniang-frost-alpha-value')[0].textContent,
+    dom.document.querySelectorAll('.__dshui-frost-alpha-value')[0].textContent,
     '5%',
     '数值文案要跟着滑块走',
   )
@@ -1869,9 +1869,9 @@ test('v0.6.2 把「薄纱 / 白层 / 面板白层」的最低值都往下放（�
   // 注意要带上"迁移已跑过"的标记：全新 profile 的首次迁移会把"低于出厂默认"的值提上来
   // （只升不降、只跑一次，v0.2.30 的老行为），那是**默认值**纪律，不是范围下限。
   const next = buildChatDom()
-  next.window.localStorage.setItem('__dsniang.glass.v1', '1')
+  next.window.localStorage.setItem('__dshui.glass.v1', '1')
   next.window.localStorage.setItem(
-    '__dsniang.frost.v3',
+    '__dshui.frost.v3',
     JSON.stringify({ enabled: true, alpha: 0.04, panelTop: 0.12, panelBottom: 0.11 }),
   )
   const two = runClient(next)
@@ -1885,7 +1885,7 @@ test('v0.6.2 把「薄纱 / 白层 / 面板白层」的最低值都往下放（�
 test('气泡参数迁移：v0.2.39 的 bubbleMix（颜色保留 %）等价换算成透明度，视觉不变', async () => {
   const dom = buildChatDom()
   dom.window.localStorage.setItem(
-    '__dsniang.frost.v3',
+    '__dshui.frost.v3',
     JSON.stringify({ enabled: true, layered: true, blur: 7, alpha: 0.3, bubbleMix: 60 }),
   )
   const { api } = runClient(dom)
@@ -1898,7 +1898,7 @@ test('气泡参数迁移：v0.2.39 的 bubbleMix（颜色保留 %）等价换算
 })
 
 test('一次性迁移：低于出厂默认的旧模糊 / 白层只提一次（只升不降），之后以滑块为准', async () => {
-  const key = '__dsniang.frost.v3'
+  const key = '__dshui.frost.v3'
   const legacy = JSON.stringify({ enabled: true, layered: true, blur: 1, alpha: 0.15 })
 
   const first = buildChatDom()
@@ -1908,7 +1908,7 @@ test('一次性迁移：低于出厂默认的旧模糊 / 白层只提一次（�
   assert.equal(one.api.status().frost.blur, 2, '模糊 1px（低于出厂默认）→ 提到出厂默认')
   assert.equal(one.api.status().frost.alpha, 0.25, '白层 15%（低于出厂默认）→ 提到出厂默认')
   assert.equal(JSON.parse(first.window.localStorage.getItem(key)).blur, 2, '迁移结果要落盘')
-  assert.equal(first.window.localStorage.getItem('__dsniang.glass.v1'), '1', '迁移标记只写一次')
+  assert.equal(first.window.localStorage.getItem('__dshui.glass.v1'), '1', '迁移标记只写一次')
 
   // 比默认更"重"的口味原样保留（迁移只升不降）
   const heavy = buildChatDom()
@@ -1921,7 +1921,7 @@ test('一次性迁移：低于出厂默认的旧模糊 / 白层只提一次（�
   // 第二次：迁移标记已在 → 尊重用户当时的选择（哪怕又调回 1px）
   const second = buildChatDom()
   second.window.localStorage.setItem(key, legacy)
-  second.window.localStorage.setItem('__dsniang.glass.v1', '1')
+  second.window.localStorage.setItem('__dshui.glass.v1', '1')
   const two = runClient(second)
   await flush()
   assert.equal(two.api.status().frost.blur, 1)
@@ -2010,7 +2010,7 @@ test('点击永不拦截页面事件（不 preventDefault、不 stopPropagation�
   const dom = buildChatDom()
   runClient(dom)
   await flush()
-  dom.window.__DSNIANG__.setMode('multiply')
+  dom.window.__DSHUI__.setMode('multiply')
   const event = clickOn(dom, dom.panel)
   assert.equal(event.defaultPrevented, false, '不能 preventDefault')
   assert.equal(event.cancelBubble, undefined, '不能 stopPropagation')
@@ -2062,7 +2062,7 @@ test('图片切换：候选来自宿主，切图只换 URL 不刷新页面', asy
 
   // 交叉淡化：旧图冻结在第一层内联，第二层放新图从 0 淡入，不经过空白
   assert.equal(layerOf(dom).classList.contains('is-faded'), false, '换图不应先淡出到空白')
-  const layer2 = dom.document.getElementById('__dsniang-layer2')
+  const layer2 = dom.document.getElementById('__dshui-layer2')
   assert.ok(layer2, '交叉淡化期间应有第二图层')
   assert.match(
     String(layer2.style.getPropertyValue('background-image')),
@@ -2086,7 +2086,7 @@ test('图片切换：候选来自宿主，切图只换 URL 不刷新页面', asy
   // 万一那一帧新位图还没就绪就是整屏背景消失一下 = 用户看到的白光）
   const layer2El = layer2
   dom.advance(600)
-  assert.equal(dom.document.getElementById('__dsniang-layer2'), null, '不再有第二层元素')
+  assert.equal(dom.document.getElementById('__dshui-layer2'), null, '不再有第二层元素')
   assert.equal(layerOf(dom), layer2El, '应把第二层扶正为主层（而不是改第一层的图）')
   assert.match(
     String(layerOf(dom).style.getPropertyValue('background-image')),
@@ -2154,7 +2154,7 @@ test('毛玻璃接管/归还卡片底色无缝（不闪白光）', async () => {
   assert.ok(fadingAlpha > 0.25 && fadingAlpha <= 0.85, '淡出应朝原生白底回升，实际 ' + fadingAlpha)
   dom.advance(600)
   assert.equal(dom.body.style.getPropertyValue('--dsniang-frost-alpha'), '', '摘类后变量清掉')
-  assert.equal(dom.body.classList.contains('__dsniang-frost'), false, '摘类完成')
+  assert.equal(dom.body.classList.contains('__dshui-frost'), false, '摘类完成')
 })
 
 test('淡出中途切回纹理：不卸载、直接淡回', async () => {
@@ -2252,13 +2252,23 @@ test('静态样式表：换图 / 拖浓度 / 调薄纱都不会改写 <style>（
   )
 })
 
-test('URL 覆盖：?dsniang=multiply / ?dsniang=0.15 / 非法值回落关闭', async () => {
+test('URL 覆盖：?dshui=multiply / ?dsniang=（旧名兼容）/ 非法值回落关闭', async () => {
   const mul = buildChatDom()
+  const nw = buildChatDom()
+  nw.window.location.href = 'http://localhost/?dshui=multiply'
+  const rn = runClient(nw)
+  await flush()
+  assert.equal(rn.api.status().mode, 'multiply', '?dshui=multiply 应切到 multiply（新参数名）')
+  const nw2 = buildChatDom()
+  nw2.window.location.href = 'http://localhost/?dshui=0.15'
+  const rn2 = runClient(nw2)
+  await flush()
+  assert.equal(rn2.api.status().mode, 'off', '新参数里的数字（旧 scrim 写法）非法 → 回落关闭')
   mul.window.location.href = 'http://localhost/?dsniang=multiply'
   const r1 = runClient(mul)
   await flush()
   assert.equal(r1.api.status().mode, 'multiply', '?dsniang=multiply 应切到 multiply')
-  assert.equal(mul.window.localStorage.getItem('__dsniang.mode'), 'multiply', '并记住偏好')
+  assert.equal(mul.window.localStorage.getItem('__dshui.mode'), 'multiply', '并记住偏好')
 
   const dim = buildChatDom()
   dim.window.location.href = 'http://localhost/?dsniang=0.15'
@@ -2289,7 +2299,7 @@ test('URL 覆盖：?dsniang=multiply / ?dsniang=0.15 / 非法值回落关闭', a
   const r4 = runClient(img)
   await flush()
   assert.equal(
-    img.window.localStorage.getItem('__dsniang.image'),
+    img.window.localStorage.getItem('__dshui.image'),
     'deepseek 黑白无水面.png',
     '?img= 应被记住，并在启动时问宿主取这张图',
   )
@@ -2318,7 +2328,7 @@ test('#dsniang-off：即使被注入也直接不动作', async () => {
   assert.equal(layerOf(dom), null)
   assert.equal(styleTagOf(dom), null)
   assert.equal(pillOf(dom), null, '应急开关下连入口都不出现')
-  assert.equal(dom.window.localStorage.getItem('__dsniang.mode'), 'off', '应记住关闭状态')
+  assert.equal(dom.window.localStorage.getItem('__dshui.mode'), 'off', '应记住关闭状态')
 })
 
 test('模式偏好会被记住（刷新后仍生效）', async () => {
@@ -2326,7 +2336,7 @@ test('模式偏好会被记住（刷新后仍生效）', async () => {
   const { api } = runClient(dom)
   await flush()
   api.setMode('multiply')
-  assert.equal(dom.window.localStorage.getItem('__dsniang.mode'), 'multiply')
+  assert.equal(dom.window.localStorage.getItem('__dshui.mode'), 'multiply')
 
   // 再跑一遍脚本 = 刷新
   const { api: api2 } = runClient(dom)
@@ -2340,7 +2350,7 @@ test('诊断：文本可读、面板可开可关、点面板不触发恢复', as
   await flush()
 
   const text = api.diagnose()
-  assert.match(text, /用于DSH的DS娘美化插件 v\d+\.\d+\.\d+/)
+  assert.match(text, /DSH UI Beautify v\d+\.\d+\.\d+/)
   assert.match(text, /模式: off/)
 
   const box = api.diag()
@@ -2350,7 +2360,7 @@ test('诊断：文本可读、面板可开可关、点面板不触发恢复', as
   assert.equal(api.status().override, false, '点诊断面板不该触发恢复')
 
   api.diag()
-  assert.equal(dom.document.querySelectorAll('#__dsniang-diag').length, 0, '再点一次应关闭')
+  assert.equal(dom.document.querySelectorAll('#__dshui-diag').length, 0, '再点一次应关闭')
 })
 
 test('背景图缺失：层仍在，但记录错误且不崩', async () => {
@@ -2372,7 +2382,7 @@ test('切换器面板：三个按钮（关闭/纹理/背景）+ 浓度滑块，�
   const box = api.switcher()
   assert.ok(box, '应开出切换器')
   assert.equal(box.parentNode, dom.body)
-  assert.equal(dom.document.querySelectorAll('#__dsniang-switcher').length, 1)
+  assert.equal(dom.document.querySelectorAll('#__dshui-switcher').length, 1)
 
   // 只有「关闭 / 纹理 / 背景」三个模式按钮（0.3.0：旧「待更新」占位被「背景」替换）
   const buttons = box.querySelectorAll('[data-mode-button]')
@@ -2389,15 +2399,15 @@ test('切换器面板：三个按钮（关闭/纹理/背景）+ 浓度滑块，�
   multiplyBtn._listeners.click[0]({ type: 'click', target: multiplyBtn, stopPropagation() {} })
   assert.equal(api.status().mode, 'multiply', '点按钮应切到 multiply')
   assert.equal(layerOf(dom).getAttribute('data-mode'), 'multiply')
-  assert.equal(dom.window.localStorage.getItem('__dsniang.mode'), 'multiply')
-  assert.equal(dom.document.querySelectorAll('#__dsniang-switcher').length, 1, '切模式后面板不应关闭')
+  assert.equal(dom.window.localStorage.getItem('__dshui.mode'), 'multiply')
+  assert.equal(dom.document.querySelectorAll('#__dshui-switcher').length, 1, '切模式后面板不应关闭')
 
   // 纹理模式下有浓度滑块；拖到 0.2 应生效且面板不关
   const slider = dom.document.querySelectorAll('[data-opacity-slider]')[0]
   assert.ok(slider, '纹理模式下应有浓度滑块')
   assert.match(api.setOpacity(0.2), /浓度 = 0\.2/)
   assert.equal(api.status().opacity, 0.2, '浓度应更新到纹理模式')
-  assert.equal(dom.document.querySelectorAll('#__dsniang-switcher').length, 1, '调浓度后面板也不应关闭')
+  assert.equal(dom.document.querySelectorAll('#__dshui-switcher').length, 1, '调浓度后面板也不应关闭')
 
   // 纹理模式下有毛玻璃三件套：开关 + 模糊 + 雾度（分层开关已按用户要求移除）
   const frostToggle = dom.document.querySelectorAll('[data-frost-toggle]')[0]
@@ -2425,15 +2435,15 @@ test('切换器面板：三个按钮（关闭/纹理/背景）+ 浓度滑块，�
   frostSlider._listeners.input[0]({ type: 'input', target: frostSlider, stopPropagation() {} })
   assert.equal(api.status().frost.blur, 26)
   assert.equal(dom.body.style.getPropertyValue('--dsniang-frost-blur'), '26px')
-  assert.equal(dom.document.querySelectorAll('#__dsniang-switcher').length, 1, '拖毛玻璃滑块后面板不应关闭')
+  assert.equal(dom.document.querySelectorAll('#__dshui-switcher').length, 1, '拖毛玻璃滑块后面板不应关闭')
 
   // 点开关 → 关掉毛玻璃（先淡出，动画结束后卡片类移除、面板仍在）
   frostToggle._listeners.click[0]({ type: 'click', target: frostToggle, stopPropagation() {} })
   assert.equal(api.status().frost.enabled, false, '毛玻璃应关闭')
-  assert.equal(dom.composerWrap.classList.contains('__dsniang-frost-surface'), true, '淡出期间标记应还在')
+  assert.equal(dom.composerWrap.classList.contains('__dshui-frost-surface'), true, '淡出期间标记应还在')
   dom.advance(600)
-  assert.equal(dom.composerWrap.classList.contains('__dsniang-frost-surface'), false, '淡出完成后卡片标记应清除')
-  assert.equal(dom.document.querySelectorAll('#__dsniang-switcher').length, 1, '开关后面板不应关闭')
+  assert.equal(dom.composerWrap.classList.contains('__dshui-frost-surface'), false, '淡出完成后卡片标记应清除')
+  assert.equal(dom.document.querySelectorAll('#__dshui-switcher').length, 1, '开关后面板不应关闭')
 
   // 点「背景」→ 切到 backdrop（图垫底），面板不关
   const backdropBtn = dom.document
@@ -2442,7 +2452,7 @@ test('切换器面板：三个按钮（关闭/纹理/背景）+ 浓度滑块，�
   backdropBtn._listeners.click[0]({ type: 'click', target: backdropBtn, stopPropagation() {} })
   assert.equal(api.status().mode, 'backdrop', '点背景应切到 backdrop')
   assert.equal(layerOf(dom).getAttribute('data-mode'), 'backdrop')
-  assert.equal(dom.document.querySelectorAll('#__dsniang-switcher').length, 1, '切背景后面板不应关闭')
+  assert.equal(dom.document.querySelectorAll('#__dshui-switcher').length, 1, '切背景后面板不应关闭')
 
   // 点「关闭」→ 先淡出，动画结束后恢复默认
   const off = dom.document
@@ -2472,11 +2482,11 @@ test('面板：任何操作后面板都不能乱窜（重建后仍贴在胶囊�
   ]
   const dom = buildChatDom()
   // 胶囊被拖到自定义位置：面板必须跟着它，而不是回到默认的 12/52
-  dom.window.localStorage.setItem('__dsniang.pill', JSON.stringify({ left: 300, top: 120 }))
+  dom.window.localStorage.setItem('__dshui.pill', JSON.stringify({ left: 300, top: 120 }))
   const { api } = runClient(dom, { statusImages: images })
   await flush()
 
-  const current = () => dom.document.getElementById('__dsniang-switcher')
+  const current = () => dom.document.getElementById('__dshui-switcher')
   const at = () => [
     current().style.getPropertyValue('left'),
     current().style.getPropertyValue('top'),
@@ -2525,7 +2535,7 @@ test('动效底座（0.7.0）：总开关默认关，面板/快捷键/存档/系
   assert.match(api.diagnose(), /动效: 关/, '诊断要看得见「动效: 关」')
   assert.equal(api.setMotion(true), '动效：开')
   assert.equal(api.status().motion.enabled, true)
-  assert.equal(JSON.parse(dom.window.localStorage.getItem('__dsniang.motion.v1')).enabled, true, '开关要存档')
+  assert.equal(JSON.parse(dom.window.localStorage.getItem('__dshui.motion.v1')).enabled, true, '开关要存档')
 
   // 面板上的开关（在两种模式的面板里都要有）
   api.setMode('multiply')
@@ -2535,7 +2545,7 @@ test('动效底座（0.7.0）：总开关默认关，面板/快捷键/存档/系
   assert.equal(toggle.textContent, '动效：开')
   toggle._listeners.click[0]({ type: 'click', target: toggle, stopPropagation() {} })
   assert.equal(api.status().motion.enabled, false, '点一下 = 关')
-  assert.equal(JSON.parse(dom.window.localStorage.getItem('__dsniang.motion.v1')).enabled, false, '关闭也要存档')
+  assert.equal(JSON.parse(dom.window.localStorage.getItem('__dshui.motion.v1')).enabled, false, '关闭也要存档')
 
   // 快捷键 Ctrl+Shift+Alt+M
   const press = (key) => {
@@ -2557,7 +2567,7 @@ test('动效底座（0.7.0）：总开关默认关，面板/快捷键/存档/系
 
   // 存档读回（刷新后仍开）
   const next = buildChatDom()
-  next.window.localStorage.setItem('__dsniang.motion.v1', JSON.stringify({ enabled: true }))
+  next.window.localStorage.setItem('__dshui.motion.v1', JSON.stringify({ enabled: true }))
   const two = runClient(next)
   await flush()
   assert.equal(two.api.status().motion.enabled, true, '刷新后读回开关')
@@ -2659,9 +2669,40 @@ test('变更风暴熔断（0.7.1）不会挡掉正常路径：新出现的面板
   dom.flushMutations()
 
   assert.ok(
-    whaleMenu.classList.contains('__dsniang-frost-panel'),
+    whaleMenu.classList.contains('__dshui-frost-panel'),
     '新出现的鲸鱼面板要立刻带上玻璃类（0.7.1 的批次闸门只挡"没有新元素"的批次）',
   )
+})
+
+test('存储迁移（更名兼容）：旧前缀 __dsniang.* 自动复制到 __dshui.*，旧键保留', async () => {
+  const dom = buildChatDom()
+  // 模拟 0.7.x（旧名 dsh-dsniang-beautify）留下的设置
+  dom.window.localStorage.setItem('__dsniang.mode', 'multiply')
+  dom.window.localStorage.setItem('__dsniang.frost.v3', JSON.stringify({ enabled: true, blur: 9 }))
+  dom.window.localStorage.setItem('__dsniang.motion.v1', JSON.stringify({ enabled: true }))
+
+  const { api } = runClient(dom)
+  await flush()
+
+  // 新前缀被写入，且内容一致
+  assert.equal(dom.window.localStorage.getItem('__dshui.mode'), 'multiply', '模式要迁移到新前缀')
+  assert.equal(JSON.parse(dom.window.localStorage.getItem('__dshui.frost.v3')).blur, 9, '毛玻璃参数要迁移')
+  assert.equal(JSON.parse(dom.window.localStorage.getItem('__dshui.motion.v1')).enabled, true, '动效开关要迁移')
+  // 旧键保留（便于回滚到 0.7.x）
+  assert.equal(dom.window.localStorage.getItem('__dsniang.mode'), 'multiply', '旧键要保留')
+  // 迁移计数进状态与诊断
+  assert.equal(api.status().storageMigrated, 3, '应报告迁移了 3 个键')
+  assert.match(api.diagnose(), /存储: 已从旧版迁移 3 项/)
+
+  // 二次启动：新键已存在 → 不覆盖、不再重复迁移
+  const dom2 = buildChatDom()
+  dom2.window.localStorage.setItem('__dsniang.mode', 'off')
+  dom2.window.localStorage.setItem('__dshui.mode', 'multiply')
+  const two = runClient(dom2)
+  await flush()
+  assert.equal(dom2.window.localStorage.getItem('__dshui.mode'), 'multiply', '新键优先，旧键不覆盖')
+  assert.equal(two.api.status().storageMigrated, 0, '没有需要迁移的键 → 0')
+  assert.match(two.api.diagnose(), /存储: 无需迁移/)
 })
 
 test('键盘快捷键：Alt+1=关闭 / Alt+2=纹理', async () => {
@@ -2700,10 +2741,10 @@ test('脚本重复注入：只保留一份样式', async () => {
   const { context, api } = runClient(dom)
   await flush()
   api.setMode('multiply')
-  assert.equal(dom.document.querySelectorAll('#__dsniang-style').length, 1)
+  assert.equal(dom.document.querySelectorAll('#__dshui-style').length, 1)
 
   new vm.Script(CLIENT_SOURCE, { filename: 'client.js' }).runInContext(context)
   await flush()
-  assert.equal(dom.document.querySelectorAll('#__dsniang-style').length, 1)
-  assert.equal(dom.document.querySelectorAll('#__dsniang-layer').length, 1)
+  assert.equal(dom.document.querySelectorAll('#__dshui-style').length, 1)
+  assert.equal(dom.document.querySelectorAll('#__dshui-layer').length, 1)
 })

@@ -374,7 +374,7 @@ test('路由 /status.json：报告背景来源与大小', async () => {
   assert.equal(response.headers['Content-Type'], 'application/json; charset=utf-8')
   const payload = JSON.parse(response.body)
   assert.equal(payload.ok, true)
-  assert.equal(payload.plugin, 'dsh-dsniang-beautify')
+  assert.equal(payload.plugin, 'dsh-ui-beautify')
   assert.equal(payload.version, PLUGIN_VERSION)
   assert.equal(payload.source, 'desktop')
   assert.equal(payload.url, `${ROUTE_PREFIX}/bg.png`)
@@ -596,7 +596,7 @@ test('路由 /client.js：出浏览器可执行的脚本', async () => {
   assert.equal(response.statusCode, 200)
   assert.equal(response.headers['Content-Type'], 'application/javascript; charset=utf-8')
   const source = response.body.toString('utf8')
-  assert.ok(source.includes('__DSNIANG__'), '应暴露调试句柄')
+  assert.ok(source.includes('__DSHUI__'), '应暴露调试句柄')
   // 脚本用常量拼 URL（`PREFIX + '/status.json'`），所以断言两个片段而不是完整字面量
   assert.ok(source.includes(`'${ROUTE_PREFIX}'`), '应使用插件的路由前缀')
   assert.ok(source.includes("'/status.json'"), '应探测状态接口')

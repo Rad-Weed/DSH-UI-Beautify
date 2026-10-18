@@ -1,16 +1,16 @@
 # ============================================================================
-# dsh-dsniang-beautify —— 用于 DSH 的 DS 娘美化插件 v0.1
+# dsh-ui-beautify —— 用于 DSH 的 DS 娘美化插件 v0.1
 # ============================================================================
 # 「挂载声明」：DSH 启动时按 bundle 层栈叠加各插件 patch，本文件把插件本体
 # （lib/index.js）插入 Web profile 的配置树。
 #
 # 安装（本地开发 / 本机目录）：
 #   dsh plugin --profile desktop add link:<本目录绝对路径>
-# 或直接在 profile 的 package.json 的 dsh.profile.bundles 里加 "dsh-dsniang-beautify"。
+# 或直接在 profile 的 package.json 的 dsh.profile.bundles 里加 "dsh-ui-beautify"。
 #
 # 生效方式：桌面端启动时就收集注入表与 bundle 层栈，装完需要重启 DSH 客户端。
 # ============================================================================
 
 - insert:
-    - id: dsh-dsniang-beautify
-      name: dsh-dsniang-beautify
+    - id: dsh-ui-beautify
+      name: dsh-ui-beautify

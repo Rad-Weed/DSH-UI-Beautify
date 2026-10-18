@@ -1,9 +1,10 @@
 # DSH界面美化 · DSH UI Beautify
 
-> 给 DSH 页面加 DS 娘壁纸与毛玻璃。插件包名 `dsh-dsniang-beautify`（保持不变，运行时标识/存档键也都不变）。
+> 给 DSH 页面加壁纸与毛玻璃。项目名 **DSH UI Beautify**：包名 `dsh-ui-beautify`，路由 `/dsh-ui-beautify/*`，全局 `__DSHUI__`，存储键 `__dshui.*`。
+> 原包名 `dsh-dsniang-beautify` 的旧存档会自动迁移；旧 hash（`#dsniang-off` / `#dsniang-diag`）与旧 URL 参数（`?dsniang=`）仍兼容。
 > 仓库：`Rad-Weed/DSH-UI-Beautify`（私有）
 
-**版本：v0.7.2** · 给 DSH 页面加 DS 娘背景。
+**版本：v0.7.3** · 给 DSH 页面加壁纸与毛玻璃。
 
 > ⚠️ **v0.1 出过事故**：它会改目标面板的 `position` / `overflow`，导致界面布局坍塌、
 > 基本无法操作。v0.2 从设计上取消了所有这类改动，详见下面「为什么 v0.2 不会再弄坏界面」。
@@ -14,10 +15,10 @@
 
 - **三种模式**：**关闭**（出厂默认，一个字节都不碰页面）/ **纹理**（乘法混合，壁纸化进界面 + 毛玻璃）/
   **背景**（图真正垫在内容下面 —— 文字、面板、二级窗口都在图上，另带「薄纱」滑块调亮调暗）。
-- **毛玻璃**（真 `backdrop-filter`，v0.4.0 起两种模式都开）：输入卡片、你自己发的气泡、
+- **毛玻璃**（真 `backdrop-filter`，v0.4.0 起两种模式都开）：输入卡片、用户自己发出的气泡、
   DSH 问答窗口、鲸鱼挂件的二级面板、DSH 自己的弹窗与菜单，以及**背景模式下**聊天里的
   **代码块 / 附件文件卡片**，共用一套参数（面板可调）；「通透化」负责把挡住玻璃的底色清掉。
-- **两张壁纸**：桌面上放 `deepseek 4k.png` / `deepseek 黑白无水面.png` 就用你的图；
+- **两张壁纸**：桌面上放 `deepseek 4k.png` / `deepseek 黑白无水面.png` 就用桌面上的图；
   桌面上没有就退到**包内自带的兜底图**（换台电脑也永远有两个选项）。
   面板上点一下即换，换图是**交叉淡化**（全程两张图都在场，不经过空白）。
 - **点击背景** → 淡出到默认背景（420ms 渐变）→ **2 秒后**自动渐变回壁纸。淡出期间再点一次会顺延计时。
@@ -37,7 +38,7 @@
 > **「背景」模式的设计依据与坑**：DSH 的 `body` 是唯一的全屏底板（`background:var(--dsw-alias-bg-base)`），
 > `#root` 与会话列本身没有背景 —— 按 CSS 绘制顺序，负 z-index 的图层会画在 canvas 底色之上、
 > 正文内容之下。**但**外壳还有一层 `.BynINW_frame{background:var(--dsw-alias-bg-base)}`（全屏、不透明，
-> 另一 Agent 的方案漏掉了它），v0.3.1 用 `body.__dsniang-backdrop` 类开关把它覆盖成透明、
+> 此前另一份实现漏掉了它），v0.3.1 用 `body.__dshui-backdrop` 类开关把它覆盖成透明、
 > **v0.3.2 再加强**：不再逐个猜层 —— 进入背景模式时，把「消息区 → body」整条页链上**所有**
 > 画了不透明底色的层都清成透明（只动背景两个长属性、逐字备份还原），并在诊断里上报
 > 每层实况（`diag.json` 的 `backdrop.chain`），保证"没有一层能盖住壁纸"。
@@ -50,9 +51,9 @@
 > 逐字还回去、再按新链重清。诊断里多了一个 **`自愈 N 次`** 计数（`backdrop.repairs` /
 > `frost.repairs`）——那就是"它自己修过"的证据。认不出消息区时还有一条**退路**：
 > 直接清 `#root` 那一层，首屏/加载态也不会让壁纸被盖住。想手动补一下：
-> `__DSNIANG__.reapply()`（一遍把该贴的重贴回来，不需要刷新页面）。
+> `__DSHUI__.reapply()`（一遍把该贴的重贴回来，不需要刷新页面）。
 >
-> **v0.6.4 起有「壁纸体检」**（你反馈的"整张壁纸彻底消失"）：壁纸消失除了"被盖住"，还可能
+> **v0.6.4 起有「壁纸体检」**（此前反馈的"整张壁纸彻底消失"）：壁纸消失除了"被盖住"，还可能
 > 是**图层自己出了问题** —— 节点被摘掉 / 图被抹掉 / 卡死的淡出把它变成全透明 / 塌成 0 尺寸。
 > 现在每 250ms 那一遍会顺手体检：有问题就**自己修回来**（补节点、重画图、摘掉卡死的
 > `is-faded`、没图地址时重拉一次），并且**还会去找"链外的盖子"** —— 用 `elementsFromPoint()`
@@ -62,13 +63,13 @@
 > **有意为之**，绝不误清。
 >
 > 现场怎么查：诊断面板（`Ctrl+Shift+Alt+I`）多了一行 **`壁纸: …`**；也可以随时敲
-> **`__DSNIANG__.wallpaper()`**，它会直接点名 —— 例如
-> `图层在 · 图 /dsh-dsniang/bg.png · 链外盖子 1 个：div._loading（已清） · 自愈累计 2 次`，
+> **`__DSHUI__.wallpaper()`**，它会直接点名 —— 例如
+> `图层在 · 图 /dsh-ui-beautify/bg.png · 链外盖子 1 个：div._loading（已清） · 自愈累计 2 次`，
 > 或者 `图层缺（已补） · 本次修了 detached`。
 >
 > **v0.6.5 修「还是会白闪一下」**：v0.6.4 的抢修是**去抖 250ms 之后**才跑的 —— 于是
 > "先白一下、再变回来"。现在抢修改到 **`MutationObserver` 回调里同步做**：那个回调是
-> **微任务**，跑在**浏览器绘制之前**，所以在你看不到任何一帧之前，链就已经清好了。
+> **微任务**，跑在**浏览器绘制之前**，所以在任何一帧被绘制之前，链就已经清好了。
 > 抢修只做三件便宜事（图层体检 / 顶层新盖子 / **链形状变了没有**），贵的那一遍（全量打标、
 > 分层、昂贵重试）仍然留在 250ms 去抖里。诊断行末尾会显示 **`最近抢修延迟 Xms`**：
 > 个位数毫秒 = 同步抢在渲染前（看不到闪），≥100ms = 只能等去抖（会闪一下）。
@@ -128,18 +129,18 @@ backdrop-filter: blur(2px) saturate(1.15);    /* 把这层"背后"的内容先�
 > 直接读 DSH 自己的样式（`app.asar` 里的 `ConversationRoot.module.css`）可以看到
 > 输入区座位自带一条遮罩：
 >
-> ```css
+> ``css
 > .Dc7zOa_root[data-phase=active] .Dc7zOa_composerSeat{
 >   z-index:7; position:sticky; bottom:0;
 >   background:linear-gradient(180deg,
 >     color-mix(in srgb, var(--dsw-alias-bg-base) 0%, transparent) 0px,
 >     var(--dsw-alias-bg-base) 36px);
 > }
-> ```
+> ``
 >
 > 它是**从透明渐变到页面底色**的一条"擦除带"：消息从输入区下面滚过时被它整段盖成
 > 纯色 —— 于是 `backdrop-filter` 背后永远是一块纯色，**糊什么都看不出来**；再加上
-> 我们半透明白层底下还是白，视觉上就和没开毛玻璃完全一样（用户反馈的
+> 我们半透明白层底下还是白，视觉上就和没开毛玻璃完全一样（此前反馈的
 > "感觉与最开始没有任何区别" 就是这个原因）。
 >
 > v0.2.30 起，开关毛玻璃时会做一次**「通透化」**：把**卡片 → 消息区之间**那条祖先链
@@ -156,7 +157,7 @@ backdrop-filter: blur(2px) saturate(1.15);    /* 把这层"背后"的内容先�
 > 同时做**一次性参数迁移**：0.2.29 及更早，玻璃背后被遮罩挡着，参数怎么调都看不出来，
 > 于是不少存档里躺着"等于没开"的值（模糊 0~1px / 白层 15%）。首次运行 v0.2.30 时，
 > **低于出厂默认**的旧值会被提到出厂默认（**只升不降**：比默认更"重"的口味原样保留）
-> 并把结果落盘；迁移标记写在 `localStorage['__dsniang.glass.v1']`，**只发生一次**，
+> 并把结果落盘；迁移标记写在 `localStorage['__dshui.glass.v1']`，**只发生一次**，
 > 之后一律以滑块为准。
 >
 > 诊断面板的「毛玻璃」一栏会多出一段：`· 通透 已开（清了 N 层遮挡）`
@@ -166,7 +167,7 @@ backdrop-filter: blur(2px) saturate(1.15);    /* 把这层"背后"的内容先�
 作用范围：
 
 - **主表面**：**输入卡片** `[data-composer-card="true"]`（含权限/模型操作区）
-  + **你自己发出的消息气泡**（靠右 / `data-role="user"` /
+  + **用户自己发出的消息气泡**（靠右 / `data-role="user"` /
   行标记 `data-chat-flow-kind="user"` 判定；助手输出绝不打标）。
 
   > **长消息气泡也算（v0.2.37 修）**：旧版有一条 `rect.height > 400` 的绝对高度上限，
@@ -179,7 +180,7 @@ backdrop-filter: blur(2px) saturate(1.15);    /* 把这层"背后"的内容先�
   > ⚠️ **气泡不再换色，只调透明度（v0.2.39 定的"方案 B"；v0.2.40 起三个旋钮全开放）**：
   > DSH 的气泡（`.cJsG2q_bubble`）**全部外观只有一条** `background: var(--dsw-specific-bubble)` ——
   > 一个**不透明**的浅蓝底。之前 v0.2.37/0.2.38 试过把它换成"半透明白玻璃"，结果白层一低
-  > 气泡就"只剩文字、形状没了"（你的原话"没有气泡了"）。
+  > 气泡就"只剩文字、形状没了"（当时的反馈："没有气泡了"）。
   >
   > 现在改成：**保留颜色，只调透明度** —— `color-mix(in srgb, <气泡颜色> 保留%, transparent)`。
   > 面板上三个控件（都在纹理模式的面板里）：
@@ -195,7 +196,7 @@ backdrop-filter: blur(2px) saturate(1.15);    /* 把这层"背后"的内容先�
   - **鲸鱼挂件的各级面板**（`dshwv-menu` / `dshwv-usage-card` / `dshwv-bubcard` /
     `dshwv-rolelist` / `dshwv-audiolist` / `dshwv-rgbmenu` / … —— 类名是作者手写的，
     不是构建哈希）—— 这些是**二级面板**，走**单独一套参数**：
-    **模糊 20px**、白层是**竖向渐变 97% → 83%**（中值 = 你要的白层 90%；
+    **模糊 20px**、白层是**竖向渐变 97% → 83%**（中值 = 目标白层 90%；
     这两个端点面板上有滑块可以自己拖，见下）。
 
     > ⚠️ **为什么白层是渐变而不是一个平的白**：鲸鱼面板**本来就不透明** ——
@@ -208,10 +209,10 @@ backdrop-filter: blur(2px) saturate(1.15);    /* 把这层"背后"的内容先�
 
   这些表面由别的插件渲染，插件只给它们**加一个类**（改背景 + 上模糊），
   不动 position / 尺寸 / 层级，也不改那些插件的源码。两类各用各的类：
-  主表面 / 问答窗口 = `__dsniang-frost-surface`，二级面板 = `__dsniang-frost-panel`。
+  主表面 / 问答窗口 = `__dshui-frost-surface`，二级面板 = `__dshui-frost-panel`。
 
   - **DSH 自己的二级界面（v0.3.1 起）**：`role="dialog"`（会话重命名窗、快捷键面板、
-    各类弹窗）与 `role="menu"`（下拉菜单）也走 `__dsniang-frost-panel` 同一套玻璃参数；
+    各类弹窗）与 `role="menu"`（下拉菜单）也走 `__dshui-frost-panel` 同一套玻璃参数；
     对话框底下那层全屏变暗遮罩（`.XPF3fq_mask`，DropOverlay）与鲸鱼遮罩同款处理
     （更轻的径向渐变 + 抬到壁纸之上）。DSH 的类名是构建哈希、每版都变，
     所以用这两个**稳定的语义 role** 做钩子；诊断里显示 `DSH 面板 N 个`。
@@ -234,11 +235,11 @@ backdrop-filter: blur(2px) saturate(1.15);    /* 把这层"背后"的内容先�
     另外弹窗（`role="dialog"`）里的代码块**不再重复贴一层**：先糊面板、再收代码块，
     "祖先已糊就别套娃"的闸门才拦得住（双层 `backdrop-filter` 会互相啃成死白）。
 
-  - ~~**气泡浮层（v0.5.0 起，默认关）**~~ **已在 v0.7.1 删除**（用户：「直接关掉并删去这个选项」）。
+  - ~~**气泡浮层（v0.5.0 起，默认关）**~~ **已在 v0.7.1 删除**（需求：直接关掉并删去这个选项）。
     它曾给每个气泡生成一个 body 级玻璃壳并把壳抬到纹理壁纸之上，好让气泡在**纹理模式**下也有玻璃；
     但结构上必然失败：纹理模式的壁纸压在 UI 之上，壳要糊到壁纸就必须抬到壁纸之上，
-    **于是也压在你的气泡文字之上**；而 `backdrop-filter` 糊的是"它后面画过的一切"——包括文字
-    （实测现象：「气泡是有了，但把文字遮罩住了」）。
+    **于是也压在气泡文字之上**；而 `backdrop-filter` 糊的是"它后面画过的一切"——包括文字
+    （实测现象：气泡是有了，但把文字遮罩住了）。
     ⇒ **纹理模式下"糊壁纸"与"文字清晰"不可兼得**。想要气泡真玻璃请用**「背景」模式**：
     那里壁纸垫在 `z-index:-1`，气泡的 backdrop 天然包含壁纸，不需要任何壳、文字也一像素不糊。
     整套壳机制（`FLOAT_SHELL_CLASS` / 同步 rAF 循环 / `bubbleFloat` 存档键）已一并删除，
@@ -270,7 +271,7 @@ backdrop-filter: blur(2px) saturate(1.15);    /* 把这层"背后"的内容先�
   > 2 万、面板 2.6 万 —— 壁纸压在它们之上，导致 ① 面板的玻璃其实糊在"遮罩+界面"上而不是壁纸、
   > ② 遮罩的渐变被 multiply 压掉。现在把**遮罩与面板**的 `z-index` 抬到壁纸之上
   > （`2147483005` / `2147483010`，**只动 z-index 一个属性**），绘制顺序就变成
-  > **背景图/界面 → 变暗 → 二级窗口**。注意：**输入卡片与我发的气泡故意没有抬高**
+  > **背景图/界面 → 变暗 → 二级窗口**。注意：**输入卡片与用户气泡故意没有抬高**
   > —— 它们要留在壁纸下面吃 multiply 的纹理感（有回归测试锁着这条）。
 
 > **v0.2.32 的修正：通透化不再被「首帧扑空」锁死。**
@@ -334,11 +335,11 @@ v0.6.2 起下限从 30% 降下来）、
 **气泡透明度** 0%~100%（默认 45%，0 = 不透明/DSH 原样；v0.2.40 起）、
 **气泡颜色**（取色器自选，默认跟随气泡原色；v0.2.40 起）、
 **气泡模糊** 0~30px（默认 12px，v0.2.40 起），
-全部持久化在 `localStorage['__dsniang.frost.v3']`（v0.2.17 及更早的旧参数
+全部持久化在 `localStorage['__dshui.frost.v3']`（v0.2.17 及更早的旧参数
 不再沿用 —— 旧"毛玻璃"是贴图假效果，参数调得很重，直接带进新效果会很生硬）。
 
 > 布局诊断通道：前端把「消息区/输入区/共同父容器」的真实几何上报到
-> `/dsh-dsniang/diag`，从 `/dsh-dsniang/diag.json` 可读回（内存态、不落盘）。
+> `/dsh-ui-beautify/diag`，从 `/dsh-ui-beautify/diag.json` 可读回（内存态、不落盘）。
 > 用途：调这类要精确到元素几何的效果时，开发侧能直接读真实 DOM，不必靠猜。
 
 ### 黑白剪影图与文字的分辨（实测结论）
@@ -366,7 +367,7 @@ v0.6.2 起下限从 30% 降下来）、
 
 ### 图片切换
 
-每张候选图都是**「桌面优先 → 包内兜底」**：桌面上有同名图就用桌面那张（你可以自己
+每张候选图都是**「桌面优先 → 包内兜底」**：桌面上有同名图就用桌面那张（可自行
 换图），没有就用包里自带的那张。所以**换台电脑不用先把图拷到桌面**，切换器里永远是
 两个选项。
 
@@ -381,7 +382,7 @@ v0.6.2 起下限从 30% 降下来）、
 > **v0.2.31 修复**：此前只有 4k 那张带包内兜底图，黑白图**只**从桌面读 —— 换台电脑
 > 没把 `deepseek 黑白无水面.png` 拷过去时，切换器里就只剩一个 `deepseek`。现在两张
 > 都随包发布（包内文件名用纯 ASCII：`deepseek-4k.webp` / `deepseek-bw-nowater.webp`，
-> v0.7.0 起是 WebP），桌面上有图时仍然优先用你的图。
+> v0.7.0 起是 WebP），桌面上有图时仍然优先使用桌面图。
 >
 > 对外的**身份名**始终是桌面候选名（`deepseek 黑白无水面.png`）：切换器的按钮高亮、
 > localStorage 偏好、`?img=` 参数都用它，不因图片来源而变；旧存档里的**包内文件名**
@@ -405,14 +406,14 @@ v0.6.2 起下限从 30% 降下来）、
 
 ```
 ┌──────────────┐
-│ ● DS娘 · 纹理 │  ← 默认在左上角；按住拖动即可换位置，重启后仍在你放的地方
+│ ● DSH UI · 纹理 │  ← 默认在左上角；按住拖动即可换位置，重启后仍保持在放置的位置
 └──────────────┘
 ```
 
 点开后，面板就在它正下方展开：
 
 ```
-DS娘背景 · 切换
+DSH UI Beautify · 切换
 [关闭] [纹理] [背景]
 图片  [deepseek] [deepseek 黑白无水面]                    ← 纹理/背景模式显示
 浓度  ──────●──────  49%                                     ← 纹理/背景模式显示
@@ -426,7 +427,7 @@ DSH 面板模糊 ───●─── 20px                                     
 [关闭面板]
 ```
 
-- **位置由你决定**：按住胶囊拖动即可；松手写入 `localStorage['__dsniang.pill']`，
+- **位置可自由拖动**：按住胶囊拖动即可；松手写入 `localStorage['__dshui.pill']`，
   **刷新 / 重启后仍在原处**；面板始终贴在胶囊正下方（拖动胶囊时面板跟着走）；
 - **面板不会乱窜**（v0.2.26 修复）：面板每次操作都是"就地重建"（同步高亮/滑块），
   新节点出生时带的是默认坐标 `12,52` —— 重建后必须重新贴回胶囊下方，否则一操作
@@ -435,14 +436,14 @@ DSH 面板模糊 ───●─── 20px                                     
 - **不会误触**：拖动位移超过 4px 就只算拖动，松手不会顺手把面板打开；
 - **拖不出屏幕**：位置会自动夹在视口内；换窗口大小、侧栏折叠后也不会跑到屏幕外；
 - **入口常驻**：即使处于「关闭」也保留（否则就没有入口再打开面板了）；
-  只有 `__DSNIANG__.uninstall()` 才会把它一起移除；
+  只有 `__DSHUI__.uninstall()` 才会把它一起移除；
 - **零侵入**：入口是 `position: fixed` 的独立节点，不参与页面布局、不拦页面事件；
 - **三个按钮**：关闭（恢复默认）/ 纹理 / 背景（v0.3.0 起，图垫底）；
 - **浓度滑块**：0% ~ 100% 连续可调，拖到哪停到哪，实时生效；
 - **操作后面板保持打开**，方便反复调，只有点「关闭面板」才收起来；
 - 图片、模式、浓度都会记住，下次启动还是原样。
 
-> 应急开关：地址带 `#dsniang-off` 时，连这个入口都不会出现。
+> 应急开关：地址带 `#dshui-off`（旧名 `#dsniang-off` 同样有效）时，连这个入口都不会出现。
 
 快捷键（v0.2.11 起改为**后备手段**，平时不需要记）：
 
@@ -463,29 +464,29 @@ DSH 面板模糊 ───●─── 20px                                     
 ### 控制台 API（等价）
 
 ```js
-__DSNIANG__.modes                        // ['overlay','multiply','luminosity','backdrop','off']（面板只显示 关闭/纹理/背景）
-__DSNIANG__.switcher()                   // 打开悬浮切换面板
-__DSNIANG__.setMode('multiply')          // 纹理
-__DSNIANG__.setMode('off')               // 关闭（恢复默认）
-__DSNIANG__.setOpacity(0.49)             // 设置纹理模式的浓度
-__DSNIANG__.setScrim(0.01)               // 白色薄纱强度（0~0.9，v0.6.2 起 1% 一档都够得着）
-__DSNIANG__.setFrostAlpha(0.05)          // 毛玻璃白层（2%~85%）
-__DSNIANG__.setMotion(true)              // 动效总开关（v0.7.0，默认关；Ctrl+Shift+Alt+M 同效）
-__DSNIANG__.motion()                     // 帧探针读数 {fps, frameMsP95, dropped, longFrames, animating, …}
-__DSNIANG__.reapply()                    // 一键重贴（v0.6.3）：背景/玻璃/遮挡全部重认一遍，不用刷新页面
-__DSNIANG__.wallpaper()                  // 壁纸体检（v0.6.4）：壁纸还在不在、被谁盖住了、我修了没有
-__DSNIANG__.uninstall()                  // 立刻撤销全部改动
+__DSHUI__.modes                        // ['overlay','multiply','luminosity','backdrop','off']（面板只显示 关闭/纹理/背景）
+__DSHUI__.switcher()                   // 打开悬浮切换面板
+__DSHUI__.setMode('multiply')          // 纹理
+__DSHUI__.setMode('off')               // 关闭（恢复默认）
+__DSHUI__.setOpacity(0.49)             // 设置纹理模式的浓度
+__DSHUI__.setScrim(0.01)               // 白色薄纱强度（0~0.9，v0.6.2 起 1% 一档都够得着）
+__DSHUI__.setFrostAlpha(0.05)          // 毛玻璃白层（2%~85%）
+__DSHUI__.setMotion(true)              // 动效总开关（v0.7.0，默认关；Ctrl+Shift+Alt+M 同效）
+__DSHUI__.motion()                     // 帧探针读数 {fps, frameMsP95, dropped, longFrames, animating, …}
+__DSHUI__.reapply()                    // 一键重贴（v0.6.3）：背景/玻璃/遮挡全部重认一遍，不用刷新页面
+__DSHUI__.wallpaper()                  // 壁纸体检（v0.6.4）：壁纸还在不在、被谁盖住了、修复了没有
+__DSHUI__.uninstall()                  // 立刻撤销全部改动
 ```
 
-模式偏好存在 `localStorage['__dsniang.mode']`，刷新后保持。
+模式偏好存在 `localStorage['__dshui.mode']`，刷新后保持。
 
 <details>
 <summary>网页端可用：直接改地址栏</summary>
 
 ```
-http://127.0.0.1:19387/?dsniang=multiply          ← 纹理
-http://127.0.0.1:19387/?dsniang=off               ← 关闭
-http://127.0.0.1:19387/?dsniang=multiply&scrim=0.25   ← 纹理 + 白色薄纱
+http://127.0.0.1:19387/?dshui=multiply          ← 纹理
+http://127.0.0.1:19387/?dshui=off               ← 关闭
+http://127.0.0.1:19387/?dshui=multiply&scrim=0.25   ← 纹理 + 白色薄纱
 ```
 
 </details>
@@ -506,30 +507,30 @@ v0.2 立了三条硬规则，并且写成了自动化测试：
 其它安全边界：
 
 - 只有在真正的 DSH 页面（存在 `#root`）才动作；
-- URL 带 `#dsniang-off` 时，即使脚本被注入也直接不动作（应急开关）；
+- URL 带 `#dshui-off` 时，即使脚本被注入也直接不动作（应急开关；旧名 `#dsniang-off` 同样有效）；
 - 不 `preventDefault`、不 `stopPropagation`，不抢页面任何交互。
 
-## 出厂默认值（v0.7.2）
+## 出厂默认值（v0.7.3）
 
 | 项目 | 出厂默认 | 存在哪 |
 |---|---|---|
-| 启动模式 | **关闭**（一点不改页面；点「纹理」才生效） | `localStorage['__dsniang.mode']` |
-| 纹理浓度 | **0.49** | `localStorage['__dsniang.opacities']` |
+| 启动模式 | **关闭**（一点不改页面；点「纹理」才生效） | `localStorage['__dshui.mode']` |
+| 纹理浓度 | **0.49** | `localStorage['__dshui.opacities']` |
 | 背景模式浓度 | **0.5**（0.3.2 起，图一眼可见；真机再调） | 同上（`backdrop`） |
-| 主题薄纱 | 亮色=白纱 / 暗色=深纱（`rgba(12,14,18)`），强度 0；背景模式下面板有「薄纱」滑块（**0%~90%，1% 一档**；v0.3.1 起，v0.6.2 起步长从 5% 降到 1%） | `localStorage['__dsniang.scrim']` |
-| 背景图 | **`deepseek 4k.png`**（面板上显示 `deepseek`） | `localStorage['__dsniang.image']` |
-| 毛玻璃 | **开** | `localStorage['__dsniang.frost.v3']` |
+| 主题薄纱 | 亮色=白纱 / 暗色=深纱（`rgba(12,14,18)`），强度 0；背景模式下面板有「薄纱」滑块（**0%~90%，1% 一档**；v0.3.1 起，v0.6.2 起步长从 5% 降到 1%） | `localStorage['__dshui.scrim']` |
+| 背景图 | **`deepseek 4k.png`**（面板上显示 `deepseek`） | `localStorage['__dshui.image']` |
+| 毛玻璃 | **开** | `localStorage['__dshui.frost.v3']` |
 | 毛玻璃模糊 | **2px** | 同上 |
 | 毛玻璃白层 | **25%**（可拖 **2%~85%**；v0.6.2 起下限从 15% 降下来） | 同上 |
 | 二级面板白层（上/下） | **97% / 83%**（竖向渐变两端；面板上两个滑块可调 **10%~100%**，v0.6.2 起下限从 30% 降下来） | 同上（`panelTop` / `panelBottom`） |
 | 气泡透明度 | **45%**（0% = 不透明/DSH 原样，100% = 全透明；面板滑块可调） | 同上（`bubbleTransparency`） |
 | 气泡颜色 | **跟随气泡原色**（面板取色器可自选，存 `#rrggbb`） | 同上（`bubbleColor`） |
 | 气泡模糊 | **12px**（面板滑块可调，0~30px） | 同上（`bubbleBlur`） |
-| 动效 | **关**（v0.7.0 总开关，默认关；`Ctrl+Shift+Alt+M` 或面板按钮；系统「减弱动态效果」/ 失焦自动暂停） | `localStorage['__dsniang.motion.v1']` |
+| 动效 | **关**（v0.7.0 总开关，默认关；`Ctrl+Shift+Alt+M` 或面板按钮；系统「减弱动态效果」/ 失焦自动暂停） | `localStorage['__dshui.motion.v1']` |
 | DSH 面板模糊 | **20px**（「DSH 面板模糊」滑块可调，0~30px；只影响 DSH 自己的重命名窗/菜单） | 同上（`dshBlur`） |
-| 入口胶囊位置 | 窗口左上角 `10, 10` | `localStorage['__dsniang.pill']` |
+| 入口胶囊位置 | 窗口左上角 `10, 10` | `localStorage['__dshui.pill']` |
 
-> 只有**没有任何存档**（全新 profile / 清过 localStorage）时才用这些值；一旦你动过滑块，
+> 只有**没有任何存档**（全新 profile / 清过 localStorage）时才用这些值；一旦滑块被调整过，
 > 以存档为准。想让「纹理」也成为启动默认，把 `lib/client.js` 里 `readMode()` 的兜底
 > 返回值从 `'off'` 改成 `'multiply'` 即可（一行）。
 
@@ -537,16 +538,16 @@ v0.2 立了三条硬规则，并且写成了自动化测试：
 
 ### 从 zip 安装（换机器 / 给别人）
 
-1. 解压 `dsh-dsniang-beautify-0.7.2.zip` → 得到 `dsh-dsniang-beautify/` 目录
+1. 解压 `dsh-ui-beautify-0.7.3.zip` → 得到 `dsh-ui-beautify/` 目录
    （里面是 `package.json` / `cordis.patch.yml` / `lib` / `assets`（**两张兜底图都在包里**）/
    `test` / `scripts/uninstall-cleanup.ps1`（卸载后自检）/ `README.md`（本文件）/ `HANDOFF.md` / `LICENSE`，
    共 13 个条目）；
 2. 放到一个**不会被随手删掉**的目录（路径建议纯英文，例如 `D:\dsh-plugins\`）；
 3. 用官方插件通道安装，`target` 指向解压出来的目录：
-   `pluginManager.installBundle('file:D:\\dsh-plugins\\dsh-dsniang-beautify')`
+   `pluginManager.installBundle('file:D:\\dsh-plugins\\dsh-ui-beautify')`
    （等价于 `dsh plugin add file:...`）；
 4. **重启 DSH 客户端**（bundle 层栈只在启动时收集一次）；
-5. 背景图不必拷到桌面：包里自带两张兜底图，桌面上有同名图时优先用你的；
+5. 背景图不必拷到桌面：包里自带两张兜底图，桌面上有同名图时优先使用桌面图；
    想自检：解压目录里 `node test/host.test.mjs && node test/client.test.mjs` 应全绿。
 
 ### 安装会写到哪几处
@@ -554,7 +555,7 @@ v0.2 立了三条硬规则，并且写成了自动化测试：
 官方通道安装后（`pluginManager.installBundle` → 内部就是 `dsh plugin add` 的 pnpm 路径）
 会留下三处登记 —— 这三处齐全才不会被插件管理器当成**野条目**清理掉（v0.1 就是栽在这里）：
 
-- `<profile>/node_modules/dsh-dsniang-beautify` → 指向插件目录的 junction；
+- `<profile>/node_modules/dsh-ui-beautify` → 指向插件目录的 junction；
 - profile `package.json` 的 `dsh.profile.bundles` + `dependencies`；
 - `pnpm-lock.yaml` 的 importer 记录。
 
@@ -566,13 +567,13 @@ v0.2 立了三条硬规则，并且写成了自动化测试：
 **1. 最快：临时关掉（不用重启、不用卸载）**
 
 ```js
-__DSNIANG__.setMode('off')     // 或把地址改成 ...#dsniang-off 再刷新
+__DSHUI__.setMode('off')     // 或把地址改成 ...#dshui-off 再刷新
 ```
 
 **2. 正式卸载（推荐）**
 
-在 DSH 里：设置 → 插件 → 找到 `dsh-dsniang-beautify` → 卸载 /
-或让我执行 `pluginManager.removeBundle('dsh-dsniang-beautify')`。
+在 DSH 里：设置 → 插件 → 找到 `dsh-ui-beautify` → 卸载 /
+或在插件管理器里执行 `pluginManager.removeBundle('dsh-ui-beautify')`。
 
 **3. 手动兜底（前两条都不可用时）**
 
@@ -583,7 +584,7 @@ __DSNIANG__.setMode('off')     // 或把地址改成 ...#dsniang-off 再刷新
 # 1) 还原配置
 Copy-Item .rollback\* "$env:USERPROFILE\.dsh\profiles\desktop\" -Force
 # 2) 删除链接（只删链接，不动插件目录）
-cmd /c rmdir "$env:USERPROFILE\.dsh\profiles\desktop\node_modules\dsh-dsniang-beautify"
+cmd /c rmdir "$env:USERPROFILE\.dsh\profiles\desktop\node_modules\dsh-ui-beautify"
 # 3) 重启 DSH
 ```
 
@@ -595,30 +596,32 @@ cmd /c rmdir "$env:USERPROFILE\.dsh\profiles\desktop\node_modules\dsh-dsniang-be
 |---|---|
 | 改了哪些文件 | **没有**。不改 `DSH 安装目录/resources/app.asar`、不改注册表 / 计划任务 / 文件关联 / 环境变量 / 端口 |
 | 运行时会写什么 | 只在页面里：`<style>`（静态生成）、自己的图层/胶囊/面板节点、`<body>` 与气泡上的 CSS 变量 / 类名。全部逐字可还原 |
-| 是否可在线还原 | **是**。`__DSNIANG__.uninstall()` 或面板切「关闭」，不需要重启 DSH |
+| 是否可在线还原 | **是**。`__DSHUI__.uninstall()` 或面板切「关闭」，不需要重启 DSH |
 | 是否需要 DSH 完全退出 | **不需要**（这与壳补丁类插件不同） |
 | 备份位置 | 无外部备份。包内 `.rollback/` 是**安装前 profile 配置的本机副本**（只在手动兜底卸载时用） |
-| 反向操作 | 插件管理器里卸载（推荐）；或 `__DSNIANG__.uninstall()` 立即撤销效果；或 README「卸载」的三条路 |
-| 用户数据 | `localStorage` 的 `__dsniang.*` 键，**卸载默认保留**（见下） |
-| 网络 | **无外部网络请求**。只有本机回环的 5 条只读路由（`/dsh-dsniang/*`） |
+| 反向操作 | 插件管理器里卸载（推荐）；或 `__DSHUI__.uninstall()` 立即撤销效果；或 README「卸载」的三条路 |
+| 用户数据 | `localStorage` 的 `__dshui.*` 键，**卸载默认保留**（见下） |
+| 网络 | **无外部网络请求**。只有本机回环的 5 条只读路由（`/dsh-ui-beautify/*`） |
 | 常驻进程 / daemon | 无。不用 `child_process`；页面侧的定时器与观察器都在 `uninstall()` 里清干净 |
 
 ### 用户数据（默认保留，清除必须显式）
 
 | 键 | 内容 |
 |---|---|
-| `__dsniang.mode` | 当前模式（关闭 / 纹理 / 背景） |
-| `__dsniang.opacities` | 各模式浓度 |
-| `__dsniang.scrim` | 背景模式薄纱强度 |
-| `__dsniang.frost.v3` | 毛玻璃（开关 / 模糊 / 白层 / 面板白层 / 气泡 / DSH 面板模糊） |
-| `__dsniang.motion.v1` | 动效总开关（默认关） |
-| `__dsniang.pill` | 胶囊位置 |
-| `__dsniang.image` | 当前壁纸 |
+| `__dshui.mode` | 当前模式（关闭 / 纹理 / 背景） |
+| `__dshui.opacities` | 各模式浓度 |
+| `__dshui.scrim` | 背景模式薄纱强度 |
+| `__dshui.frost.v3` | 毛玻璃（开关 / 模糊 / 白层 / 面板白层 / 气泡 / DSH 面板模糊） |
+| `__dshui.motion.v1` | 动效总开关（默认关） |
+| `__dshui.pill` | 胶囊位置 |
+| `__dshui.image` | 当前壁纸 |
 
-卸载**不会**删除这些键（下次装回来设置还在）。要清干净：打开 DSH 页面 → 控制台执行
+卸载**不会**删除这些键（下次装回来设置还在）。
+
+> 更名时，旧前缀 `__dsniang.*` 的键会被**自动复制**到 `__dshui.*`（旧键保留，便于回滚到 0.7.x 后再清）。要清干净：打开 DSH 页面 → 控制台执行
 
 ```js
-Object.keys(localStorage).filter(k => k.indexOf('__dsniang.') === 0).forEach(k => localStorage.removeItem(k))
+Object.keys(localStorage).filter(k => k.indexOf('__dshui.') === 0).forEach(k => localStorage.removeItem(k))
 ```
 
 ### 卸载后自检与清理（§3.4 / §3.6）
@@ -640,7 +643,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\uninstall-cleanup.ps1 -PurgeD
 脚本特性（对应规范 §3.1 / §3.4 / §3.6）：**幂等可重入**（连跑两次第二次只输出"已是目标状态"）、
 **-DryRun 不改任何文件**、四件套（`package.json` 的 bundles/dependencies、`pnpm-lock.yaml`、
 `node_modules/.modules.yaml`、`cordis.yml`）逐项断言、残留联接**只删链接不删目录**、
-全程写日志（`~/.dsh/dsh-dsniang-beautify-uninstall.log`）、退出码约定：
+全程写日志（`~/.dsh/dsh-ui-beautify-uninstall.log`）、退出码约定：
 
 | 退出码 | 含义 |
 |---|---|
@@ -681,14 +684,14 @@ powershell -ExecutionPolicy Bypass -File .\scripts\uninstall-cleanup.ps1 -PurgeD
 
 ## 动效（v0.7.0 底座与帧时间探针）
 
-**底座与帧探针已就位；装饰性动效按你的决定「先不做」**（2026-10-17 定案，开关保持默认关）。
+**底座与帧探针已就位；装饰性动效已确定"先不做"**（2026-10-17 定案，开关保持默认关）。
 已经铺好的是：
 
-- **总开关**：默认**关**（面板「动效：开/关」按钮 / `Ctrl+Shift+Alt+M` / `__DSNIANG__.setMotion(true)`），
-  存档在 `localStorage['__dsniang.motion.v1']`。之后所有装饰动效都必须从 `motionAllowed()` 走，
+- **总开关**：默认**关**（面板「动效：开/关」按钮 / `Ctrl+Shift+Alt+M` / `__DSHUI__.setMotion(true)`），
+  存档在 `localStorage['__dshui.motion.v1']`。之后所有装饰动效都必须从 `motionAllowed()` 走，
   不许各自 `setInterval` / 裸 rAF。
 - **自动暂停**：系统「减弱动态效果」（`prefers-reduced-motion`）或**窗口失焦/隐藏**时动效自动停。
-- **帧时间探针**（你没 DevTools，这是验收动画性能的唯一手段）：`requestAnimationFrame` 量**真帧时间**，
+- **帧时间探针**（使用者没有 DevTools，这是验收动画性能的唯一手段）：`requestAnimationFrame` 量**真帧时间**，
   **只在有动画在跑时采样**（不空转耗电）。诊断面板的 **`动效:`** 那一行会显示：
   `开 · 采样中 63fps · P95 17ms · 掉帧 1 · 长帧 2`；`diag.json` / `status()` 里有同款
   `motion { fps, frameMsP95, dropped, longFrames, animating, paused, reduced }` 字段。
@@ -707,7 +710,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\uninstall-cleanup.ps1 -PurgeD
 ## 构成
 
 ```
-dsh-dsniang-beautify/
+dsh-ui-beautify/
 ├── package.json          # 插件清单（dsh.bundle.patch 指向挂载声明）
 ├── cordis.patch.yml      # 挂载声明：把插件插进 profile 配置树
 ├── lib/
@@ -727,11 +730,11 @@ dsh-dsniang-beautify/
 
 | 路由 | 作用 |
 |---|---|
-| `GET /dsh-dsniang/status.json` | 报告背景图解析结果（来源、文件名、字节数、URL） |
-| `GET /dsh-dsniang/bg.png` | 背景图字节（路径固定叫 `bg.png`，`Content-Type` 按**字节魔数**给：桌面原图 PNG / 包内兜底 WebP 都能正确解码；带 ETag，命中返回 304） |
-| `GET /dsh-dsniang/client.js` | 前端半区脚本 |
-| `GET /dsh-dsniang/diag` | 前端布局诊断上报入口（只收数据，返回 204） |
-| `GET /dsh-dsniang/diag.json` | 读回最近一次布局诊断（内存态、不落盘） |
+| `GET /dsh-ui-beautify/status.json` | 报告背景图解析结果（来源、文件名、字节数、URL） |
+| `GET /dsh-ui-beautify/bg.png` | 背景图字节（路径固定叫 `bg.png`，`Content-Type` 按**字节魔数**给：桌面原图 PNG / 包内兜底 WebP 都能正确解码；带 ETag，命中返回 304） |
+| `GET /dsh-ui-beautify/client.js` | 前端半区脚本 |
+| `GET /dsh-ui-beautify/diag` | 前端布局诊断上报入口（只收数据，返回 204） |
+| `GET /dsh-ui-beautify/diag.json` | 读回最近一次布局诊断（内存态、不落盘） |
 
 两条注入通道：桌面端走 `webserver/index-inject` 结构化行（内联 script，
 自己吞掉 `onerror`，**最坏只是美化不生效，绝不会挡住应用启动**）；
@@ -740,7 +743,7 @@ dsh-dsniang-beautify/
 ## 开发与测试
 
 ```powershell
-cd <解压出来的目录>\dsh-dsniang-beautify
+cd <解压出来的目录>\dsh-ui-beautify
 node test\host.test.mjs     # 21 项：路由、栅栏、注入、卸载、脚本语法、桌面图优先与包内兜底（WebP）、别名、动效摘要
 node test\client.test.mjs   # 76 项：挂载、交互、淡入淡出、回归护栏、模式、毛玻璃与通透化、壁纸体检、动效底座与帧探针、卸载、诊断
 ```
