@@ -1,0 +1,20 @@
+# ── 字节一致优先 ──────────────────────────────────────────────────────────────
+# 这个仓库的很多约定都建立在"文件一个字节都不能被改写"之上：zip 哈希、HANDOFF 里
+# 记录的文件大小、离线测试用的桩数据。所以**关掉一切行尾转换**（Git 默认在
+# Windows 上会把文本文件规范化成 CRLF/LF，那会让记录的字节数对不上）。
+* -text
+
+# ── 二进制资源（明确声明，避免被当成文本 diff / 合并）──────────────────────
+*.webp binary
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.mp3  binary
+*.wav  binary
+*.zip  binary
+
+# ── 让 GitHub 正确识别语言（只影响统计，不改内容）──────────────────────────
+*.js   linguist-language=JavaScript
+*.mjs  linguist-language=JavaScript
+*.ps1  linguist-language=PowerShell
