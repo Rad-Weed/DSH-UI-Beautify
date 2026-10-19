@@ -22,6 +22,15 @@ const CLIENT_SOURCE = fs.readFileSync(path.join(TEST_DIR, '..', 'lib', 'client.j
 /** 在桩环境里跑一遍 client.js。 */
 function runClient(dom, options) {
   const opts = options || {}
+  // 0.8.0：开屏默认播放会遮住胶囊（新增的隐藏逻辑），不研究开屏的用例默认先关掉；
+  // 研究开屏的用例显式传 { splash: true }。
+  if (opts.splash !== true) {
+    try {
+      dom.window.localStorage.setItem('__dshui.splash.v1', JSON.stringify({ enabled: false }))
+    } catch (err) {
+      /* 桩里 localStorage 不可用时忽略 */
+    }
+  }
   const logs = []
   const requested = opts.requested || []
   const images = opts.statusImages || []
@@ -2728,7 +2737,7 @@ function fireSplashMessage(dom, data) {
 test('开屏动画（0.8.0）：默认挂载同源 iframe，播完自动淡出移除，零残留', async () => {
   const dom = buildChatDom()
   const before = layoutSnapshot(dom)
-  const { api } = runClient(dom)
+  const { api } = runClient(dom, { splash: true })
   await flush()
   const node = splashOf(dom)
   assert.ok(node, '默认应挂载开屏覆盖层')
@@ -2755,7 +2764,7 @@ const splashCfgOf = (dom) => {
 
 test('开屏动画音效（0.8.0）：默认开、配置传给开屏页、面板可关可持久化', async () => {
   const dom = buildChatDom()
-  const { api } = runClient(dom)
+  const { api } = runClient(dom, { splash: true })
   await flush()
   assert.equal(api.status().splash.sound, true, '音效默认开')
   assert.equal(splashCfgOf(dom).sound, true, '配置里应带 sound:true')
@@ -2775,20 +2784,20 @@ test('开屏动画音效（0.8.0）：默认开、配置传给开屏页、面板
 test('开屏动画：设置里关闭 / ?splash=0 / 减弱动态 都不播放', async () => {
   const off = buildChatDom()
   off.window.localStorage.setItem('__dshui.splash.v1', JSON.stringify({ enabled: false }))
-  const a = runClient(off)
+  const a = runClient(off, { splash: true })
   await flush()
   assert.equal(splashOf(off), null, '关闭时不该挂载')
   assert.equal(a.api.status().splash.status, 'disabled')
 
   const urlOff = buildChatDom()
   urlOff.window.location.href = 'http://localhost/?splash=0'
-  runClient(urlOff)
+  runClient(urlOff, { splash: true })
   await flush()
   assert.equal(splashOf(urlOff), null, '?splash=0 不该挂载')
 
   const reduced = buildChatDom()
   reduced.window.matchMedia('(prefers-reduced-motion: reduce)').matches = true
-  const c2 = runClient(reduced)
+  const c2 = runClient(reduced, { splash: true })
   await flush()
   assert.equal(splashOf(reduced), null, 'prefers-reduced-motion 时不该挂载')
   assert.equal(c2.api.status().splash.status, 'reduced')
@@ -2796,7 +2805,7 @@ test('开屏动画：设置里关闭 / ?splash=0 / 减弱动态 都不播放', a
 
 test('开屏动画：30s 没等到结束信号→超时兜底；重播/跳过/卸载都清干净', async () => {
   const dom = buildChatDom()
-  const { api } = runClient(dom)
+  const { api } = runClient(dom, { splash: true })
   await flush()
   assert.ok(splashOf(dom), '先确认已挂载')
   dom.advance(30000)
@@ -2818,7 +2827,7 @@ test('开屏动画：30s 没等到结束信号→超时兜底；重播/跳过/�
 
 test('开屏动画：面板里可以关/开，并写进 localStorage', async () => {
   const dom = buildChatDom()
-  const { api } = runClient(dom)
+  const { api } = runClient(dom, { splash: true })
   await flush()
   fireSplashMessage(dom, { __dshuiSplash: 'done' })
   dom.advance(600)
@@ -2959,7 +2968,7 @@ const welcomeOf = (dom) => dom.document.getElementById('__dshui-welcome')
 
 test('开屏后的 WELCOME BACK 卡片（0.8.0）：播完出现在真实页面右上角，约 3.6s 自动淡出', async () => {
   const dom = buildChatDom()
-  const { api } = runClient(dom, { statusUser: 'RAD' })
+  const { api } = runClient(dom, { splash: true, statusUser: 'RAD' })
   await flush()
   assert.equal(welcomeOf(dom), null, '开屏还没放完时不该有卡片')
   fireSplashMessage(dom, { __dshuiSplash: 'done' })
@@ -2980,7 +2989,7 @@ test('开屏/欢迎卡片：按标题栏高度下移（避开 Windows 窗口按�
   const menu = attachWindowsMenu(dom)
   // 模拟 DSH 标题栏实际 52px（Win11 高标题栏/DPI 放大）
   menu.host._rect = { top: 0, left: 0, right: 1200, bottom: 52, width: 1200, height: 52 }
-  const { api } = runClient(dom)
+  const { api } = runClient(dom, { splash: true })
   await flush()
   assert.equal(splashCfgOf(dom).titlebar, 52, '应把量到的标题栏高度传给开屏页')
   fireSplashMessage(dom, { __dshuiSplash: 'done' })
@@ -2999,13 +3008,46 @@ test('开屏欢迎卡片：?splash=0 / 卸载 都不留卡片', async () => {
   assert.equal(welcomeOf(off), null, '不放开屏时不该出现卡片')
 
   const dom = buildChatDom()
-  const { api } = runClient(dom)
+  const { api } = runClient(dom, { splash: true })
   await flush()
   fireSplashMessage(dom, { __dshuiSplash: 'done' })
   dom.advance(SPLASH_FADE_MS_FOR_TEST + 80)
   assert.ok(welcomeOf(dom), '先确认卡片出现')
   api.uninstall()
   assert.equal(welcomeOf(dom), null, '卸载必须清掉卡片')
+})
+test('开屏期间：胶囊与面板整个藏起来，播完恢复（不再盖在开屏画面上）', async () => {
+  const dom = buildChatDom()
+  const { api } = runClient(dom, { splash: true })
+  await flush()
+  assert.ok(splashOf(dom), '开屏应已挂载')
+  const pill = pillOf(dom)
+  assert.ok(pill, '胶囊应已创建')
+  assert.equal(pill.style.getPropertyValue('display'), 'none', '开屏播放中胶囊必须隐藏')
+  // 开屏期间点背景：不应触发淡出
+  api.setMode('off')
+  fireSplashMessage(dom, { __dshuiSplash: 'done' })
+  dom.advance(SPLASH_FADE_MS_FOR_TEST + 80)
+  assert.notEqual(pillOf(dom).style.getPropertyValue('display'), 'none', '播完应恢复显示')
+  assert.equal(api.status().splash.welcomeShown, true)
+})
+
+test('点背景淡出后立刻点胶囊：取消淡出并正常打开面板（不卡死、不打架）', async () => {
+  const dom = buildChatDom()
+  const { api } = runClient(dom)
+  await flush()
+  api.setMode('multiply')
+  dom.advance(40)
+  const layer = layerOf(dom)
+  clickOn(dom, dom.panel)
+  assert.equal(layer.classList.contains('is-faded'), true, '点背景应开始淡出')
+  const pill = pillOf(dom)
+  pill._listeners.click[0]({ type: 'click', target: pill, stopPropagation() {} })
+  assert.equal(layer.classList.contains('is-faded'), false, '打开面板应取消淡出')
+  assert.equal(api.status().override, false)
+  assert.ok(dom.document.getElementById('__dshui-switcher'), '面板应打开')
+  dom.advance(2500)
+  assert.equal(api.status().override, false, '定时器不应把状态再改回去')
 })
 test('键盘快捷键：Alt+1=关闭 / Alt+2=纹理', async () => {
   const dom = buildChatDom()

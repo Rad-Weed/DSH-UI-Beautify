@@ -6,7 +6,7 @@
 > 原包名 `dsh-dsniang-beautify` 的旧存档会自动迁移；旧 hash（`#dsniang-off` / `#dsniang-diag`）与旧 URL 参数（`?dsniang=`）仍兼容。
 > 仓库：`Rad-Weed/DSH-UI-Beautify`（私有）
 
-**版本：v0.8.0** · 给 DSH 页面加壁纸与毛玻璃。
+**版本：v0.8.1** · 给 DSH 页面加壁纸与毛玻璃。
 
 > ⚠️ **v0.1 出过事故**：它会改目标面板的 `position` / `overflow`，导致界面布局坍塌、
 > 基本无法操作。v0.2 从设计上取消了所有这类改动，详见下面「为什么 v0.2 不会再弄坏界面」。
@@ -73,7 +73,7 @@ Defaults apply only when nothing is stored yet; once you move a slider, the stor
 
 ## Install
 
-1. Extract `dsh-ui-beautify-0.8.0.zip` → you get a `dsh-ui-beautify/` directory
+1. Extract `dsh-ui-beautify-0.8.1.zip` → you get a `dsh-ui-beautify/` directory
    (`package.json` / `cordis.patch.yml` / `lib` / `assets` (both fallback images) / `test` /
    `scripts/uninstall-cleanup.ps1` / `README.md` / `HANDOFF.md` / `LICENSE` — 13 entries);
 2. Put it somewhere that won't be deleted (an ASCII-only path is recommended);
@@ -190,7 +190,7 @@ the two identities with a cross-fade.
 
 ```powershell
 node test/host.test.mjs      # 23 tests
-node test/client.test.mjs    # 89 tests (includes storage-migration, startup-splash, titlebar-offset, welcome-card, restart-key and conflict cases)
+node test/client.test.mjs    # 91 tests (includes storage-migration, startup-splash, splash-gui-suppression, titlebar-offset, welcome-card, restore-cancel, restart-key and conflict cases)
 ```
 
 The tests run fully offline against a minimal DOM stub (controllable clock, geometry model, MutationObserver,
@@ -223,7 +223,8 @@ MIT — see [LICENSE](LICENSE).
 - **两张壁纸**：桌面上放 `deepseek 4k.png` / `deepseek 黑白无水面.png` 就用桌面上的图；
   桌面上没有就退到**包内自带的兜底图**（换台电脑也永远有两个选项）。
   面板上点一下即换，换图是**交叉淡化**（全程两张图都在场，不经过空白）。
-- **点击背景** → 淡出到默认背景（420ms 渐变）→ **2 秒后**自动渐变回壁纸。淡出期间再点一次会顺延计时。
+- **点击背景** → 淡出到默认背景（420ms 渐变）→ **2 秒后**自动渐变回壁纸。淡出期间再点一次会顺延计时；
+  淡出期间打开面板（点胶囊）会先取消淡出，避免面板/毛玻璃抢修与淡出定时器互相打架。
 - 点气泡、输入框、按钮、链接、图标 → **完全不触发**，也绝不拦截点击。
 - **自带诊断**（`Ctrl+Shift+Alt+I`）：模式 / 背景源 / 毛玻璃实况 / 壁纸体检 / 动效帧率一览，
   不需要 DevTools（见「诊断」一节）。
@@ -741,7 +742,7 @@ v0.2 立了三条硬规则，并且写成了自动化测试：
 
 ### 从 zip 安装（换机器 / 给别人）
 
-1. 解压 `dsh-ui-beautify-0.8.0.zip` → 得到 `dsh-ui-beautify/` 目录
+1. 解压 `dsh-ui-beautify-0.8.1.zip` → 得到 `dsh-ui-beautify/` 目录
    （里面是 `package.json` / `cordis.patch.yml` / `lib` / `assets`（**两张兜底图都在包里**）/
    `test` / `scripts/uninstall-cleanup.ps1`（卸载后自检）/ `README.md`（本文件）/ `HANDOFF.md` / `LICENSE`，
    共 28 个条目（含开屏动画与 `restart/` 壳补丁工具）；
@@ -919,6 +920,8 @@ powershell -ExecutionPolicy Bypass -File .\scripts\uninstall-cleanup.ps1 -PurgeD
 - **避开 Windows 窗口按钮**：开屏页顶部的品牌 / 步骤计数 / SKIP 与 WELCOME BACK 卡片会按实际标题栏高度
   （`navigator.windowControlsOverlay` → `--dsh-windows-titlebar-height` → 菜单栏矩形，兜底 40px）整体下移，
   不会被「最小化 / 最大化 / 关闭」挡住。
+- **开屏期间隐藏自己的 GUI**：开屏播放时胶囊与面板整体隐藏（它们和开屏 iframe 同为最大 z-index，胶囊后插入会"漏"到开屏上），
+  播完自动恢复；开屏期间点背景不会触发淡出。
 - **WELCOME BACK 卡片**：开屏播完进入会话后，右上角会淡入一张小卡片（显示本机登录名，约 3.6s 自动淡出；
   关开屏 / `?splash=0` 时不出现）。卡片由插件在真实页面上绘制（开屏页自带的卡片在 iframe 的 mock 界面里，\n  集成态看不到，所以移到页面层实现）。
 - **换开屏**：替换包内 `assets/splash.html` 即可（文件保持单文件自包含）；宿主只做注入，不改源文件。
@@ -993,8 +996,8 @@ dsh-ui-beautify/
 
 ```powershell
 cd <解压出来的目录>\dsh-ui-beautify
-node test\host.test.mjs     # 23 项：路由、栅栏、注入、卸载、脚本语法、桌面图优先与包内兜底（WebP）、别名、动效摘要
-node test\client.test.mjs   # 89 项：挂载、交互、淡入淡出、回归护栏、模式、毛玻璃与通透化、壁纸体检、动效底座与帧探针、卸载、诊断
+node test\host.test.mjs     # 24 项：路由、栅栏、注入、卸载、脚本语法、桌面图优先与包内兜底（WebP）、别名、动效摘要
+node test\client.test.mjs   # 91 项：挂载、交互、淡入淡出、回归护栏、模式、毛玻璃与通透化、壁纸体检、动效底座与帧探针、卸载、诊断
 ```
 
 > 想继续开发这个插件（改代码、加动效、重新打包）的**下一个 AI / 开发者**，请看
@@ -1004,6 +1007,19 @@ node test\client.test.mjs   # 89 项：挂载、交互、淡入淡出、回归�
 以及"已定位盒子"的几何模型），所以不需要浏览器也不需要起 DSH。
 其中 **「回归护栏」** 用例会在挂载前后对页面每个元素的布局相关内联样式做快照比对 ——
 一旦将来有人重新引入"改布局属性"的写法，测试立刻失败。
+
+## 版本
+
+### v0.8.1（2026-10-20）
+
+- **修复**：开屏播放期间胶囊/面板会盖到开屏画面上 → 开屏期间隐藏自家 GUI，播完恢复；开屏期间点背景/点胶囊不响应。
+- **修复**：点背景淡出后立刻点胶囊会卡死 → 打开面板前取消淡出（清定时器 / 摘 `is-faded`），毛玻璃观察器跳过纯自家 GUI 的 DOM 批次。
+- 包含 v0.8.0 全部内容：开屏动画（音效默认开 / WELCOME BACK 卡片 / 标题栏避让）、标题栏「重启」键（按钮 UI + `restart/` 壳补丁工具）、双向冲突保护。
+- 测试：host 24/24 · client 91/91 · reload-ui 6/6。
+
+### v0.8.0（2026-10-19）
+
+- 整合莱因生命风格开屏动画（同源 iframe + 桥接注入；面板开关/重播/超时兜底）。
 
 ## 安全基线
 

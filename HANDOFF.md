@@ -47,7 +47,7 @@
 > **接手者不需要向需求方复述或确认任何历史**（需求方明确要求过：不必复述已完成事项）。
 >
 > 用户看的是 [README.md](README.md)（用户手册）；这一份是**给下一个 AI 的交接**。
-> 记录时版本 **v0.8.0** ｜ 工作目录 `<工作目录>`
+> 记录时版本 **v0.8.1** ｜ 工作目录 `<工作目录>`
 
 ## 目录
 
@@ -79,8 +79,8 @@
 
 **它现在什么状态**：
 
-- 版本 `0.8.0`（`lib/client.js` 的 `VERSION`、`lib/index.js` 的 `PLUGIN_VERSION`、`package.json` 的 `version` 三处一致）；
-- 测试 **host 24/24 + client 89/89** 全绿（离线，不需要浏览器）；另：独立插件 `dsh-reload-ui` 6/6；
+- 版本 `0.8.1`（`lib/client.js` 的 `VERSION`、`lib/index.js` 的 `PLUGIN_VERSION`、`package.json` 的 `version` 三处一致）；
+- 测试 **host 24/24 + client 91/91** 全绿（离线，不需要浏览器）；另：独立插件 `dsh-reload-ui` 6/6；
 - **已装在用户机器上**（`lib/client.js` 走 `Cache-Control: no-store`，只要页面**真的重载**就能拿到新脚本；
   但 DSH 桌面版没有刷新快捷键 / 菜单（见 §11 P1），所以实际操作 = **退出 DSH 再启动**）。
 - **v0.2.32 这一版做了两件事**（都是用户在 2026-10-13 那条消息里点的）：
@@ -444,6 +444,10 @@
   4. 胶囊/面板/控制台文案统一为 `DSH UI Beautify`（胶囊短标签 `DSH UI · 纹理/背景/…`）；壁纸角色名「DS 娘」仅在描述画面时保留。
   5. 沿用 v0.7.2 的安装/卸载与外部副作用规范化能力（自检脚本、副作用声明、元数据、13 条目出包）。
   6. **文档双语**：README 增加英文版（顶部语言跳转）＋ Release 说明中英双语；包内 README 随之更新。
+- **v0.8.1（2026-10-20，开屏 GUI 抑制 + 交互卡死修复 + 重出包）**：
+  - 开屏播放期间隐藏胶囊/面板（与 iframe 同 z-index、DOM 更晚插入会漏出），播完恢复；开屏期间点背景/点胶囊不响应；
+  - 点背景淡出后立刻点胶囊：开面板前取消淡出（清定时器 / 摘 `is-faded`），毛玻璃 MutationObserver 跳过纯自家 GUI 批次；
+  - 0.8.0 内容全部包含（开屏动画/音效/WELCOME BACK/标题栏避让/重启键整合/双向冲突保护）。
 - **v0.8.0（2026-10-19，整合开屏动画：莱因生命风格）**：
   把用户用其他 AI 生成的单文件开屏页（`桌面/DSH-开屏项目/DSH-开屏-莱因生命风格-v2.html`，v2.4）整合进插件：
   1. **资产与宿主**：`assets/splash.html`（原文件原样拷入，**不改源文件**）；宿主新增只读路由
@@ -471,6 +475,10 @@
      父页面依次尝试 `navigator.windowControlsOverlay.getTitlebarAreaRect()` → CSS 变量
      `--dsh-windows-titlebar-height` → `[data-windows-menu]` 矩形，兜底 40px；把高度写进开屏 iframe 的 `cfg.titlebar`，
      桥接脚本按它注入带 `!important` 的偏移样式；卡片 top = 标题栏高度 + 22px。
+  10. **开屏 GUI 抑制 + 点背景后点胶囊卡死**：开屏播放期间把胶囊/面板整体隐藏（胶囊与 iframe 同为最大 z-index，
+      胶囊 DOM 位置更晚 → 会盖到开屏画面上），播完恢复；开屏期间背景点击不响应。点背景淡出后立刻点胶囊：
+      `toggleSwitcher` 先取消淡出定时器/还原 `is-faded`，并且毛玻璃 MutationObserver 跳过「纯自家 GUI」的批次
+      （面板增删不再触发全文档抢修/链外盖子扫描）。client 89 → **91**。
 - **v0.7.0（2026-10-16，需求：一次完成 B+C 吧，时间成本不限—— B = P0 动效底座+帧探针，
   C = 重载插件 + 图片瘦身 + diag 多窗口读数）**：
   1. **动效公共底座**：总开关 `state.motion.enabled`（**默认关**，灰度；存档 `__dshui.motion.v1`；
@@ -553,8 +561,8 @@ Invoke-RestMethod http://127.0.0.1:19387/dsh-ui-beautify/diag.json
 
 | 改了什么 | 怎么生效 |
 |---|---|
-| `lib/client.js`（245,361 B · `VERSION='0.8.0'`） | 刷新页面即可（`no-store`）；改代码**必须**同步 bump 三处版本号，否则页面可能吃旧缓存 |
-| `lib/index.js`（27,469 B · `PLUGIN_VERSION='0.8.0'`） | 改宿主后要**重启 DSH**（bundle 层栈只在启动时收集一次） |
+| `lib/client.js`（273908 B · `VERSION='0.8.1'`） | 刷新页面即可（`no-store`）；改代码**必须**同步 bump 三处版本号，否则页面可能吃旧缓存 |
+| `lib/index.js`（28253 B · `PLUGIN_VERSION='0.8.1'`） | 改宿主后要**重启 DSH**（bundle 层栈只在启动时收集一次） |
 | 版本号三处 | `?v=` 变化 → 页面拉新 client；**只改 client.js 不改版本号 = 页面可能一直吃旧缓存** |
 | 桌面上的背景图 | 刷新页面即可（宿主按 mtime 重读） |
 | 只改文档（README / 本文件） | **不要** bump 版本号：页面不该因为纯文档改动被扰动 |
@@ -1601,11 +1609,11 @@ if (rect.height > 400) continue       // L721 整块消息区（← 嫌疑最大
 
 | 文件 | 字节 | 备注 |
 |---|---|---|
-| `lib/client.js` | 271009 | `VERSION='0.8.0'` |
-| `lib/index.js` | 28253 | `PLUGIN_VERSION='0.8.0'` |
+| `lib/client.js` | 273908 | `VERSION='0.8.1'` |
+| `lib/index.js` | 28253 | `PLUGIN_VERSION='0.8.1'` |
 | `test/host.test.mjs` | 30505 | 23 项（含开屏页路由与桥接注入） |
-| `test/client.test.mjs` | 148462 | 79 项（含存储迁移 / 开屏动画等 4 项） |
-| `test/fake-dom.js` | 28442 | 极简 DOM 桩（可控时钟 + 几何模型 + 命中测试 + `MutationObserver` 桩 + `performance`/`matchMedia`） |
+| `test/client.test.mjs` | 150595 | 79 项（含存储迁移 / 开屏动画等 4 项） |
+| `test/fake-dom.js` | 28600 | 极简 DOM 桩（可控时钟 + 几何模型 + 命中测试 + `MutationObserver` 桩 + `performance`/`matchMedia`） |
 | `assets/deepseek-4k.webp` | 186,342 | v0.7.0 起兜底图是 WebP（原 PNG 1,674,455 B） |
 | `assets/deepseek-bw-nowater.webp` | 162,872 | 原 PNG 1,947,025 B（SHA256 `9A87CA354A2DAD0CAB1FEF81A32E23A777FA5003E00ED0C113C0BA8654D9A8DB` 指旧 PNG） |
 | `.gitattributes` | 见 `Get-Item` | v2026-10-17 加的：`* -text`（关掉行尾转换，保住"字节一致"前提） |
@@ -1613,7 +1621,7 @@ if (rect.height > 400) continue       // L721 整块消息区（← 嫌疑最大
 | `README.md` / `HANDOFF.md` | 见 `Get-Item` | 文档会随会话更新，**字节数不必对齐** |
 
 - **历史包**：不含本文件的 v0.2.31 包（10 条目）= 3,697,317 B，SHA256 `75DA2A1C…429F6`；
-  当前版本（v0.8.0，28 条目，含本文件、LICENSE 与 scripts/uninstall-cleanup.ps1）用 `tools/build-dist.ps1` 重打即可（**哈希现场用 `Get-FileHash` 读，
+  当前版本（v0.8.1，28 条目，含本文件、LICENSE 与 scripts/uninstall-cleanup.ps1）用 `tools/build-dist.ps1` 重打即可（**哈希现场用 `Get-FileHash` 读，
   不写进包内文件**，避免自引用）。
 - **2026-10-17 重出过一次 0.7.0 包**（把新名字写进包内 README/HANDOFF + 工具脚本可移植性）：
   **哈希与之前那版不同**，以 `dist/SHA256SUMS.txt` 与 GitHub Release `v0.7.0` 上的为准；
@@ -1633,7 +1641,7 @@ if (rect.height > 400) continue       // L721 整块消息区（← 嫌疑最大
 **接手自检清单**：
 
 - [ ] `node test/host.test.mjs` → 23 pass / 0 fail
-- [ ] `node test/client.test.mjs` → 89 pass / 0 fail
+- [ ] `node test/client.test.mjs` → 91 pass / 0 fail
 - [ ] `node ../dsh-reload-ui/test/reload.test.mjs` → 6 pass / 0 fail
 - [ ] `status.json` 的 `version` / `images[]` 与手上代码一致；`filePath` 是 `.webp`（桌面原图仍 `.png` 优先）
 - [ ] `diag.json` 的 `frost.cleared` 含 `div.Dc7zOa_composerSeat`、`layering.native === true`
