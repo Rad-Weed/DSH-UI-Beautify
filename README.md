@@ -6,7 +6,7 @@
 > 原包名 `dsh-dsniang-beautify` 的旧存档会自动迁移；旧 hash（`#dsniang-off` / `#dsniang-diag`）与旧 URL 参数（`?dsniang=`）仍兼容。
 > 仓库：`Rad-Weed/DSH-UI-Beautify`（私有）
 
-**版本：v0.7.3** · 给 DSH 页面加壁纸与毛玻璃。
+**版本：v0.8.0** · 给 DSH 页面加壁纸与毛玻璃。
 
 > ⚠️ **v0.1 出过事故**：它会改目标面板的 `position` / `overflow`，导致界面布局坍塌、
 > 基本无法操作。v0.2 从设计上取消了所有这类改动，详见下面「为什么 v0.2 不会再弄坏界面」。
@@ -66,13 +66,14 @@ Repository: `Rad-Weed/DSH-UI-Beautify`.
 | Bubble transparency / color / blur | **45% / original color / 12 px** | same |
 | DSH panel blur | **20 px** | same |
 | Motion | **off** (master switch; `Ctrl+Shift+Alt+M`) | `localStorage['__dshui.motion.v1']` |
+| Startup splash | **on** (Rhine-Lab-style loading animation; panel toggle, `?splash=0` or `prefers-reduced-motion` skips it) | `localStorage['__dshui.splash.v1']` |
 | Pill position | `10, 10` (top-left) | `localStorage['__dshui.pill']` |
 
 Defaults apply only when nothing is stored yet; once you move a slider, the stored value wins.
 
 ## Install
 
-1. Extract `dsh-ui-beautify-0.7.3.zip` → you get a `dsh-ui-beautify/` directory
+1. Extract `dsh-ui-beautify-0.8.0.zip` → you get a `dsh-ui-beautify/` directory
    (`package.json` / `cordis.patch.yml` / `lib` / `assets` (both fallback images) / `test` /
    `scripts/uninstall-cleanup.ps1` / `README.md` / `HANDOFF.md` / `LICENSE` — 13 entries);
 2. Put it somewhere that won't be deleted (an ASCII-only path is recommended);
@@ -100,13 +101,14 @@ exit codes `0/1/2/3/4`.
 ## External side effects
 
 Pure Cordis plugin: it does **not** modify `app.asar`, the registry, scheduled tasks, environment variables or
-ports; no daemon, no child processes, no external network requests. Only five read-only loopback routes
+ports; no daemon, no child processes, no external network requests. Only six read-only loopback routes
 (`/dsh-ui-beautify/*`). Runtime changes are limited to our own DOM nodes, class toggles and CSS variables, all
-restored byte-exactly on teardown.
+restored byte-exactly on teardown. The startup splash is a **same-origin iframe**; it is removed entirely
+when it finishes (or is skipped / times out) and never touches the host page CSS.
 
 ### User data
 
-All settings live in `localStorage` under `__dshui.*` (mode, opacities, scrim, frost, motion, pill, image).
+All settings live in `localStorage` under `__dshui.*` (mode, opacities, scrim, frost, motion, splash, pill, image).
 Uninstalling **keeps** them by default. To wipe:
 
 ```js
@@ -125,6 +127,24 @@ The motion foundation (master switch, `prefers-reduced-motion`, pause on blur) a
 frame-time probe are in place. Motion is **off** by default; `Ctrl+Shift+Alt+M` toggles it. All future
 animations must go through `motionAllowed()`.
 
+## Startup splash
+
+On page load a **Rhine-Lab-style** startup sequence plays (black identity act → over-exposed wash → technical HUD →
+six authorization steps → white-flash cut into the session), then fades out and removes itself with zero residue.
+It is independent of the mode: it plays by default whenever the plugin is installed.
+
+- **When it plays**: on by default; skipped automatically under `prefers-reduced-motion: reduce`, with `#dshui-off`
+  (emergency switch), or `?splash=0`; `?splash=1` forces it on for debugging.
+- **Panel**: an "开屏动画：开/关" toggle (persisted to `__dshui.splash.v1`) plus "↻ 重播" to preview it anytime.
+- **Console API**: `__DSHUI__.splash.replay()` / `.skip()` / `.setEnabled(true|false)` / `.config()`.
+- **Isolation**: the splash is a **same-origin iframe** (`/dsh-ui-beautify/splash.html`; the host injects a bridge
+  script into `assets/splash.html`), so its CSS/JS never leaks into the DSH page. The node is removed on finish /
+  skip / a 30 s timeout.
+- **Replacing it**: drop a new self-contained single-file HTML at `assets/splash.html`; the host only injects.
+- **Diagnostics**: a `开屏:` line in the panel / `diag.json` (playing / done / skipped / disabled / timeout + duration)
+  and a structured `splash` snapshot in `status()`.
+- **Sound**: off by default (no user gesture at startup, so browser autoplay policy would mute it anyway).
+
 ## Wallpaper
 
 Replace the two Desktop files (same names) or the bundled ones; Desktop wins over bundled. PNG and WebP are both
@@ -134,15 +154,16 @@ the two identities with a cross-fade.
 ## Composition & host API
 
 - `lib/index.js` — host half: injects the client script into the page (web and desktop channels), serves the
-  read-only routes (`status.json`, `diag.json`, `bg.png`, `client.js`).
+  read-only routes (`status.json`, `diag.json`, `bg.png`, `client.js`, `splash.html`).
 - `lib/client.js` — browser half (plain IIFE, no build step): layers, glass, layering guard, diagnostics.
-- `assets/` — the two bundled WebP fallbacks; `test/` — offline tests; `scripts/` — uninstall self-check.
+- `assets/` — the two bundled WebP fallbacks **and `splash.html`** (startup animation); `test/` — offline tests;
+  `scripts/` — uninstall self-check.
 
 ## Development & tests
 
 ```powershell
-node test/host.test.mjs      # 21 tests
-node test/client.test.mjs    # 75 tests (includes the storage-migration case)
+node test/host.test.mjs      # 23 tests
+node test/client.test.mjs    # 79 tests (includes storage-migration and startup-splash cases)
 ```
 
 The tests run fully offline against a minimal DOM stub (controllable clock, geometry model, MutationObserver,
@@ -664,7 +685,7 @@ v0.2 立了三条硬规则，并且写成了自动化测试：
 - URL 带 `#dshui-off` 时，即使脚本被注入也直接不动作（应急开关；旧名 `#dsniang-off` 同样有效）；
 - 不 `preventDefault`、不 `stopPropagation`，不抢页面任何交互。
 
-## 出厂默认值（v0.7.3）
+## 出厂默认值（v0.8.0）
 
 | 项目 | 出厂默认 | 存在哪 |
 |---|---|---|
@@ -680,6 +701,7 @@ v0.2 立了三条硬规则，并且写成了自动化测试：
 | 气泡透明度 | **45%**（0% = 不透明/DSH 原样，100% = 全透明；面板滑块可调） | 同上（`bubbleTransparency`） |
 | 气泡颜色 | **跟随气泡原色**（面板取色器可自选，存 `#rrggbb`） | 同上（`bubbleColor`） |
 | 气泡模糊 | **12px**（面板滑块可调，0~30px） | 同上（`bubbleBlur`） |
+| 开屏动画 | **开**（页面加载时播放莱因生命风格开屏；面板可关；`?splash=0` 或系统「减弱动态效果」时跳过） | `localStorage['__dshui.splash.v1']` |
 | 动效 | **关**（v0.7.0 总开关，默认关；`Ctrl+Shift+Alt+M` 或面板按钮；系统「减弱动态效果」/ 失焦自动暂停） | `localStorage['__dshui.motion.v1']` |
 | DSH 面板模糊 | **20px**（「DSH 面板模糊」滑块可调，0~30px；只影响 DSH 自己的重命名窗/菜单） | 同上（`dshBlur`） |
 | 入口胶囊位置 | 窗口左上角 `10, 10` | `localStorage['__dshui.pill']` |
@@ -692,10 +714,10 @@ v0.2 立了三条硬规则，并且写成了自动化测试：
 
 ### 从 zip 安装（换机器 / 给别人）
 
-1. 解压 `dsh-ui-beautify-0.7.3.zip` → 得到 `dsh-ui-beautify/` 目录
+1. 解压 `dsh-ui-beautify-0.8.0.zip` → 得到 `dsh-ui-beautify/` 目录
    （里面是 `package.json` / `cordis.patch.yml` / `lib` / `assets`（**两张兜底图都在包里**）/
    `test` / `scripts/uninstall-cleanup.ps1`（卸载后自检）/ `README.md`（本文件）/ `HANDOFF.md` / `LICENSE`，
-   共 13 个条目）；
+   共 14 个条目（新增 `assets/splash.html`）；
 2. 放到一个**不会被随手删掉**的目录（路径建议纯英文，例如 `D:\dsh-plugins\`）；
 3. 用官方插件通道安装，`target` 指向解压出来的目录：
    `pluginManager.installBundle('file:D:\\dsh-plugins\\dsh-ui-beautify')`
@@ -755,7 +777,7 @@ cmd /c rmdir "$env:USERPROFILE\.dsh\profiles\desktop\node_modules\dsh-ui-beautif
 | 备份位置 | 无外部备份。包内 `.rollback/` 是**安装前 profile 配置的本机副本**（只在手动兜底卸载时用） |
 | 反向操作 | 插件管理器里卸载（推荐）；或 `__DSHUI__.uninstall()` 立即撤销效果；或 README「卸载」的三条路 |
 | 用户数据 | `localStorage` 的 `__dshui.*` 键，**卸载默认保留**（见下） |
-| 网络 | **无外部网络请求**。只有本机回环的 5 条只读路由（`/dsh-ui-beautify/*`） |
+| 网络 | **无外部网络请求**。只有本机回环的 6 条只读路由（`/dsh-ui-beautify/*`） |
 | 常驻进程 / daemon | 无。不用 `child_process`；页面侧的定时器与观察器都在 `uninstall()` 里清干净 |
 
 ### 用户数据（默认保留，清除必须显式）
@@ -767,6 +789,7 @@ cmd /c rmdir "$env:USERPROFILE\.dsh\profiles\desktop\node_modules\dsh-ui-beautif
 | `__dshui.scrim` | 背景模式薄纱强度 |
 | `__dshui.frost.v3` | 毛玻璃（开关 / 模糊 / 白层 / 面板白层 / 气泡 / DSH 面板模糊） |
 | `__dshui.motion.v1` | 动效总开关（默认关） |
+| `__dshui.splash.v1` | 开屏动画开关（默认开） |
 | `__dshui.pill` | 胶囊位置 |
 | `__dshui.image` | 当前壁纸 |
 
@@ -854,6 +877,25 @@ powershell -ExecutionPolicy Bypass -File .\scripts\uninstall-cleanup.ps1 -PurgeD
 
 > 帧率健康线（供参考）：`fps ≥ 55` 且 `P95 ≤ 22ms` 算顺滑；`长帧 > 0` 表示出现过 > 50ms 的卡顿帧。
 
+## 开屏动画（v0.8.0）
+
+页面加载时先盖一层**莱因生命风格**的开屏序列（黑幕标识 → 过曝洗白 → 技术档案 HUD → 六步授权 →
+白闪硬切进会话），放完自动淡出、移除，零残留。它和模式**无关**：只要插件在，默认就会放。
+
+- **播放条件**：默认开；`prefers-reduced-motion: reduce` 自动跳过；地址带 `#dshui-off`（应急开关）跳过；
+  `?splash=0` 强制关、`?splash=1` 强制开（调试用）。
+- **面板控制**：入口面板里「开屏动画：开/关」切换（持久化到 `__dshui.splash.v1`），旁边「↻ 重播」可随时预览。
+- **控制台 API**：`__DSHUI__.splash.replay()` / `.skip()` / `.setEnabled(true|false)` / `.config()`。
+- **隔离方式**：开屏页是**同源 iframe**（`/dsh-ui-beautify/splash.html`，宿主给 `assets/splash.html` 注入桥接脚本），
+  样式与脚本完全隔离，不碰 DSH 页面的 CSS；放完 / 跳过 / 30s 超时兜底后节点直接移除。
+- **换开屏**：替换包内 `assets/splash.html` 即可（文件保持单文件自包含）；宿主只做注入，不改源文件。
+- **诊断**：面板 / `diag.json` 里有 `开屏:` 一行（播放中 / 已播放完 / 已跳过 / 已关闭 / 超时兜底 + 耗时），
+  `status()` 里有结构化的 `splash` 快照。
+- **音效**：默认关（启动时无用户手势，浏览器自动播放策略本来也会静音）；想开可改开屏页配置里的 `sound`。
+
+> 开屏页来源：用户提供的「DSH 开屏 v2.4 · 莱因生命风格」，结构参考 dsh-startup-screen（MIT）并按其自身版本说明迭代；
+> 插件侧只负责挂载/配置/回收，源文件可独立迭代。
+
 ## 背景图怎么换
 
 直接替换桌面上的 `deepseek 4k.png` 后**刷新页面**（宿主按 mtime 重读，
@@ -868,7 +910,7 @@ dsh-ui-beautify/
 ├── package.json          # 插件清单（dsh.bundle.patch 指向挂载声明）
 ├── cordis.patch.yml      # 挂载声明：把插件插进 profile 配置树
 ├── lib/
-│   ├── index.js          # Host 半区（Node）：5 条只读路由 + 脚本注入
+│   ├── index.js          # Host 半区（Node）：6 条只读路由 + 脚本注入
 │   └── client.js         # Client 半区（浏览器）：图片层 + 交互
 ├── assets/               # 包内兜底图（v0.7.0 起是 WebP，两张都在包里，换台电脑也有两个选项）
 │   ├── deepseek-4k.webp
@@ -898,8 +940,8 @@ dsh-ui-beautify/
 
 ```powershell
 cd <解压出来的目录>\dsh-ui-beautify
-node test\host.test.mjs     # 21 项：路由、栅栏、注入、卸载、脚本语法、桌面图优先与包内兜底（WebP）、别名、动效摘要
-node test\client.test.mjs   # 76 项：挂载、交互、淡入淡出、回归护栏、模式、毛玻璃与通透化、壁纸体检、动效底座与帧探针、卸载、诊断
+node test\host.test.mjs     # 23 项：路由、栅栏、注入、卸载、脚本语法、桌面图优先与包内兜底（WebP）、别名、动效摘要
+node test\client.test.mjs   # 79 项：挂载、交互、淡入淡出、回归护栏、模式、毛玻璃与通透化、壁纸体检、动效底座与帧探针、卸载、诊断
 ```
 
 > 想继续开发这个插件（改代码、加动效、重新打包）的**下一个 AI / 开发者**，请看

@@ -24,6 +24,7 @@ import plugin, {
   DESKTOP_INJECT_ROW_TEXT,
   PLUGIN_VERSION,
   ROUTE_PREFIX,
+  injectSplashBridge,
   normalizeImageName,
   resolveBackgroundBytes,
   resolveDesktopImagePath,
@@ -174,6 +175,7 @@ test('apply(): 注册路由并注入前端脚本', () => {
     [
       `exact ${ROUTE_PREFIX}/bg.png`,
       `exact ${ROUTE_PREFIX}/client.js`,
+      `exact ${ROUTE_PREFIX}/splash.html`,
       `exact ${ROUTE_PREFIX}/status.json`,
       `exact ${ROUTE_PREFIX}/diag`,
       `exact ${ROUTE_PREFIX}/diag.json`,
@@ -590,6 +592,30 @@ test('图片别名：旧存档里的包内文件名 / 短名都能认回候选�
   assert.equal(normalizeImageName('../../secret.png'), null, '白名单外一律不认')
 })
 
+
+test('开屏页路由：返回注入桥接脚本的 HTML（隐藏 mock/控制台 + 结束信号）', async () => {
+  const { webServer } = boot()
+  const response = await callRoute(webServer, `${ROUTE_PREFIX}/splash.html`)
+  assert.equal(response.statusCode, 200)
+  assert.equal(response.headers['Content-Type'], 'text/html; charset=utf-8')
+  assert.equal(response.headers['Cache-Control'], 'no-store')
+  const html = response.body.toString('utf8')
+  assert.ok(html.includes('<html'), '应是完整的 HTML 文档')
+  assert.ok(html.includes('__DSH_STARTUP__'), '桥接脚本要接管开屏页自己的配置接口')
+  assert.ok(html.includes('#mockApp,#d2console{display:none!important}'), '集成态要隐藏假界面与控制台')
+  assert.ok(html.includes('dsh-startup:done'), '结束信号要回传给父页面')
+  assert.ok(html.includes('dsh2-root'), '原开屏页内容要保留')
+})
+
+test('injectSplashBridge：不改源文件、只往 <head> 后插桥接（纯函数可单测）', () => {
+  const html = '<html><head><title>t</title></head><body><div id="mockApp"></div></body></html>'
+  const out = injectSplashBridge(html)
+  assert.ok(out.includes('<title>t</title>'), '原始内容不能动')
+  assert.ok(out.indexOf('__DSH_STARTUP__') > out.indexOf('<head>'))
+  assert.ok(out.indexOf('__DSH_STARTUP__') < out.indexOf('<title>'), '桥接应紧跟 <head> 之后')
+  assert.ok(out.includes('window.parent.postMessage'), '结束/异常都要通知父页面')
+})
+
 test('路由 /client.js：出浏览器可执行的脚本', async () => {
   const { webServer } = boot()
   const response = await callRoute(webServer, `${ROUTE_PREFIX}/client.js`)
@@ -618,7 +644,7 @@ test('路由：跨站请求被栅栏拒掉', async () => {
 
 test('卸载：ctx.effect 的 disposer 摘掉全部路由与注入', () => {
   const { webServer, root } = boot()
-  assert.equal(webServer.routes.size, 5)
+  assert.equal(webServer.routes.size, 6)
   assert.equal(webServer.taps.length, 1)
 
   for (const dispose of root.effects) dispose()

@@ -1,6 +1,6 @@
 # build-dist.ps1 - packaging recipe (HANDOFF section 10, scripted since 0.3.0)
 #   Checks the 3 version spots match, builds <workspace>/dist/dsh-ui-beautify-<version>.zip
-#   (11 entries), prints entries / bytes / SHA256.
+#   (14 entries), prints entries / bytes / SHA256.
 # NOTE 1: keep this file pure ASCII - Windows PowerShell 5.1 reads BOM-less files as ANSI.
 # NOTE 2: every path here is built ABSOLUTE. .NET file APIs resolve relative paths against the
 #         PROCESS working directory, not PowerShell's location, so `Set-Location` alone would
@@ -32,7 +32,7 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 $entries = @(
   'package.json', 'cordis.patch.yml', 'README.md', 'HANDOFF.md', 'LICENSE',
   'lib/client.js', 'lib/index.js',
-  'assets/deepseek-4k.webp', 'assets/deepseek-bw-nowater.webp',
+  'assets/deepseek-4k.webp', 'assets/deepseek-bw-nowater.webp', 'assets/splash.html',
   'scripts/uninstall-cleanup.ps1',
   'test/host.test.mjs', 'test/client.test.mjs', 'test/fake-dom.js'
 )

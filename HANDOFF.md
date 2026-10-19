@@ -47,7 +47,7 @@
 > **接手者不需要向需求方复述或确认任何历史**（需求方明确要求过：不必复述已完成事项）。
 >
 > 用户看的是 [README.md](README.md)（用户手册）；这一份是**给下一个 AI 的交接**。
-> 记录时版本 **v0.7.3** ｜ 工作目录 `<工作目录>`
+> 记录时版本 **v0.8.0** ｜ 工作目录 `<工作目录>`
 
 ## 目录
 
@@ -79,8 +79,8 @@
 
 **它现在什么状态**：
 
-- 版本 `0.7.1`（`lib/client.js` 的 `VERSION`、`lib/index.js` 的 `PLUGIN_VERSION`、`package.json` 的 `version` 三处一致）；
-- 测试 **host 21/21 + client 75/75** 全绿（离线，不需要浏览器）；另：独立插件 `dsh-reload-ui` 6/6；
+- 版本 `0.8.0`（`lib/client.js` 的 `VERSION`、`lib/index.js` 的 `PLUGIN_VERSION`、`package.json` 的 `version` 三处一致）；
+- 测试 **host 23/23 + client 79/79** 全绿（离线，不需要浏览器）；另：独立插件 `dsh-reload-ui` 6/6；
 - **已装在用户机器上**（`lib/client.js` 走 `Cache-Control: no-store`，只要页面**真的重载**就能拿到新脚本；
   但 DSH 桌面版没有刷新快捷键 / 菜单（见 §11 P1），所以实际操作 = **退出 DSH 再启动**）。
 - **v0.2.32 这一版做了两件事**（都是用户在 2026-10-13 那条消息里点的）：
@@ -444,6 +444,20 @@
   4. 胶囊/面板/控制台文案统一为 `DSH UI Beautify`（胶囊短标签 `DSH UI · 纹理/背景/…`）；壁纸角色名「DS 娘」仅在描述画面时保留。
   5. 沿用 v0.7.2 的安装/卸载与外部副作用规范化能力（自检脚本、副作用声明、元数据、13 条目出包）。
   6. **文档双语**：README 增加英文版（顶部语言跳转）＋ Release 说明中英双语；包内 README 随之更新。
+- **v0.8.0（2026-10-19，整合开屏动画：莱因生命风格）**：
+  把用户用其他 AI 生成的单文件开屏页（`桌面/DSH-开屏项目/DSH-开屏-莱因生命风格-v2.html`，v2.4）整合进插件：
+  1. **资产与宿主**：`assets/splash.html`（原文件原样拷入，**不改源文件**）；宿主新增只读路由
+     `GET /dsh-ui-beautify/splash.html`，返回时在 `<head>` 后**注入桥接脚本**（`?cfg=` → `window.__DSH_STARTUP__`；
+     隐藏开屏页自带的 mock 界面与控制台；结束/异常 `postMessage` 回父页面；父页面可发 skip）。
+  2. **客户端**：页面加载时挂一层同源 iframe（`#__dshui-splash`，z-index 最高、不透明底），
+     `done/skip/error` 消息或 30s 超时后淡出移除；`prefers-reduced-motion` / `#dshui-off` 跳过；
+     `?splash=0` 强制关、`?splash=1` 强制开；开关存 `__dshui.splash.v1`（默认**开**）。
+  3. **面板与 API**：「开屏动画：开/关」+「↻ 重播」；`__DSHUI__.splash.replay/skip/setEnabled/config()`；
+     诊断新增 `开屏:` 行（播放中/已播放完/已跳过/已关闭/超时兜底 + 耗时），`status()` 带 `splash` 快照。
+  4. **安全/铁律**：同源 iframe 做样式隔离，不放宽栅栏；iframe 移除即零残留（不碰页面 DOM/CSS）；
+     音效默认关（启动无手势，自动播放策略会静音）。
+  5. **测试**：host 21 → **23**（开屏路由 + 桥接注入纯函数）；client 75 → **79**（挂载/移除/关闭/降级/超时/面板）。
+  6. **出包**：13 → **14 条目**（新增 `assets/splash.html`）。
 - **v0.7.0（2026-10-16，需求：一次完成 B+C 吧，时间成本不限—— B = P0 动效底座+帧探针，
   C = 重载插件 + 图片瘦身 + diag 多窗口读数）**：
   1. **动效公共底座**：总开关 `state.motion.enabled`（**默认关**，灰度；存档 `__dshui.motion.v1`；
@@ -526,8 +540,8 @@ Invoke-RestMethod http://127.0.0.1:19387/dsh-ui-beautify/diag.json
 
 | 改了什么 | 怎么生效 |
 |---|---|
-| `lib/client.js` | 231852 | `VERSION='0.7.3'` |
-| `lib/index.js` | 24232 | `PLUGIN_VERSION='0.7.3'` |
+| `lib/client.js`（245,361 B · `VERSION='0.8.0'`） | 刷新页面即可（`no-store`）；改代码**必须**同步 bump 三处版本号，否则页面可能吃旧缓存 |
+| `lib/index.js`（27,469 B · `PLUGIN_VERSION='0.8.0'`） | 改宿主后要**重启 DSH**（bundle 层栈只在启动时收集一次） |
 | 版本号三处 | `?v=` 变化 → 页面拉新 client；**只改 client.js 不改版本号 = 页面可能一直吃旧缓存** |
 | 桌面上的背景图 | 刷新页面即可（宿主按 mtime 重读） |
 | 只改文档（README / 本文件） | **不要** bump 版本号：页面不该因为纯文档改动被扰动 |
@@ -805,6 +819,21 @@ __DSHUI__.uninstall()              // 撤销全部改动（模式偏好保留）
 | 壁纸角色名 | 文档中描述画面时保留「DS 娘」 | 同左 | 与插件名无关 |
 
 ---
+### 5.y 开屏动画（v0.8.0）
+
+| 部件 | 位置 | 说明 |
+|---|---|---|
+| 源文件 | `assets/splash.html` | 用户提供的单文件开屏（莱因生命风格 v2.4），**原样保留** |
+| 宿主路由 | `/dsh-ui-beautify/splash.html` | 读资产 → `injectSplashBridge()` 注入桥接 → 返回 `text/html; no-store` |
+| 桥接内容 | 返回页的 `<head>` 后 | `?cfg=` JSON → `__DSH_STARTUP__`；隐藏 `#mockApp`/`#d2console`；`dsh-startup:done` → `postMessage`；异常 → `postMessage`；父页 skip 消息 → `DSH2_SPLASH_API__.skip()` |
+| 客户端挂载 | `mountSplash()` | 同源 iframe + 不透明底，z-index `2147483647`；`#__dshui-splash` |
+| 完成/兜底 | `finishSplash(reason)` | `done` / `skipped` / `timeout`（30s）/ `error` → 淡出 360ms → 摘节点 |
+| 开关 | `__dshui.splash.v1` | 默认开；面板「开屏动画」；`?splash=0/1`；`prefers-reduced-motion` 跳过 |
+| 诊断 | `diag.json` / `status()` | `开屏:` 行 + `splash` 快照 |
+
+> 为什么用 iframe：开屏页自带全局样式（`:root`、`html/body`、`*` 重置），直接注入会污染 DSH 页面；
+> iframe 天然隔离，移除即零残留。宿主只在**返回浏览器的那一份**里注入桥接，磁盘源文件保持可独立迭代。
+
 ## 6. 真实 DSH 的 DOM 事实（与勘察方法）
 
 ### 6.1 实测事实（2560×1410 窗口）
@@ -1546,10 +1575,10 @@ if (rect.height > 400) continue       // L721 整块消息区（← 嫌疑最大
 
 | 文件 | 字节 | 备注 |
 |---|---|---|
-| `lib/client.js` | 231944 | `VERSION='0.7.3'` |
-| `lib/index.js` | 24232 | `PLUGIN_VERSION='0.7.3'` |
-| `test/host.test.mjs` | 28465 | 21 项 |
-| `test/client.test.mjs` | 134665 | 75 项（含存储迁移 1 项） |
+| `lib/client.js` | 245361 | `VERSION='0.8.0'` |
+| `lib/index.js` | 27469 | `PLUGIN_VERSION='0.8.0'` |
+| `test/host.test.mjs` | 30004 | 23 项（含开屏页路由与桥接注入） |
+| `test/client.test.mjs` | 139132 | 79 项（含存储迁移 / 开屏动画等 4 项） |
 | `test/fake-dom.js` | 26794 | 极简 DOM 桩（可控时钟 + 几何模型 + 命中测试 + `MutationObserver` 桩 + `performance`/`matchMedia`） |
 | `assets/deepseek-4k.webp` | 186,342 | v0.7.0 起兜底图是 WebP（原 PNG 1,674,455 B） |
 | `assets/deepseek-bw-nowater.webp` | 162,872 | 原 PNG 1,947,025 B（SHA256 `9A87CA354A2DAD0CAB1FEF81A32E23A777FA5003E00ED0C113C0BA8654D9A8DB` 指旧 PNG） |
@@ -1558,18 +1587,18 @@ if (rect.height > 400) continue       // L721 整块消息区（← 嫌疑最大
 | `README.md` / `HANDOFF.md` | 见 `Get-Item` | 文档会随会话更新，**字节数不必对齐** |
 
 - **历史包**：不含本文件的 v0.2.31 包（10 条目）= 3,697,317 B，SHA256 `75DA2A1C…429F6`；
-  当前版本（v0.7.3，13 条目，含本文件、LICENSE 与 scripts/uninstall-cleanup.ps1）用 `tools/build-dist.ps1` 重打即可（**哈希现场用 `Get-FileHash` 读，
+  当前版本（v0.8.0，14 条目，含本文件、LICENSE 与 scripts/uninstall-cleanup.ps1）用 `tools/build-dist.ps1` 重打即可（**哈希现场用 `Get-FileHash` 读，
   不写进包内文件**，避免自引用）。
 - **2026-10-17 重出过一次 0.7.0 包**（把新名字写进包内 README/HANDOFF + 工具脚本可移植性）：
   **哈希与之前那版不同**，以 `dist/SHA256SUMS.txt` 与 GitHub Release `v0.7.0` 上的为准；
   旧的 `DBA1699B…7BFAC`（564,707 B）作废，但两个版本**功能完全一致**（都是 v0.7.0 代码）。
   ⇒ 以后每次重出包都往 `dist/SHA256SUMS.txt` 追加一行，别再靠聊天记录记哈希。
-- **上一个可回滚的整包**（上一版）：`dist/dsh-dsniang-beautify-0.7.2.zip`
-  = 575,055 B，SHA256 `28F3F2BD0721041431FC79C5481A07C9CA8D1E96B037B01F7315A04894BE64C1`
-  （旧包名时代的 0.7.2：安装/卸载与外部副作用规范化；本版更名后可用它回滚）。
-- 再往前：`dist/dsh-dsniang-beautify-0.7.1.zip` = 568,375 B，
-  SHA256 `0309C4E96AB812DBD8E8518D3371159BFB82F136D7AB0A099A1B4BE29AB095D8`（修界面卡死 + 删除气泡浮层）；
-  `dist/dsh-dsniang-beautify-0.6.5.zip`（抢修抢在渲染前）、`-0.6.4.zip`（壁纸体检 + 链外盖子）。
+- **上一个可回滚的整包**（上一版）：`dist/dsh-ui-beautify-0.7.3.zip`
+  = 581,244 B，SHA256 `4D1E2D511B19B660FDB5CD967466837885798ABCD79636B4AB719F634130BC4F`
+  （全量更名 / 双语文档 / 折叠式英文版；装回它即可回退本版的开屏动画）。
+- 再往前：`dist/dsh-dsniang-beautify-0.7.2.zip` = 575,055 B，
+  SHA256 `28F3F2BD0721041431FC79C5481A07C9CA8D1E96B037B01F7315A04894BE64C1`（旧包名时代的 0.7.2）；
+  `dsh-dsniang-beautify-0.7.1.zip` = 568,375 B（修界面卡死 + 删除气泡浮层）、`-0.6.5.zip` / `-0.6.4.zip`。
 - **另一个插件**：`dist/dsh-reload-ui-0.1.1.zip`（6 条目）——「重载界面」独立插件，
   与美化插件分开安装（详见其 README）。
 - `dist/` 里还留着更旧的旧名包（`dsh-dsniang-beautify-0.2.30.zip`，1,747,948 B，**只有 4k 一张图**，勿再分发）。
@@ -1577,8 +1606,8 @@ if (rect.height > 400) continue       // L721 整块消息区（← 嫌疑最大
 
 **接手自检清单**：
 
-- [ ] `node test/host.test.mjs` → 21 pass / 0 fail
-- [ ] `node test/client.test.mjs` → 75 pass / 0 fail
+- [ ] `node test/host.test.mjs` → 23 pass / 0 fail
+- [ ] `node test/client.test.mjs` → 79 pass / 0 fail
 - [ ] `node ../dsh-reload-ui/test/reload.test.mjs` → 6 pass / 0 fail
 - [ ] `status.json` 的 `version` / `images[]` 与手上代码一致；`filePath` 是 `.webp`（桌面原图仍 `.png` 优先）
 - [ ] `diag.json` 的 `frost.cleared` 含 `div.Dc7zOa_composerSeat`、`layering.native === true`

@@ -88,7 +88,15 @@ function clickOn(dom, node) {
 /** 页面里所有元素（不含插件自己的节点）的"布局相关内联样式"快照。 */
 function layoutSnapshot(dom) {
   const out = []
-  const OURS = new Set(['__dshui-layer', '__dshui-layer2', '__dshui-diag', '__dshui-switcher', '__dshui-pill', '__dshui-style'])
+  const OURS = new Set([
+    '__dshui-layer',
+    '__dshui-layer2',
+    '__dshui-diag',
+    '__dshui-switcher',
+    '__dshui-pill',
+    '__dshui-style',
+    '__dshui-splash',
+  ])
   const walk = (node) => {
     const ours = node.nodeType === 1 && OURS.has(node.id)
     if (ours) return // 插件自己的节点连同子树一起跳过
@@ -2703,6 +2711,102 @@ test('存储迁移（更名兼容）：旧前缀 __dsniang.* 自动复制到 __d
   assert.equal(dom2.window.localStorage.getItem('__dshui.mode'), 'multiply', '新键优先，旧键不覆盖')
   assert.equal(two.api.status().storageMigrated, 0, '没有需要迁移的键 → 0')
   assert.match(two.api.diagnose(), /存储: 无需迁移/)
+})
+
+
+const splashOf = (dom) => dom.document.getElementById('__dshui-splash')
+/** 给开屏 iframe 派发一条「父窗口」消息（桩里直接调 window 的 message 监听）。 */
+function fireSplashMessage(dom, data) {
+  const listeners = (dom.window._listeners && dom.window._listeners.message) || []
+  for (const handler of listeners.slice()) handler({ data })
+}
+
+test('开屏动画（0.8.0）：默认挂载同源 iframe，播完自动淡出移除，零残留', async () => {
+  const dom = buildChatDom()
+  const before = layoutSnapshot(dom)
+  const { api } = runClient(dom)
+  await flush()
+  const node = splashOf(dom)
+  assert.ok(node, '默认应挂载开屏覆盖层')
+  const frame = node.querySelector('iframe')
+  assert.ok(frame, '覆盖层里应是 iframe（样式隔离，不碰页面 CSS）')
+  assert.match(String(frame.src), /\/dsh-ui-beautify\/splash\.html\?v=[\d.]+&cfg=/, '地址带版本号和配置')
+  assert.equal(api.status().splash.status, 'playing', '状态应为播放中')
+  assert.match(api.diagnose(), /开屏: 播放中/, '诊断里要有开屏行')
+  assert.equal(layoutSnapshot(dom), before, '开屏层不能改变页面已有元素的布局样式')
+  fireSplashMessage(dom, { __dshuiSplash: 'done' })
+  assert.equal(api.status().splash.status, 'done')
+  dom.advance(500)
+  assert.equal(splashOf(dom), null, '淡出后应把节点摘干净')
+  assert.match(api.diagnose(), /开屏: 已播放完/)
+  assert.equal(layoutSnapshot(dom), before, '移除后页面仍与之前一致')
+})
+
+test('开屏动画：设置里关闭 / ?splash=0 / 减弱动态 都不播放', async () => {
+  const off = buildChatDom()
+  off.window.localStorage.setItem('__dshui.splash.v1', JSON.stringify({ enabled: false }))
+  const a = runClient(off)
+  await flush()
+  assert.equal(splashOf(off), null, '关闭时不该挂载')
+  assert.equal(a.api.status().splash.status, 'disabled')
+
+  const urlOff = buildChatDom()
+  urlOff.window.location.href = 'http://localhost/?splash=0'
+  runClient(urlOff)
+  await flush()
+  assert.equal(splashOf(urlOff), null, '?splash=0 不该挂载')
+
+  const reduced = buildChatDom()
+  reduced.window.matchMedia('(prefers-reduced-motion: reduce)').matches = true
+  const c2 = runClient(reduced)
+  await flush()
+  assert.equal(splashOf(reduced), null, 'prefers-reduced-motion 时不该挂载')
+  assert.equal(c2.api.status().splash.status, 'reduced')
+})
+
+test('开屏动画：30s 没等到结束信号→超时兜底；重播/跳过/卸载都清干净', async () => {
+  const dom = buildChatDom()
+  const { api } = runClient(dom)
+  await flush()
+  assert.ok(splashOf(dom), '先确认已挂载')
+  dom.advance(30000)
+  assert.equal(api.status().splash.status, 'timeout', '超时应兜底揭幕')
+  dom.advance(600)
+  assert.equal(splashOf(dom), null, '超时后也要移除')
+
+  api.splash.replay()
+  assert.ok(splashOf(dom), 'replay() 应重新挂载')
+  fireSplashMessage(dom, { __dshuiSplash: 'skip' })
+  assert.equal(api.status().splash.status, 'skipped')
+  dom.advance(600)
+  assert.equal(splashOf(dom), null, '跳过也应移除')
+
+  api.splash.replay()
+  api.uninstall()
+  assert.equal(splashOf(dom), null, 'uninstall() 必须把开屏节点清掉')
+})
+
+test('开屏动画：面板里可以关/开，并写进 localStorage', async () => {
+  const dom = buildChatDom()
+  const { api } = runClient(dom)
+  await flush()
+  fireSplashMessage(dom, { __dshuiSplash: 'done' })
+  dom.advance(600)
+  const pill = pillOf(dom)
+  pill._listeners.click[0]({ type: 'click', target: pill, stopPropagation() {} })
+  const box = dom.document.querySelectorAll('#__dshui-switcher')[0]
+  assert.ok(box, '面板应打开')
+  const toggle = box.querySelector('[data-splash-toggle]')
+  assert.ok(toggle, '面板里应有开屏动画开关')
+  toggle._listeners.click[0]({ type: 'click', target: toggle, stopPropagation() {} })
+  assert.equal(api.status().splash.enabled, false, '点一下应关闭')
+  const saved = JSON.parse(dom.window.localStorage.getItem('__dshui.splash.v1'))
+  assert.equal(saved.enabled, false, '开关状态要持久化')
+  assert.match(api.diagnose(), /开屏: (已关闭|已跳过)/)
+  const box2 = dom.document.querySelectorAll('#__dshui-switcher')[0]
+  const toggle2 = box2.querySelector('[data-splash-toggle]')
+  toggle2._listeners.click[0]({ type: 'click', target: toggle2, stopPropagation() {} })
+  assert.equal(api.status().splash.enabled, true, '再点应打开')
 })
 
 test('键盘快捷键：Alt+1=关闭 / Alt+2=纹理', async () => {
