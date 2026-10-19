@@ -607,6 +607,14 @@ test('开屏页路由：返回注入桥接脚本的 HTML（隐藏 mock/控制台
   assert.ok(html.includes('dsh2-root'), '原开屏页内容要保留')
 })
 
+test('开屏桥接：按 cfg.titlebar 注入顶部偏移样式（避开 Windows 窗口按钮）', () => {
+  const html = injectSplashBridge('<!doctype html><html><head></head><body></body></html>')
+  assert.match(html, /cfg.titlebar/, '桥接脚本应读取 cfg.titlebar')
+  assert.match(html, /d2-brand/, '应给 .d2-brand 注入偏移')
+  assert.match(html, /d2-stepcount/)
+  assert.match(html, /d2-skip/)
+  assert.match(html, /!important/, '必须用 !important 盖过开屏页自己的样式')
+})
 test('injectSplashBridge：不改源文件、只往 <head> 后插桥接（纯函数可单测）', () => {
   const html = '<html><head><title>t</title></head><body><div id="mockApp"></div></body></html>'
   const out = injectSplashBridge(html)

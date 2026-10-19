@@ -1,0 +1,47 @@
+﻿DSH 重启键 · 桌面壳补丁（v1.1.0 · 随 DSH UI Beautify 0.8.0 包分发）
+==========================================================
+在 DSH 窗口标题栏「应用」「编辑」右边加一个「重启」按钮，点一下 = 干净重启
+「应用 + Host」，不用再去托盘退出再重开。
+
+按钮 UI 已内置在 DSH UI Beautify 插件里；本目录只提供让它「真的能重启」的
+桌面壳补丁（改 app.asar 里两个已存在条目）。
+
+【装】 双击「install-restart-key.cmd」
+  1. 若 DSH 正在运行，脚本会提示你从系统托盘退出 DSH
+     （右键托盘图标 → 退出；只关窗口只是隐藏到托盘）；
+  2. 退出后，一个独立后台进程会等 DSH 完全退出、备份原始文件、
+     打补丁、校验 SHA256，然后自动重启 DSH；
+  3. 重新打开后，标题栏「应用」「编辑」右边就是「重启」。
+
+  说明：
+    - 按规范绝不在 DSH 运行时改 app.asar，所以必须等它完全退出；
+    - 只想看会做什么：powershell -ExecutionPolicy Bypass -File .\scripts\install-restart-key.ps1 -DryRun
+
+【用】
+  - 点「重启」：没有任务在跑 → 直接重启应用与 Host；
+    有任务在跑 → 先弹确认框「正在运行的任务会被中断」，点「取消」什么都不发生。
+  - 按钮显示「重启中…」后窗口会关闭并自动打开新的 DSH。
+  - 如果提示「需要桌面壳补丁」→ 双击本目录「install-restart-key.cmd」再退出一次 DSH。
+
+【卸】 双击「uninstall-restart-key.cmd」
+  独立后台进程会等 DSH 完全退出，双 SHA 校验后把 app.asar 还原成安装前的样子、
+  删除备份，并自动重启 DSH。按钮 UI 留在插件里（想连按钮一起去掉：卸载美化插件）。
+
+【查】 双击「verify-restart-key.cmd」：检查补丁 / 备份 / SHA256 / 按钮 UI / 运行态，PASS 或 FAIL。
+
+【常见问题】
+  - 安装后没看到按钮：确认装的是 DSH UI Beautify v0.8.0+，且已「退出 DSH 再打开」；
+    再跑「verify-restart-key.cmd」。
+  - DSH 客户端升级后按钮点击提示装补丁：升级会覆盖 app.asar，重新双击
+    「install-restart-key.cmd」并退出一次 DSH 即可（补丁要重打；插件包不受影响）。
+  - 网页版（浏览器）没有这个按钮，属正常（补丁只对桌面壳有效）。
+
+【万一 DSH 起不来（急救）】
+  1. 完全退出 DSH（托盘右键 → 退出；必要时任务管理器结束所有 DeepSeek Harness 进程）
+  2. 双击「uninstall-restart-key.cmd」：DSH 未运行时它会同步还原 app.asar（双 SHA 校验）后重启 DSH
+  3. 备份在 <DSH 安装目录>\resources\.dsh-restart-button-backup\
+
+【安全 / 副作用】
+  只改 app.asar 里两个已存在条目（lib/main.js、lib/preload-app.cjs），其余上万个文件
+  一个字节不动；改动带 BEGIN/END 标记、可逐字节回滚；备份含双 SHA（original/patched）。
+  本目录不写任何用户数据、不装插件包、不联网。

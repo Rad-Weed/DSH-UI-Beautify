@@ -1,0 +1,4 @@
+		// >>> DSH-RESTART-BUTTON BEGIN >>>（桌面壳补丁 · DSH重启键项目）
+		// 标题栏「重启」按钮的桥：页面侧调用 window.dshDesktop.restart() → 主进程 IPC。
+		restart: () => electron.ipcRenderer.invoke("dsh-desktop:restart-app"),
+		// <<< DSH-RESTART-BUTTON END <<<

@@ -1,0 +1,46 @@
+	// >>> DSH-RESTART-BUTTON BEGIN >>>（桌面壳补丁 · DSH重启键项目）
+	// 标题栏「重启」按钮的 IPC：干净地重启应用与 Host（等价于开发模式的「重启应用与 Host」）。
+	// 只有主窗口主 frame 能调；若 Host 报告有正在运行的任务/定时任务，先弹原生确认框。
+	ipcMain.handle("dsh-desktop:restart-app", async (event) => {
+		try {
+			assertProductSender(event);
+		} catch (error) {
+			return { ok: false, error: String((error && error.message) || error) };
+		}
+		if (quitting) return { ok: true, pending: true };
+		const zh = (windowsLanguage ?? app.getLocale()).toLowerCase().startsWith("zh");
+		let running = false;
+		if (backend.host !== void 0) {
+			try {
+				const state = await backend.host.inspectQuit();
+				running = Boolean(state && (state.activeTasks || state.scheduledTasks));
+			} catch (error) {
+				running = true;
+			}
+		}
+		if (running) {
+			const answer = await dialog.showMessageBox(mainWindow, {
+				type: "question",
+				title: "DeepSeek Harness",
+				message: zh ? "重启 DeepSeek Harness？" : "Restart DeepSeek Harness?",
+				detail: zh
+					? "正在运行的任务会被中断。重启会同时重启应用与 Host。"
+					: "Running tasks will be interrupted. The app and the Host will both restart.",
+				buttons: zh ? ["重启", "取消"] : ["Restart", "Cancel"],
+				defaultId: 0,
+				cancelId: 1,
+				noLink: true
+			});
+			if (answer.response !== 0) return { ok: false, cancelled: true };
+		}
+		app.relaunch();
+		setTimeout(() => {
+			try {
+				quitWithoutConfirmation();
+			} catch (error) {
+				console.error("dsh-restart-button: quit failed", error);
+			}
+		}, 120);
+		return { ok: true };
+	});
+	// <<< DSH-RESTART-BUTTON END <<<

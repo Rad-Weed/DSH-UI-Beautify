@@ -92,6 +92,9 @@ class FakeNode {
     this._listeners = {}
     this.nodeType = 1
     this.isConnected = false
+    this.shadowRoot = null
+    this._shadow = null
+    this.host = null
   }
 
   get parentElement() {
@@ -191,6 +194,20 @@ class FakeNode {
   _markConnected(value) {
     this.isConnected = value
     for (const child of this.childNodes) child._markConnected(value)
+    if (this._shadow) this._shadow._markConnected(value)
+  }
+
+  /** open shadow root（桩）：与真实 API 一样，document 查询不会进入 shadow 树。 */
+  attachShadow(init) {
+    const mode = (init && init.mode) || 'open'
+    const root = new FakeNode('#shadow-root', this.ownerDocument)
+    root.nodeType = 11
+    root.mode = mode
+    root.host = this
+    root._markConnected(this.isConnected)
+    this._shadow = root
+    this.shadowRoot = mode === 'open' ? root : null
+    return root
   }
 
   contains(node) {
@@ -759,4 +776,33 @@ export function buildChatDom(options) {
   dom.setComputedStyle(bubble, { backgroundColor: 'rgb(240, 240, 240)', position: 'static', overflow: 'visible' })
 
   return { ...dom, root, shell, panel, transcript, bubble, seat, cardRoot, composerWrap, textarea }
+}
+
+/**
+ * 给桩挂上「Windows 桌面壳 preload 菜单栏」：
+ *   html[data-windows-titlebar] → body > div[data-windows-menu] → #shadow-root(open)
+ *     → div[role=menubar] → button(应用) / button(编辑)
+ * 重启键插件会往这个 menubar 里再 append 一个「重启」按钮。
+ */
+export function attachWindowsMenu(dom, options) {
+  const opts = options || {}
+  const { document, body } = dom
+  if (opts.lang) document.documentElement.lang = opts.lang
+  document.documentElement.setAttribute('data-windows-titlebar', '')
+  const host = document.createElement('div')
+  host.setAttribute('data-windows-menu', '')
+  // Windows 标题栏：40px 高（客户端量高度时用它兜底）
+  host._rect = { top: 0, left: 0, right: 1200, bottom: 40, width: 1200, height: 40 }
+  const shadow = host.attachShadow({ mode: 'open' })
+  const bar = document.createElement('div')
+  bar.setAttribute('role', 'menubar')
+  const app = document.createElement('button')
+  app.textContent = '应用'
+  const edit = document.createElement('button')
+  edit.textContent = '编辑'
+  bar.appendChild(app)
+  bar.appendChild(edit)
+  shadow.appendChild(bar)
+  body.appendChild(host)
+  return { host, shadow, bar, buttons: [app, edit] }
 }

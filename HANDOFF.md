@@ -80,7 +80,7 @@
 **它现在什么状态**：
 
 - 版本 `0.8.0`（`lib/client.js` 的 `VERSION`、`lib/index.js` 的 `PLUGIN_VERSION`、`package.json` 的 `version` 三处一致）；
-- 测试 **host 23/23 + client 79/79** 全绿（离线，不需要浏览器）；另：独立插件 `dsh-reload-ui` 6/6；
+- 测试 **host 24/24 + client 89/89** 全绿（离线，不需要浏览器）；另：独立插件 `dsh-reload-ui` 6/6；
 - **已装在用户机器上**（`lib/client.js` 走 `Cache-Control: no-store`，只要页面**真的重载**就能拿到新脚本；
   但 DSH 桌面版没有刷新快捷键 / 菜单（见 §11 P1），所以实际操作 = **退出 DSH 再启动**）。
 - **v0.2.32 这一版做了两件事**（都是用户在 2026-10-13 那条消息里点的）：
@@ -457,7 +457,20 @@
   4. **安全/铁律**：同源 iframe 做样式隔离，不放宽栅栏；iframe 移除即零残留（不碰页面 DOM/CSS）；
      音效默认关（启动无手势，自动播放策略会静音）。
   5. **测试**：host 21 → **23**（开屏路由 + 桥接注入纯函数）；client 75 → **79**（挂载/移除/关闭/降级/超时/面板）。
-  6. **出包**：13 → **14 条目**（新增 `assets/splash.html`）。
+  6. **出包**：13 → **28 条目**（新增 `assets/splash.html` + `restart/` 壳补丁工具与文档）。
+  7. **重启键（同日整合）**：标题栏「应用」「编辑」右侧的「重启」按钮半区并入本插件
+     （shadow-DOM 菜单栏注入 + 中英双语 + 忙碌/取消/超时兜底 + 面板「↻ 重启 DSH」+ 诊断 `重启:` 行 +
+     `__DSHUI__.restart` API + 卸载摘除）；真重启能力沿用用户「DSH 重启键项目 v1.1.0」的**桌面壳补丁**，
+     整包 `restart/` 目录（安装/卸载/体检 cmd + 脚本 + 补丁工具）。壳补丁按规范独立安装（需 DSH 完全退出、
+     双 SHA 备份还原）；插件本体仍不碰 app.asar。原项目 25 项插件测试 + 12 项壳补丁测试 + 58 项脚本自测为基座，
+     本插件新增/改造后 client 79 → **85**。
+  8. **WELCOME BACK 卡片修复**：开屏页自带的卡片挂在它 mock 界面里（集成态被隐藏）→ 改由插件在
+     真实页面右上角绘制：读宿主 `status.json` 的 `user`（本机登录名，不落盘/不外发），约 3.6s 自动淡出；
+     关开屏 / `?splash=0` / 卸载时都不留；诊断 `开屏:` 行会标「欢迎卡片已显示」。
+  9. **标题栏避让**：开屏页顶部文字（品牌/步骤计数/SKIP）与 WELCOME BACK 卡片按实际标题栏高度下移 ——
+     父页面依次尝试 `navigator.windowControlsOverlay.getTitlebarAreaRect()` → CSS 变量
+     `--dsh-windows-titlebar-height` → `[data-windows-menu]` 矩形，兜底 40px；把高度写进开屏 iframe 的 `cfg.titlebar`，
+     桥接脚本按它注入带 `!important` 的偏移样式；卡片 top = 标题栏高度 + 22px。
 - **v0.7.0（2026-10-16，需求：一次完成 B+C 吧，时间成本不限—— B = P0 动效底座+帧探针，
   C = 重载插件 + 图片瘦身 + diag 多窗口读数）**：
   1. **动效公共底座**：总开关 `state.motion.enabled`（**默认关**，灰度；存档 `__dshui.motion.v1`；
@@ -833,6 +846,19 @@ __DSHUI__.uninstall()              // 撤销全部改动（模式偏好保留）
 
 > 为什么用 iframe：开屏页自带全局样式（`:root`、`html/body`、`*` 重置），直接注入会污染 DSH 页面；
 > iframe 天然隔离，移除即零残留。宿主只在**返回浏览器的那一份**里注入桥接，磁盘源文件保持可独立迭代。
+
+### 5.z 重启键（v0.8.0）
+
+| 部件 | 位置 | 说明 |
+|---|---|---|
+| 按钮 UI（半区 A） | `lib/client.js` `startRestartButton()` | 往 `[data-windows-menu]` 的 open shadow root 里 `[role=menubar]` append「重启」按钮；壳补丁缺失时点击给提示；面板也有入口 |
+| 桥 | `window.dshDesktop.restart()` | 由 shell 补丁的 preload 暴露；主进程 IPC `dsh-desktop:restart-app` → `app.relaunch()` |
+| 壳补丁工具 | `restart/shell/tools/apply-shell-patch.mjs` | `apply/status/verify/restore`；patch-spec 锚点 + BEGIN/END 标记 + 语法/内容校验 |
+| 壳补丁脚本 | `restart/scripts/*.ps1` | install/uninstall/verify/restore-on-exit/common；幂等、`-DryRun`、双 SHA、独立进程等退出、日志、退出码 0/1/2/3/4 |
+| 触发方式 | `restart/install-restart-key.cmd` 等 | 只在用户主动运行时才改 app.asar；DSH 运行时交给独立编排进程等退出 |
+
+> 为什么按钮在插件里、重启在壳补丁里：Host 侧没有 `app.relaunch()` 这类 API；页面能做的只是 UI 与调用桥。
+> 所以 UI 半区随插件走（零 app.asar 副作用），真重启必须由桌面壳补丁提供（按规范单独安装/还原）。
 
 ## 6. 真实 DSH 的 DOM 事实（与勘察方法）
 
@@ -1575,11 +1601,11 @@ if (rect.height > 400) continue       // L721 整块消息区（← 嫌疑最大
 
 | 文件 | 字节 | 备注 |
 |---|---|---|
-| `lib/client.js` | 245361 | `VERSION='0.8.0'` |
-| `lib/index.js` | 27469 | `PLUGIN_VERSION='0.8.0'` |
-| `test/host.test.mjs` | 30004 | 23 项（含开屏页路由与桥接注入） |
-| `test/client.test.mjs` | 139132 | 79 项（含存储迁移 / 开屏动画等 4 项） |
-| `test/fake-dom.js` | 26794 | 极简 DOM 桩（可控时钟 + 几何模型 + 命中测试 + `MutationObserver` 桩 + `performance`/`matchMedia`） |
+| `lib/client.js` | 271009 | `VERSION='0.8.0'` |
+| `lib/index.js` | 28253 | `PLUGIN_VERSION='0.8.0'` |
+| `test/host.test.mjs` | 30505 | 23 项（含开屏页路由与桥接注入） |
+| `test/client.test.mjs` | 148462 | 79 项（含存储迁移 / 开屏动画等 4 项） |
+| `test/fake-dom.js` | 28442 | 极简 DOM 桩（可控时钟 + 几何模型 + 命中测试 + `MutationObserver` 桩 + `performance`/`matchMedia`） |
 | `assets/deepseek-4k.webp` | 186,342 | v0.7.0 起兜底图是 WebP（原 PNG 1,674,455 B） |
 | `assets/deepseek-bw-nowater.webp` | 162,872 | 原 PNG 1,947,025 B（SHA256 `9A87CA354A2DAD0CAB1FEF81A32E23A777FA5003E00ED0C113C0BA8654D9A8DB` 指旧 PNG） |
 | `.gitattributes` | 见 `Get-Item` | v2026-10-17 加的：`* -text`（关掉行尾转换，保住"字节一致"前提） |
@@ -1587,7 +1613,7 @@ if (rect.height > 400) continue       // L721 整块消息区（← 嫌疑最大
 | `README.md` / `HANDOFF.md` | 见 `Get-Item` | 文档会随会话更新，**字节数不必对齐** |
 
 - **历史包**：不含本文件的 v0.2.31 包（10 条目）= 3,697,317 B，SHA256 `75DA2A1C…429F6`；
-  当前版本（v0.8.0，14 条目，含本文件、LICENSE 与 scripts/uninstall-cleanup.ps1）用 `tools/build-dist.ps1` 重打即可（**哈希现场用 `Get-FileHash` 读，
+  当前版本（v0.8.0，28 条目，含本文件、LICENSE 与 scripts/uninstall-cleanup.ps1）用 `tools/build-dist.ps1` 重打即可（**哈希现场用 `Get-FileHash` 读，
   不写进包内文件**，避免自引用）。
 - **2026-10-17 重出过一次 0.7.0 包**（把新名字写进包内 README/HANDOFF + 工具脚本可移植性）：
   **哈希与之前那版不同**，以 `dist/SHA256SUMS.txt` 与 GitHub Release `v0.7.0` 上的为准；
@@ -1607,7 +1633,7 @@ if (rect.height > 400) continue       // L721 整块消息区（← 嫌疑最大
 **接手自检清单**：
 
 - [ ] `node test/host.test.mjs` → 23 pass / 0 fail
-- [ ] `node test/client.test.mjs` → 79 pass / 0 fail
+- [ ] `node test/client.test.mjs` → 89 pass / 0 fail
 - [ ] `node ../dsh-reload-ui/test/reload.test.mjs` → 6 pass / 0 fail
 - [ ] `status.json` 的 `version` / `images[]` 与手上代码一致；`filePath` 是 `.webp`（桌面原图仍 `.png` 优先）
 - [ ] `diag.json` 的 `frost.cleared` 含 `div.Dc7zOa_composerSeat`、`layering.native === true`

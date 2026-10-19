@@ -14,7 +14,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import vm from 'node:vm'
 import { fileURLToPath } from 'node:url'
-import { buildChatDom, createDom } from './fake-dom.js'
+import { attachWindowsMenu, buildChatDom, createDom } from './fake-dom.js'
 
 const TEST_DIR = path.dirname(fileURLToPath(import.meta.url))
 const CLIENT_SOURCE = fs.readFileSync(path.join(TEST_DIR, '..', 'lib', 'client.js'), 'utf8')
@@ -56,6 +56,7 @@ function runClient(dom, options) {
             url: '/dsh-ui-beautify/bg.png' + (name ? '?img=' + encodeURIComponent(name) : ''),
             bytes: 123,
             images,
+            user: opts.statusUser || '',
           })
         },
       })
@@ -69,6 +70,8 @@ function runClient(dom, options) {
 }
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
+/** 与 lib/client.js 的 SPLASH_FADE_MS 保持一致（360ms）。 */
+const SPLASH_FADE_MS_FOR_TEST = 360
 
 const layerOf = (dom) => dom.document.querySelectorAll('#__dshui-layer')[0] || null
 const styleTagOf = (dom) => dom.document.getElementById('__dshui-style')
@@ -96,6 +99,7 @@ function layoutSnapshot(dom) {
     '__dshui-pill',
     '__dshui-style',
     '__dshui-splash',
+    '__dshui-welcome',
   ])
   const walk = (node) => {
     const ours = node.nodeType === 1 && OURS.has(node.id)
@@ -2742,6 +2746,32 @@ test('开屏动画（0.8.0）：默认挂载同源 iframe，播完自动淡出�
   assert.equal(layoutSnapshot(dom), before, '移除后页面仍与之前一致')
 })
 
+const splashCfgOf = (dom) => {
+  const node = dom.document.getElementById('__dshui-splash')
+  const frame = node && node.querySelector('iframe')
+  const m = frame && /&cfg=([^&]+)/.exec(String(frame.src))
+  return m ? JSON.parse(decodeURIComponent(m[1])) : null
+}
+
+test('开屏动画音效（0.8.0）：默认开、配置传给开屏页、面板可关可持久化', async () => {
+  const dom = buildChatDom()
+  const { api } = runClient(dom)
+  await flush()
+  assert.equal(api.status().splash.sound, true, '音效默认开')
+  assert.equal(splashCfgOf(dom).sound, true, '配置里应带 sound:true')
+  assert.match(api.diagnose(), /音效开/)
+  // 关掉 → 持久化 → 重播时新配置生效
+  assert.equal(api.splash.setSound(false), false)
+  const saved = JSON.parse(dom.window.localStorage.getItem('__dshui.splash.v1'))
+  assert.equal(saved.sound, false, '音效开关要持久化')
+  fireSplashMessage(dom, { __dshuiSplash: 'done' })
+  dom.advance(600)
+  api.splash.replay()
+  assert.equal(splashCfgOf(dom).sound, false, '重播时按新开关传配置')
+  api.splash.setSound(true)
+  assert.equal(api.status().splash.sound, true)
+})
+
 test('开屏动画：设置里关闭 / ?splash=0 / 减弱动态 都不播放', async () => {
   const off = buildChatDom()
   off.window.localStorage.setItem('__dshui.splash.v1', JSON.stringify({ enabled: false }))
@@ -2809,6 +2839,174 @@ test('开屏动画：面板里可以关/开，并写进 localStorage', async () 
   assert.equal(api.status().splash.enabled, true, '再点应打开')
 })
 
+
+const restartButtonOf = (dom) => {
+  // 按钮在 shadow DOM 里：document 查询看不到（与真实浏览器一致），要走 shadowRoot
+  const host = dom.document.querySelector('[data-windows-menu]')
+  const bar = host && host.shadowRoot && host.shadowRoot.querySelector('[role="menubar"]')
+  return (bar && bar.querySelectorAll('[data-dshui-restart-button]')[0]) || null
+}
+function clickRestartButton(dom) {
+  const button = restartButtonOf(dom)
+  assert.ok(button, '应先注入「重启」按钮')
+  const listeners = button._listeners.click || []
+  assert.ok(listeners.length > 0, '按钮应有 click 监听')
+  for (const handler of listeners.slice()) handler({ preventDefault() {}, stopPropagation() {} })
+}
+
+test('重启键（0.8.0）：桌面壳里往菜单栏「应用」「编辑」后面注入「重启」按钮', async () => {
+  const dom = buildChatDom()
+  const menu = attachWindowsMenu(dom)
+  const { api } = runClient(dom)
+  await flush()
+  const button = restartButtonOf(dom)
+  assert.ok(button, '应注入「重启」按钮')
+  assert.equal(menu.bar.childNodes[menu.bar.childNodes.length - 1], button, '按钮应排在「应用」「编辑」之后')
+  assert.equal(button.getAttribute('role'), 'menuitem')
+  assert.equal(button.textContent, 'Restart', '默认语言（非 zh）显示英文')
+  const snap = api.status().restart
+  assert.equal(snap.desktop, true)
+  assert.equal(snap.installed, true)
+  assert.equal(snap.bridge, 'missing', '壳补丁未装时桥应为 missing')
+  assert.match(api.diagnose(), /重启: 按钮已注入/)
+  assert.match(api.diagnose(), /壳补丁缺失/)
+})
+
+test('重启键：中文页面显示「重启」；壳补丁可用时点击 → window.dshDesktop.restart()', async () => {
+  const dom = buildChatDom()
+  attachWindowsMenu(dom, { lang: 'zh-CN' })
+  let calls = 0
+  dom.window.dshDesktop = {
+    restart() {
+      calls += 1
+      return Promise.resolve({ ok: true })
+    },
+  }
+  const { api } = runClient(dom)
+  await flush()
+  const button = restartButtonOf(dom)
+  assert.equal(button.textContent, '重启')
+  assert.equal(api.status().restart.bridge, 'available')
+  clickRestartButton(dom)
+  assert.equal(calls, 1, '点击应调用桥')
+  assert.equal(api.status().restart.busy, true, '点击后进入「重启中…」')
+  assert.equal(restartButtonOf(dom).textContent, '重启中…')
+  await flush()
+  // ok:true = 主进程已安排 relaunch：设计上保持「重启中…」直到窗口关闭；10s 超时兜底才会恢复
+  assert.equal(api.status().restart.busy, true, 'ok 后保持重启中（窗口即将关闭）')
+  dom.advance(10000)
+  assert.equal(api.status().restart.busy, false, '超时兜底恢复')
+})
+
+test('重启键：壳补丁缺失时点击给明确提示（不静默失败）', async () => {
+  const dom = buildChatDom()
+  attachWindowsMenu(dom, { lang: 'zh-CN' })
+  const { api } = runClient(dom)
+  await flush()
+  clickRestartButton(dom)
+  const toast = dom.document.querySelectorAll('[data-dshui-restart-toast]')[0]
+  assert.ok(toast, '应弹出提示浮层')
+  assert.match(toast.textContent, /桌面壳补丁/)
+  assert.equal(api.status().restart.lastError, 'missing-shell-patch')
+})
+
+test('重启键：面板里有「↻ 重启 DSH」入口；卸载会摘掉按钮与提示', async () => {
+  const dom = buildChatDom()
+  const menu = attachWindowsMenu(dom, { lang: 'zh-CN' })
+  const { api } = runClient(dom)
+  await flush()
+  const pill = pillOf(dom)
+  pill._listeners.click[0]({ type: 'click', target: pill, stopPropagation() {} })
+  const box = dom.document.querySelectorAll('#__dshui-switcher')[0]
+  assert.ok(box, '面板应打开')
+  const panelBtn = box.querySelector('[data-restart-button]')
+  assert.ok(panelBtn, '面板里应有重启入口')
+  panelBtn._listeners.click[0]({ preventDefault() {}, stopPropagation() {} })
+  assert.ok(dom.document.querySelectorAll('[data-dshui-restart-toast]')[0], '面板转发也应给出提示')
+  api.uninstall()
+  assert.equal(restartButtonOf(dom), null, '卸载应摘掉菜单栏按钮')
+  assert.equal(dom.document.querySelectorAll('[data-dshui-restart-toast]').length, 0, '卸载应清掉提示')
+  assert.equal(menu.bar.querySelectorAll('[data-dshui-restart-button]').length, 0)
+})
+
+test('重启键：非 Windows 桌面壳环境完全跳过（网页版零侵入）', async () => {
+  const dom = buildChatDom()
+  const before = layoutSnapshot(dom)
+  const { api } = runClient(dom)
+  await flush()
+  assert.equal(restartButtonOf(dom), null, '网页版不该注入按钮')
+  assert.equal(api.status().restart.desktop, false)
+  assert.match(api.diagnose(), /重启: 仅 Windows 桌面端/)
+  assert.equal(layoutSnapshot(dom), before, '跳过时不能改变页面布局')
+})
+
+test('重启键：检测到独立插件 dsh-restart-button 提供按钮时，不重复注入（避免双按钮）', async () => {
+  const dom = buildChatDom()
+  const menu = attachWindowsMenu(dom, { lang: 'zh-CN' })
+  // 模拟旧插件已经注入过按钮：菜单栏里有一个 [data-dsh-restart-button]
+  const legacy = dom.document.createElement('button')
+  legacy.setAttribute('data-dsh-restart-button', '')
+  legacy.textContent = '重启'
+  menu.bar.appendChild(legacy)
+  const { api } = runClient(dom)
+  await flush()
+  const bar = dom.document.querySelector('[data-windows-menu]').shadowRoot.querySelector('[role="menubar"]')
+  assert.equal(bar.querySelectorAll('[data-dshui-restart-button]').length, 0, '我们的插件不该再插一个按钮')
+  assert.equal(api.status().restart.suppressed, 'provided-by-dsh-restart-button')
+  assert.match(api.diagnose(), /按钮由独立插件 dsh-restart-button 提供/)
+})
+const welcomeOf = (dom) => dom.document.getElementById('__dshui-welcome')
+
+test('开屏后的 WELCOME BACK 卡片（0.8.0）：播完出现在真实页面右上角，约 3.6s 自动淡出', async () => {
+  const dom = buildChatDom()
+  const { api } = runClient(dom, { statusUser: 'RAD' })
+  await flush()
+  assert.equal(welcomeOf(dom), null, '开屏还没放完时不该有卡片')
+  fireSplashMessage(dom, { __dshuiSplash: 'done' })
+  dom.advance(SPLASH_FADE_MS_FOR_TEST + 80)
+  const card = welcomeOf(dom)
+  assert.ok(card, '播完后应显示欢迎卡片')
+  assert.match(card.textContent, /WELCOME BACK/)
+  assert.match(card.textContent, /RAD/, '卡片应显示宿主给的本机登录名')
+  assert.equal(api.status().splash.welcomeShown, true)
+  // 自动淡出（3.6s 后开始淡出，再等 400ms 移除）
+  dom.advance(3700)
+  dom.advance(500)
+  assert.equal(welcomeOf(dom), null, '3.6s 后应自动移除')
+})
+
+test('开屏/欢迎卡片：按标题栏高度下移（避开 Windows 窗口按钮）', async () => {
+  const dom = buildChatDom()
+  const menu = attachWindowsMenu(dom)
+  // 模拟 DSH 标题栏实际 52px（Win11 高标题栏/DPI 放大）
+  menu.host._rect = { top: 0, left: 0, right: 1200, bottom: 52, width: 1200, height: 52 }
+  const { api } = runClient(dom)
+  await flush()
+  assert.equal(splashCfgOf(dom).titlebar, 52, '应把量到的标题栏高度传给开屏页')
+  fireSplashMessage(dom, { __dshuiSplash: 'done' })
+  dom.advance(SPLASH_FADE_MS_FOR_TEST + 80)
+  const card = welcomeOf(dom)
+  assert.ok(card, '应有欢迎卡片')
+  assert.match(card.style.cssText, /top:74px/, '卡片应在标题栏下方（52+22）')
+  assert.equal(api.status().titlebarHeight, undefined) // 内部状态不进快照
+})
+test('开屏欢迎卡片：?splash=0 / 卸载 都不留卡片', async () => {
+  const off = buildChatDom()
+  off.window.location.href = 'http://localhost/?splash=0'
+  runClient(off)
+  await flush()
+  off.advance(1000)
+  assert.equal(welcomeOf(off), null, '不放开屏时不该出现卡片')
+
+  const dom = buildChatDom()
+  const { api } = runClient(dom)
+  await flush()
+  fireSplashMessage(dom, { __dshuiSplash: 'done' })
+  dom.advance(SPLASH_FADE_MS_FOR_TEST + 80)
+  assert.ok(welcomeOf(dom), '先确认卡片出现')
+  api.uninstall()
+  assert.equal(welcomeOf(dom), null, '卸载必须清掉卡片')
+})
 test('键盘快捷键：Alt+1=关闭 / Alt+2=纹理', async () => {
   const dom = buildChatDom()
   const { api } = runClient(dom)

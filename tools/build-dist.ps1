@@ -1,6 +1,6 @@
 # build-dist.ps1 - packaging recipe (HANDOFF section 10, scripted since 0.3.0)
 #   Checks the 3 version spots match, builds <workspace>/dist/dsh-ui-beautify-<version>.zip
-#   (14 entries), prints entries / bytes / SHA256.
+#   (28 entries: plugin + splash + restart shell-patch tooling), prints entries / bytes / SHA256.
 # NOTE 1: keep this file pure ASCII - Windows PowerShell 5.1 reads BOM-less files as ANSI.
 # NOTE 2: every path here is built ABSOLUTE. .NET file APIs resolve relative paths against the
 #         PROCESS working directory, not PowerShell's location, so `Set-Location` alone would
@@ -34,6 +34,13 @@ $entries = @(
   'lib/client.js', 'lib/index.js',
   'assets/deepseek-4k.webp', 'assets/deepseek-bw-nowater.webp', 'assets/splash.html',
   'scripts/uninstall-cleanup.ps1',
+  'restart/README.md', 'restart/USAGE.txt',
+  'restart/install-restart-key.cmd', 'restart/uninstall-restart-key.cmd', 'restart/verify-restart-key.cmd',
+  'restart/scripts/common.ps1', 'restart/scripts/install-restart-key.ps1', 'restart/scripts/uninstall-restart-key.ps1',
+  'restart/scripts/verify-restart-key.ps1', 'restart/scripts/restore-on-exit.ps1',
+  'restart/shell/patch-spec.json',
+  'restart/shell/patches/main.js.snippet.txt', 'restart/shell/patches/preload-app.cjs.snippet.txt',
+  'restart/shell/tools/apply-shell-patch.mjs',
   'test/host.test.mjs', 'test/client.test.mjs', 'test/fake-dom.js'
 )
 if (Test-Path $out) { Remove-Item $out -Force }

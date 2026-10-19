@@ -1,0 +1,32 @@
+{
+  "patchVersion": 1,
+  "patchName": "dsh-restart-button shell patch",
+  "description": "给 DSH 桌面壳（app.asar）追加标题栏「重启」按钮所需的真重启通道：主进程 IPC（lib/main.js）+ preload 桥（lib/preload-app.cjs）。只原地改这两个已存在条目，其余文件一个字节不动。",
+  "entries": [
+    {
+      "asarPath": "lib/main.js",
+      "snippet": "patches/main.js.snippet.txt",
+      "startMarker": "// >>> DSH-RESTART-BUTTON BEGIN >>>",
+      "endMarker": "// <<< DSH-RESTART-BUTTON END <<<",
+      "anchor": "\tconst hideMainWindow = (window) => {",
+      "insert": "before",
+      "syntax": "module",
+      "verifyContains": [
+        "ipcMain.handle(\"dsh-desktop:restart-app\"",
+        "quitWithoutConfirmation()"
+      ]
+    },
+    {
+      "asarPath": "lib/preload-app.cjs",
+      "snippet": "patches/preload-app.cjs.snippet.txt",
+      "startMarker": "// >>> DSH-RESTART-BUTTON BEGIN >>>",
+      "endMarker": "// <<< DSH-RESTART-BUTTON END <<<",
+      "anchor": "\t\tprotocolVersion: 1,",
+      "insert": "after",
+      "syntax": "commonjs",
+      "verifyContains": [
+        "restart: () => electron.ipcRenderer.invoke(\"dsh-desktop:restart-app\")"
+      ]
+    }
+  ]
+}

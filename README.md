@@ -140,10 +140,37 @@ It is independent of the mode: it plays by default whenever the plugin is instal
 - **Isolation**: the splash is a **same-origin iframe** (`/dsh-ui-beautify/splash.html`; the host injects a bridge
   script into `assets/splash.html`), so its CSS/JS never leaks into the DSH page. The node is removed on finish /
   skip / a 30 s timeout.
+- **Clears the Windows caption buttons**: the splash's top row (brand / step counter / SKIP) and the WELCOME BACK card are
+  shifted down by the measured titlebar height (`navigator.windowControlsOverlay` → `--dsh-windows-titlebar-height` →
+  menubar rect, 40 px fallback), so the native minimize/maximize/close buttons never cover them.
+- **WELCOME BACK card**: after the splash finishes, a small card fades in at the top-right of the real page
+  (shows the local login name, auto-fades after ~3.6 s; hidden when the splash is off / `?splash=0`). The plugin
+  draws it on the real page because the splash's own card lives inside its iframe mock UI and cannot be seen.
 - **Replacing it**: drop a new self-contained single-file HTML at `assets/splash.html`; the host only injects.
 - **Diagnostics**: a `开屏:` line in the panel / `diag.json` (playing / done / skipped / disabled / timeout + duration)
   and a structured `splash` snapshot in `status()`.
 - **Sound**: off by default (no user gesture at startup, so browser autoplay policy would mute it anyway).
+
+## Restart key (v0.8.0)
+
+A **Restart** button appears in the title bar next to “应用” / “编辑”: one click cleanly restarts
+the **app + Host** (same as the developer-mode “Restart app and Host” menu item).
+
+- **The button UI is built into this plugin**: it is injected into the shadow-DOM menubar that the DSH
+  desktop shell preload mounts; bilingual labels, arrow-key navigation, idempotent injection, removed on uninstall;
+- **Actual restarting needs a desktop shell patch** (the only part that touches `app.asar`; installed separately
+  per the spec): in the bundled `restart/` folder, run `install-restart-key.cmd` — it waits until DSH is **fully
+  exited**, backs up the original header, appends a marked patch to two existing entries (`lib/main.js`,
+  `lib/preload-app.cjs`), verifies with a double SHA check, and restarts DSH. `uninstall-restart-key.cmd`
+  restores the original file byte-for-byte;
+- **Without the shell patch** the button is still there and clicking it shows an explicit hint;
+- **Panel entry**: the switcher panel also has “↻ 重启 DSH” as a fallback;
+- **Diagnostics**: new `重启:` line and `__DSHUI__.restart.state() / click() / bridge()`;
+- **Platform**: Windows desktop only (no button on the web version).
+
+> External side effects: the plugin itself is still a **pure Cordis plugin** and never touches `app.asar`;
+> only running `restart/install-restart-key.cmd` patches the two existing entries (marker-delimited,
+> double-SHA backup, byte-exact restore). See `restart/README.md`.
 
 ## Wallpaper
 
@@ -163,7 +190,7 @@ the two identities with a cross-fade.
 
 ```powershell
 node test/host.test.mjs      # 23 tests
-node test/client.test.mjs    # 79 tests (includes storage-migration and startup-splash cases)
+node test/client.test.mjs    # 89 tests (includes storage-migration, startup-splash, titlebar-offset, welcome-card, restart-key and conflict cases)
 ```
 
 The tests run fully offline against a minimal DOM stub (controllable clock, geometry model, MutationObserver,
@@ -717,7 +744,7 @@ v0.2 立了三条硬规则，并且写成了自动化测试：
 1. 解压 `dsh-ui-beautify-0.8.0.zip` → 得到 `dsh-ui-beautify/` 目录
    （里面是 `package.json` / `cordis.patch.yml` / `lib` / `assets`（**两张兜底图都在包里**）/
    `test` / `scripts/uninstall-cleanup.ps1`（卸载后自检）/ `README.md`（本文件）/ `HANDOFF.md` / `LICENSE`，
-   共 14 个条目（新增 `assets/splash.html`）；
+   共 28 个条目（含开屏动画与 `restart/` 壳补丁工具）；
 2. 放到一个**不会被随手删掉**的目录（路径建议纯英文，例如 `D:\dsh-plugins\`）；
 3. 用官方插件通道安装，`target` 指向解压出来的目录：
    `pluginManager.installBundle('file:D:\\dsh-plugins\\dsh-ui-beautify')`
@@ -779,6 +806,7 @@ cmd /c rmdir "$env:USERPROFILE\.dsh\profiles\desktop\node_modules\dsh-ui-beautif
 | 用户数据 | `localStorage` 的 `__dshui.*` 键，**卸载默认保留**（见下） |
 | 网络 | **无外部网络请求**。只有本机回环的 6 条只读路由（`/dsh-ui-beautify/*`） |
 | 常驻进程 / daemon | 无。不用 `child_process`；页面侧的定时器与观察器都在 `uninstall()` 里清干净 |
+| 桌面壳补丁（可选） | 仅当你主动运行 `restart/install-restart-key.cmd` 时，会改 `app.asar` 的 `lib/main.js` / `lib/preload-app.cjs` 两个已存在条目（BEGIN/END 标记 + 双 SHA 备份 + 可逐字节还原；必须 DSH 完全退出）；插件本体与开屏动画不碰 app.asar |
 
 ### 用户数据（默认保留，清除必须显式）
 
@@ -888,6 +916,11 @@ powershell -ExecutionPolicy Bypass -File .\scripts\uninstall-cleanup.ps1 -PurgeD
 - **控制台 API**：`__DSHUI__.splash.replay()` / `.skip()` / `.setEnabled(true|false)` / `.config()`。
 - **隔离方式**：开屏页是**同源 iframe**（`/dsh-ui-beautify/splash.html`，宿主给 `assets/splash.html` 注入桥接脚本），
   样式与脚本完全隔离，不碰 DSH 页面的 CSS；放完 / 跳过 / 30s 超时兜底后节点直接移除。
+- **避开 Windows 窗口按钮**：开屏页顶部的品牌 / 步骤计数 / SKIP 与 WELCOME BACK 卡片会按实际标题栏高度
+  （`navigator.windowControlsOverlay` → `--dsh-windows-titlebar-height` → 菜单栏矩形，兜底 40px）整体下移，
+  不会被「最小化 / 最大化 / 关闭」挡住。
+- **WELCOME BACK 卡片**：开屏播完进入会话后，右上角会淡入一张小卡片（显示本机登录名，约 3.6s 自动淡出；
+  关开屏 / `?splash=0` 时不出现）。卡片由插件在真实页面上绘制（开屏页自带的卡片在 iframe 的 mock 界面里，\n  集成态看不到，所以移到页面层实现）。
 - **换开屏**：替换包内 `assets/splash.html` 即可（文件保持单文件自包含）；宿主只做注入，不改源文件。
 - **诊断**：面板 / `diag.json` 里有 `开屏:` 一行（播放中 / 已播放完 / 已跳过 / 已关闭 / 超时兜底 + 耗时），
   `status()` 里有结构化的 `splash` 快照。
@@ -895,6 +928,26 @@ powershell -ExecutionPolicy Bypass -File .\scripts\uninstall-cleanup.ps1 -PurgeD
 
 > 开屏页来源：用户提供的「DSH 开屏 v2.4 · 莱因生命风格」，结构参考 dsh-startup-screen（MIT）并按其自身版本说明迭代；
 > 插件侧只负责挂载/配置/回收，源文件可独立迭代。
+
+## 重启键（v0.8.0）
+
+标题栏「应用」「编辑」右边会出现一个 **「重启」** 按钮：点一下 = 干净重启**应用 + Host**
+（等价于开发模式的「重启应用与 Host」菜单项）。
+
+- **按钮 UI 已内置在本插件**：往桌面壳 preload 挂的 shadow-DOM 菜单栏注入按钮；
+  中英双语、方向键切换、重复注入幂等、卸载即摘除；
+- **真重启能力需要桌面壳补丁**（唯一改 `app.asar` 的部分，按规范独立安装）：
+  包内 `restart/` 目录 → 双击 `install-restart-key.cmd`；它会等 DSH **完全退出**、
+  备份原始头部、打补丁（只改 `lib/main.js` / `lib/preload-app.cjs` 两个已存在条目）、
+  双 SHA 校验、自动重启 DSH；卸载用 `uninstall-restart-key.cmd` 逐字节还原；
+- **没装壳补丁时**：按钮仍在，点击会弹明确提示告诉你装补丁（不静默失败）；
+- **面板入口**：入口面板里也有「↻ 重启 DSH」（标题栏不可用时兜底）；
+- **诊断**：`开屏:` 与 `重启:` 行；`__DSHUI__.restart.state() / click() / bridge()`；
+- **平台**：仅 Windows 桌面端（网页版无按钮，属正常）。
+
+> 外部副作用：插件本体仍是**纯 Cordis 插件**，不碰 `app.asar`；只有你主动双击
+> `restart/install-restart-key.cmd` 才会修改那两个已存在条目（带 BEGIN/END 标记、
+> 双 SHA 备份、可逐字节还原）。详见 `restart/README.md`。
 
 ## 背景图怎么换
 
@@ -941,7 +994,7 @@ dsh-ui-beautify/
 ```powershell
 cd <解压出来的目录>\dsh-ui-beautify
 node test\host.test.mjs     # 23 项：路由、栅栏、注入、卸载、脚本语法、桌面图优先与包内兜底（WebP）、别名、动效摘要
-node test\client.test.mjs   # 79 项：挂载、交互、淡入淡出、回归护栏、模式、毛玻璃与通透化、壁纸体检、动效底座与帧探针、卸载、诊断
+node test\client.test.mjs   # 89 项：挂载、交互、淡入淡出、回归护栏、模式、毛玻璃与通透化、壁纸体检、动效底座与帧探针、卸载、诊断
 ```
 
 > 想继续开发这个插件（改代码、加动效、重新打包）的**下一个 AI / 开发者**，请看
