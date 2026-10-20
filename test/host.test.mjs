@@ -25,6 +25,8 @@ import plugin, {
   PLUGIN_VERSION,
   ROUTE_PREFIX,
   injectSplashBridge,
+  detectShellPatchInAsar,
+  resolveShellPatchAsarPath,
   normalizeImageName,
   resolveBackgroundBytes,
   resolveDesktopImagePath,
@@ -177,6 +179,8 @@ test('apply(): 注册路由并注入前端脚本', () => {
       `exact ${ROUTE_PREFIX}/client.js`,
       `exact ${ROUTE_PREFIX}/splash.html`,
       `exact ${ROUTE_PREFIX}/status.json`,
+      `exact ${ROUTE_PREFIX}/restart-status.json`,
+      `exact ${ROUTE_PREFIX}/restart-enable`,
       `exact ${ROUTE_PREFIX}/diag`,
       `exact ${ROUTE_PREFIX}/diag.json`,
     ].sort(),
@@ -641,6 +645,65 @@ test('路由 /client.js：出浏览器可执行的脚本', async () => {
   assert.doesNotThrow(() => new vm.Script(source, { filename: 'client.js' }), '脚本必须语法合法')
 })
 
+test('重启键集成：Cordis Host 下也能解析 app.asar（resourcesPath / execPath 向上 / 标准路径）', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dshui-asar-path-'))
+  const resources = path.join(dir, 'dsh', 'resources')
+  fs.mkdirSync(resources, { recursive: true })
+  const asar = path.join(resources, 'app.asar')
+  fs.writeFileSync(asar, 'x')
+  assert.equal(resolveShellPatchAsarPath({ resourcesPath: resources, execPath: '', env: {}, exists: fs.existsSync }), asar)
+  const runtimeDir = path.join(dir, 'dsh', 'resources', 'runtime', 'primary-runtime', 'dependencies', 'node', 'bin')
+  fs.mkdirSync(runtimeDir, { recursive: true })
+  const nodeExe = path.join(runtimeDir, 'node.exe')
+  fs.writeFileSync(nodeExe, '')
+  assert.equal(resolveShellPatchAsarPath({ resourcesPath: '', execPath: nodeExe, env: {}, exists: fs.existsSync }), asar, 'execPath 向上找 resources/app.asar')
+  const pf = path.join(dir, 'PF')
+  const pfResources = path.join(pf, 'DeepSeek Harness', 'resources')
+  fs.mkdirSync(pfResources, { recursive: true })
+  fs.writeFileSync(path.join(pfResources, 'app.asar'), 'x')
+  assert.equal(resolveShellPatchAsarPath({ resourcesPath: '', execPath: '', env: { ProgramFiles: pf }, exists: fs.existsSync }), path.join(pfResources, 'app.asar'), '标准安装路径兜底')
+  assert.equal(resolveShellPatchAsarPath({ resourcesPath: '', execPath: '', env: {}, exists: () => false }), '', '找不到返回空串')
+})
+
+test('重启键集成：detectShellPatchInAsar 只认 app.asar 尾部的补丁标记', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dshui-shell-patch-'))
+  const plain = path.join(dir, 'plain.asar')
+  fs.writeFileSync(plain, 'x'.repeat(200))
+  const patched = path.join(dir, 'patched.asar')
+  fs.writeFileSync(patched, 'x'.repeat(200) + '// >>> DSH-RESTART-BUTTON BEGIN >>>' + 'y'.repeat(40))
+  assert.equal(detectShellPatchInAsar(plain), false, '没有标记 → 未安装')
+  assert.equal(detectShellPatchInAsar(patched), true, '尾部有标记 → 已安装')
+  assert.equal(detectShellPatchInAsar(''), false, '空路径安全返回 false')
+})
+
+test('重启键集成：restart-status.json 可查状态；restart-enable 只接受 POST + 动作头', async () => {
+  const { webServer } = boot()
+  const status = await callRoute(webServer, `${ROUTE_PREFIX}/restart-status.json`)
+  const payload = JSON.parse(status.body)
+  assert.equal(payload.ok, true)
+  assert.equal(typeof payload.patched, 'boolean')
+  assert.equal(typeof payload.desktop, 'boolean')
+  const wrongMethod = await callRoute(webServer, `${ROUTE_PREFIX}/restart-enable`, { method: 'GET' })
+  assert.equal(wrongMethod.statusCode, 405)
+  const noHeader = await callRoute(webServer, `${ROUTE_PREFIX}/restart-enable`, { method: 'POST' })
+  assert.equal(noHeader.statusCode, 403)
+  const prev = process.env.DSHUI_NO_SPAWN
+  process.env.DSHUI_NO_SPAWN = '1'
+  try {
+    const ok = await callRoute(webServer, `${ROUTE_PREFIX}/restart-enable`, {
+      method: 'POST',
+      headers: { 'x-dshui-action': 'restart-enable' },
+    })
+    assert.equal(ok.statusCode, 200)
+    const body = JSON.parse(ok.body)
+    assert.equal(typeof body.ok, 'boolean')
+    if (body.ok !== true) assert.ok(String(body.error || '').length > 0, '失败要带原因')
+  } finally {
+    if (prev === undefined) delete process.env.DSHUI_NO_SPAWN
+    else process.env.DSHUI_NO_SPAWN = prev
+  }
+})
+
 test('路由：跨站请求被栅栏拒掉', async () => {
   const { webServer } = boot()
   const response = await callRoute(webServer, `${ROUTE_PREFIX}/status.json`, {
@@ -652,7 +715,7 @@ test('路由：跨站请求被栅栏拒掉', async () => {
 
 test('卸载：ctx.effect 的 disposer 摘掉全部路由与注入', () => {
   const { webServer, root } = boot()
-  assert.equal(webServer.routes.size, 6)
+  assert.equal(webServer.routes.size, 8)
   assert.equal(webServer.taps.length, 1)
 
   for (const dispose of root.effects) dispose()

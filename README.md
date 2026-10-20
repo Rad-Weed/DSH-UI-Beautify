@@ -6,7 +6,7 @@
 > 原包名 `dsh-dsniang-beautify` 的旧存档会自动迁移；旧 hash（`#dsniang-off` / `#dsniang-diag`）与旧 URL 参数（`?dsniang=`）仍兼容。
 > 仓库：`Rad-Weed/DSH-UI-Beautify`（私有）
 
-**版本：v0.8.2** · 给 DSH 页面加壁纸与毛玻璃。
+**版本：v0.8.3** · 给 DSH 页面加壁纸与毛玻璃。
 
 > ⚠️ **v0.1 出过事故**：它会改目标面板的 `position` / `overflow`，导致界面布局坍塌、
 > 基本无法操作。v0.2 从设计上取消了所有这类改动，详见下面「为什么 v0.2 不会再弄坏界面」。
@@ -73,7 +73,7 @@ Defaults apply only when nothing is stored yet; once you move a slider, the stor
 
 ## Install
 
-1. Extract `dsh-ui-beautify-0.8.2.zip` → you get a `dsh-ui-beautify/` directory
+1. Extract `dsh-ui-beautify-0.8.3.zip` → you get a `dsh-ui-beautify/` directory
    (`package.json` / `cordis.patch.yml` / `lib` / `assets` (both fallback images) / `test` /
    `scripts/uninstall-cleanup.ps1` / `README.md` / `HANDOFF.md` / `LICENSE` — 13 entries);
 2. Put it somewhere that won't be deleted (an ASCII-only path is recommended);
@@ -744,7 +744,7 @@ v0.2 立了三条硬规则，并且写成了自动化测试：
 
 ### 从 zip 安装（换机器 / 给别人）
 
-1. 解压 `dsh-ui-beautify-0.8.2.zip` → 得到 `dsh-ui-beautify/` 目录
+1. 解压 `dsh-ui-beautify-0.8.3.zip` → 得到 `dsh-ui-beautify/` 目录
    （里面是 `package.json` / `cordis.patch.yml` / `lib` / `assets`（**两张兜底图都在包里**）/
    `test` / `scripts/uninstall-cleanup.ps1`（卸载后自检）/ `README.md`（本文件）/ `HANDOFF.md` / `LICENSE`，
    共 28 个条目（含开屏动画与 `restart/` 壳补丁工具）；
@@ -965,10 +965,10 @@ powershell -ExecutionPolicy Bypass -File .\scripts\uninstall-cleanup.ps1 -PurgeD
 
 - **按钮 UI 已内置在本插件**：往桌面壳 preload 挂的 shadow-DOM 菜单栏注入按钮；
   中英双语、方向键切换、重复注入幂等、卸载即摘除；
-- **真重启能力需要桌面壳补丁**（唯一改 `app.asar` 的部分，按规范独立安装）：
-  包内 `restart/` 目录 → 双击 `install-restart-key.cmd`；它会等 DSH **完全退出**、
-  备份原始头部、打补丁（只改 `lib/main.js` / `lib/preload-app.cjs` 两个已存在条目）、
-  双 SHA 校验、自动重启 DSH；卸载用 `uninstall-restart-key.cmd` 逐字节还原；
+- **真重启能力需要桌面壳补丁**（唯一改 `app.asar` 的部分）：**不用再手动找脚本** —— 面板里点
+  「**启用重启键**」即可：插件会启动随包安装器，你只需右键托盘**完全退出 DSH 一次**；
+  后台会等退出 → 备份原始头部 → 打补丁（只改 `lib/main.js` / `lib/preload-app.cjs` 两个已存在条目）→
+  双 SHA 校验 → 自动重启 DSH，之后标题栏「重启」即可用；卸载仍可用 `restart/uninstall-restart-key.cmd` 逐字节还原；
 - **没装壳补丁时**：按钮仍在，点击会弹明确提示告诉你装补丁（不静默失败）；
 - **面板入口**：入口面板里也有「↻ 重启 DSH」（标题栏不可用时兜底）；
 - **诊断**：`开屏:` 与 `重启:` 行；`__DSHUI__.restart.state() / click() / bridge()`；
@@ -1035,6 +1035,13 @@ node test\client.test.mjs   # 93 项：挂载、交互、淡入淡出、回归�
 一旦将来有人重新引入"改布局属性"的写法，测试立刻失败。
 
 ## 版本
+
+### v0.8.3（2026-10-20）
+
+- **重启键一键启用**：面板新增「启用重启键」按钮 → 宿主 detached 启动随包壳补丁安装器，
+  用户只需完全退出 DSH 一次，后台自动打补丁/双 SHA 校验/重启，不再需要手动运行 `restart/*.cmd`；
+- 宿主新增 `GET /restart-status.json`（壳补丁是否已装）与 `POST /restart-enable`（带动作头，防跨站）；
+- 测试：host 26/26 · client 93/93。
 
 ### v0.8.2（2026-10-20）
 

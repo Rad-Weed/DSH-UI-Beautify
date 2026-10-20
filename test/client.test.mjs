@@ -2969,6 +2969,27 @@ test('重启键：面板里有「↻ 重启 DSH」入口；卸载会摘掉按钮
   assert.equal(menu.bar.querySelectorAll('[data-dshui-restart-button]').length, 0)
 })
 
+test('重启键：壳补丁缺失时面板有「启用重启键」按钮，点击会 POST 宿主启动随包安装器', async () => {
+  const dom = buildChatDom()
+  attachWindowsMenu(dom, { lang: 'zh-CN' })
+  const { api, requested } = runClient(dom)
+  await flush()
+  const pill = pillOf(dom)
+  pill._listeners.click[0]({ type: 'click', target: pill, stopPropagation() {} })
+  const box = dom.document.querySelectorAll('#__dshui-switcher')[0]
+  assert.ok(box, '面板应打开')
+  const enable = box.querySelector('[data-restart-enable]')
+  assert.ok(enable, '缺壳补丁时面板应有「启用重启键」按钮')
+  assert.match(enable.textContent, /启用重启键/)
+  enable._listeners.click[0]({ type: 'click', target: enable, stopPropagation() {} })
+  await flush()
+  assert.ok(requested.some((url) => String(url).includes('/restart-enable')), '应请求宿主 restart-enable')
+  const toast = dom.document.querySelectorAll('[data-dshui-restart-toast]')[0]
+  assert.ok(toast, '应给出提示')
+  assert.match(toast.textContent, /安装器|已启用/)
+  assert.equal(api.status().restart.busy, false)
+})
+
 test('重启键：非 Windows 桌面壳环境完全跳过（网页版零侵入）', async () => {
   const dom = buildChatDom()
   const before = layoutSnapshot(dom)
