@@ -6,7 +6,7 @@
 > 原包名 `dsh-dsniang-beautify` 的旧存档会自动迁移；旧 hash（`#dsniang-off` / `#dsniang-diag`）与旧 URL 参数（`?dsniang=`）仍兼容。
 > 仓库：`Rad-Weed/DSH-UI-Beautify`（私有）
 
-**版本：v0.8.3** · 给 DSH 页面加壁纸与毛玻璃。
+**版本：v0.8.4** · 给 DSH 页面加壁纸与毛玻璃。
 
 > ⚠️ **v0.1 出过事故**：它会改目标面板的 `position` / `overflow`，导致界面布局坍塌、
 > 基本无法操作。v0.2 从设计上取消了所有这类改动，详见下面「为什么 v0.2 不会再弄坏界面」。
@@ -73,7 +73,7 @@ Defaults apply only when nothing is stored yet; once you move a slider, the stor
 
 ## Install
 
-1. Extract `dsh-ui-beautify-0.8.3.zip` → you get a `dsh-ui-beautify/` directory
+1. Extract `dsh-ui-beautify-0.8.4.zip` → you get a `dsh-ui-beautify/` directory
    (`package.json` / `cordis.patch.yml` / `lib` / `assets` (both fallback images) / `test` /
    `scripts/uninstall-cleanup.ps1` / `README.md` / `HANDOFF.md` / `LICENSE` — 13 entries);
 2. Put it somewhere that won't be deleted (an ASCII-only path is recommended);
@@ -744,7 +744,7 @@ v0.2 立了三条硬规则，并且写成了自动化测试：
 
 ### 从 zip 安装（换机器 / 给别人）
 
-1. 解压 `dsh-ui-beautify-0.8.3.zip` → 得到 `dsh-ui-beautify/` 目录
+1. 解压 `dsh-ui-beautify-0.8.4.zip` → 得到 `dsh-ui-beautify/` 目录
    （里面是 `package.json` / `cordis.patch.yml` / `lib` / `assets`（**两张兜底图都在包里**）/
    `test` / `scripts/uninstall-cleanup.ps1`（卸载后自检）/ `README.md`（本文件）/ `HANDOFF.md` / `LICENSE`，
    共 28 个条目（含开屏动画与 `restart/` 壳补丁工具）；
@@ -1035,6 +1035,15 @@ node test\client.test.mjs   # 93 项：挂载、交互、淡入淡出、回归�
 一旦将来有人重新引入"改布局属性"的写法，测试立刻失败。
 
 ## 版本
+
+### v0.8.4（2026-10-21）
+
+- 修复：Cordis Host 里 `process.resourcesPath` 为 undefined → `/restart-status.json` 把已装补丁误报为未安装；
+  新增三级路径兜底（resourcesPath → 从 execPath 向上找 `resources/app.asar` → 常见安装路径）；
+- 新增「重启键诊断探针」：页面加载后把桥是否存在、按钮是否注入、点击结果上报到 `/diag.json`（只读，不触发重启）；
+- 体验：壳补丁缺失时，面板「↻ 重启 DSH」直接触发一键启用，不再只弹"去找脚本"提示；
+- 说明：若插件安装时报 `ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION`（锁文件里的 `dsh-ops` 可选依赖），用官方 registry 安装即可；
+- 测试：host 27/27 · client 93/93。
 
 ### v0.8.3（2026-10-20）
 

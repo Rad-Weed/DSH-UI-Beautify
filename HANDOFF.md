@@ -47,7 +47,7 @@
 > **接手者不需要向需求方复述或确认任何历史**（需求方明确要求过：不必复述已完成事项）。
 >
 > 用户看的是 [README.md](README.md)（用户手册）；这一份是**给下一个 AI 的交接**。
-> 记录时版本 **v0.8.3** ｜ 工作目录 `<工作目录>`
+> 记录时版本 **v0.8.4** ｜ 工作目录 `<工作目录>`
 
 ## 目录
 
@@ -79,7 +79,7 @@
 
 **它现在什么状态**：
 
-- 版本 `0.8.3`（`lib/client.js` 的 `VERSION`、`lib/index.js` 的 `PLUGIN_VERSION`、`package.json` 的 `version` 三处一致）；
+- 版本 `0.8.4`（`lib/client.js` 的 `VERSION`、`lib/index.js` 的 `PLUGIN_VERSION`、`package.json` 的 `version` 三处一致）；
 - 测试 **host 24/24 + client 93/93** 全绿（离线，不需要浏览器）；另：独立插件 `dsh-reload-ui` 6/6；
 - **已装在用户机器上**（`lib/client.js` 走 `Cache-Control: no-store`，只要页面**真的重载**就能拿到新脚本；
   但 DSH 桌面版没有刷新快捷键 / 菜单（见 §11 P1），所以实际操作 = **退出 DSH 再启动**）。
@@ -444,6 +444,13 @@
   4. 胶囊/面板/控制台文案统一为 `DSH UI Beautify`（胶囊短标签 `DSH UI · 纹理/背景/…`）；壁纸角色名「DS 娘」仅在描述画面时保留。
   5. 沿用 v0.7.2 的安装/卸载与外部副作用规范化能力（自检脚本、副作用声明、元数据、13 条目出包）。
   6. **文档双语**：README 增加英文版（顶部语言跳转）＋ Release 说明中英双语；包内 README 随之更新。
+- **v0.8.4（2026-10-21，重启诊断 + Host 下 app.asar 路径修复）**：
+  - 修复 Cordis Host 里 `process.resourcesPath` 为 undefined 导致壳补丁状态误报未安装：
+    `resolveShellPatchAsarPath()` 三级兜底（resourcesPath → execPath 逐级向上 → 常见安装路径），并加单测；
+  - 新增重启诊断探针：`reportRestartProbe()` 把桥/按钮/点击结果上报 `/diag.json`（只读，不执行动作）；
+  - 面板「↻ 重启 DSH」在壳补丁缺失时直接转成一键启用；
+  - 测试 host 26 → **27**；README 补插件安装 registry 报错说明。
+
 - **v0.8.3（2026-10-20，重启键一键启用 / 真正整合）**：
   - 面板「启用重启键」按钮 → 宿主 `POST /restart-enable`（动作头 + 同源栅栏）→ detached 启动随包
     `restart/scripts/install-restart-key.ps1`；用户只需完全退出 DSH 一次，后台自动打补丁/校验/重启；

@@ -2953,7 +2953,7 @@ test('重启键：壳补丁缺失时点击给明确提示（不静默失败）',
 test('重启键：面板里有「↻ 重启 DSH」入口；卸载会摘掉按钮与提示', async () => {
   const dom = buildChatDom()
   const menu = attachWindowsMenu(dom, { lang: 'zh-CN' })
-  const { api } = runClient(dom)
+  const { api, requested } = runClient(dom)
   await flush()
   const pill = pillOf(dom)
   pill._listeners.click[0]({ type: 'click', target: pill, stopPropagation() {} })
@@ -2962,7 +2962,10 @@ test('重启键：面板里有「↻ 重启 DSH」入口；卸载会摘掉按钮
   const panelBtn = box.querySelector('[data-restart-button]')
   assert.ok(panelBtn, '面板里应有重启入口')
   panelBtn._listeners.click[0]({ preventDefault() {}, stopPropagation() {} })
-  assert.ok(dom.document.querySelectorAll('[data-dshui-restart-toast]')[0], '面板转发也应给出提示')
+  await flush()
+  // 壳补丁缺失时，面板「重启」直接转成一键启用（不再只弹“去找脚本”提示）
+  assert.ok(requested.some((url) => String(url).includes('/restart-enable')), '面板按钮应触发一键启用')
+  assert.ok(dom.document.querySelectorAll('[data-dshui-restart-toast]')[0], '应给出启用提示')
   api.uninstall()
   assert.equal(restartButtonOf(dom), null, '卸载应摘掉菜单栏按钮')
   assert.equal(dom.document.querySelectorAll('[data-dshui-restart-toast]').length, 0, '卸载应清掉提示')
