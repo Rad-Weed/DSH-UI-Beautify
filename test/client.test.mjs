@@ -881,7 +881,7 @@ test('DSH 面板独立模糊滑块（0.4.0）：独立变量 + 独立规则 + �
   const old = buildChatDom()
   old.window.localStorage.setItem(
     '__dshui.frost.v3',
-    JSON.stringify({ enabled: true, blur: 2, alpha: 0.5, panelTop: 0.94, panelBottom: 0.8, bubbleTransparency: 45, bubbleBlur: 12 }),
+    JSON.stringify({ enabled: true, blur: 2, alpha: 0.5, panelTop: 0.94, panelBottom: 0.8, bubbleFx: true, aiReplyFx: true, bubbleTransparency: 45, bubbleBlur: 12 }),
   )
   old.window.localStorage.setItem('__dshui.mode', 'multiply')
   const two = runClient(old)
@@ -1098,7 +1098,7 @@ test('毛玻璃：糊输入卡片 + 用户气泡，不碰输入框本身；参�
   assert.equal(dom.body.style.getPropertyValue('--dsniang-frost-alpha'), '0.7')
   assert.deepEqual(
     JSON.parse(dom.window.localStorage.getItem('__dshui.frost.v3')),
-    { enabled: true, layered: true, blur: 22, alpha: 0.7, panelTop: 0.94, panelBottom: 0.8, bubbleTransparency: 45, bubbleBlur: 12, bubbleColor: '', dshBlur: 20 },
+    { enabled: true, layered: true, blur: 22, alpha: 0.7, panelTop: 0.94, panelBottom: 0.8, bubbleFx: true, aiReplyFx: true, bubbleTransparency: 45, bubbleBlur: 12, bubbleColor: '', dshBlur: 20 },
     '毛玻璃参数应写入 localStorage（v3 键，v0.2.17 及更早的旧参数不再沿用）',
   )
 
@@ -1713,7 +1713,10 @@ test('视觉更新（0.9）：玻璃径向渐变内透外亮 + 外阴影；思�
   assert.doesNotMatch(css, /\[data-variant=/, '思考区域保持 DSH 原样（不再覆盖颜色）')
   // 方块光标：原生 caret 透明 + 闪烁小方格（莱茵生命 warning 同款）
   assert.match(css, /body\.__dshui-caret-on \[data-composer-input\]\{caret-color:transparent!important;\}/)
-  assert.match(css, /#__dshui-caret\{position:fixed;display:none;width:8px;min-width:2px;height:18px;background:var\(--dshui-caret-color,#3964fe\)/)
+  assert.ok(css.includes('#__dshui-caret{position:fixed;display:none;width:8px;min-width:2px;height:18px;box-sizing:border-box;background:color-mix(in srgb,var(--dshui-caret-color,#3964fe) var(--dshui-caret-alpha,55%),transparent)'), '光标是半透明主题色方块')
+  assert.ok(css.includes('border:1px solid color-mix(in srgb,var(--dshui-caret-color,#3964fe) 70%,transparent)'), '光标有细边框')
+  assert.ok(css.includes('border-radius:2px;z-index:2147483004'), '光标 2px 圆角')
+  assert.ok(css.includes('backdrop-filter:blur(1.5px) saturate(1.2)'), '光标带背景模糊')
   assert.match(css, /@keyframes __dshui-caret-blink\{50%\{opacity:0;\}\}/)
   // 白层变量：名义 0.2；径向仍「内透 0.11 → 外亮 0.2」
   dom.advance(600)
@@ -1727,6 +1730,81 @@ test('视觉更新（0.9）：玻璃径向渐变内透外亮 + 外阴影；思�
   assert.equal(dom.document.getElementById('__dshui-caret'), null)
   assert.equal(dom.body.classList.contains('__dshui-caret-on'), false)
 })
+test('纹理模式气泡视觉（0.8.5）：默认开、只作用于纹理模式、可面板/API 开关且零布局', async () => {
+  const dom = buildChatDom()
+  const { api } = runClient(dom)
+  await flush()
+  api.setMode('multiply')
+  dom.advance(600)
+  const before = layoutSnapshot(dom)
+  assert.equal(api.status().frost.bubbleFx, true, '默认开')
+  assert.ok(dom.body.classList.contains('__dshui-bubblefx'), '纹理模式应加气泡视觉类')
+  const css = styleTagOf(dom).textContent
+  assert.match(css, /body\.__dshui-bubblefx \[class\*="bubble"\]\.__dshui-frost-surface/)
+  assert.match(css, /body\.__dshui-bubblefx \[data-composer-card\]\.__dshui-frost-surface\{background-image:radial-gradient/)
+  assert.match(css, /box-shadow:inset 0 0 0 1px rgba\(255,255,255,\.55\)/)
+  // 面板开关（只在纹理模式出现）
+  api.switcher()
+  const toggle = dom.document.querySelectorAll('[data-bubblefx-toggle]')[0]
+  assert.ok(toggle, '面板里应有「气泡视觉」开关')
+  assert.match(toggle.textContent, /气泡视觉：开/)
+  toggle._listeners.click[0]({ type: 'click', target: toggle, stopPropagation() {} })
+  assert.equal(api.status().frost.bubbleFx, false, '点一下应关')
+  assert.equal(dom.body.classList.contains('__dshui-bubblefx'), false)
+  const saved = JSON.parse(dom.window.localStorage.getItem('__dshui.frost.v3'))
+  assert.equal(saved.bubbleFx, false, '要存档')
+  assert.equal(layoutSnapshot(dom), before, '气泡视觉不得改布局')
+  // API 开回来；背景模式不启用该视觉（纹理模式专属）
+  assert.match(api.setBubbleFx(true), /气泡视觉：开/)
+  assert.equal(dom.body.classList.contains('__dshui-bubblefx'), true)
+  api.setMode('backdrop')
+  dom.advance(600)
+  assert.equal(dom.body.classList.contains('__dshui-bubblefx'), false, '背景模式不启用纹理气泡视觉')
+})
+test('纹理模式 AI 思考过程视效（0.8.5）：默认开、语义选择器、面板/API 开关、存档、零布局', async () => {
+  const dom = buildChatDom()
+  const { api } = runClient(dom)
+  await flush()
+  api.setMode('multiply')
+  dom.advance(600)
+  const before = layoutSnapshot(dom)
+  assert.equal(api.status().frost.aiReplyFx, true, '默认开')
+  assert.ok(dom.body.classList.contains('__dshui-aireplyfx'), '纹理模式应加 AI 回复视觉类')
+  const css = styleTagOf(dom).textContent
+  assert.match(css, /body\.__dshui-aireplyfx \[data-chat-flow\] \[data-chat-flow-key\]:not\(\[data-chat-flow-kind\]\)\{/)
+  assert.match(css, /box-shadow:inset 2px 0 0 rgba\(57,100,254,\.5\)!important/)
+  // 每行思维链：同一套细线/渐变 + 动效闸门下的淡入动画
+  assert.ok(css.includes('[data-chat-flow-kind="turn-process"] :is([data-variant],[data-turn-process-member])'), '应命中 turn-process 的步骤行')
+  assert.ok(css.includes('@keyframes __dshui-ai-line-in'), '应从左侧淡入的 keyframes')
+  assert.ok(css.includes('__dshui-motion-on'), 'CSS 动画必须挂在动效闸门类下')
+  assert.ok(css.includes('animation-play-state:paused'), '失焦/减弱动态时暂停')
+  // 输入框玻璃加强：更强高光/投影 + 更实的模糊
+  assert.ok(css.includes('rgba(255,255,255,.50) 0%,rgba(255,255,255,0) 72%'), '输入框顶部高光更强')
+  assert.ok(css.includes('calc(var(--dsniang-frost-blur,2px) + 2px)'), '输入框模糊额外 +2px')
+  // 动效总开关默认关：不应有 motion-on 类；API 打开后才有
+  assert.equal(dom.body.classList.contains('__dshui-motion-on'), false, '默认动效关')
+  api.setMotion(true)
+  assert.equal(dom.body.classList.contains('__dshui-motion-on'), true, '开启动效后应加类')
+  api.setMotion(false)
+  assert.equal(dom.body.classList.contains('__dshui-motion-on'), false, '关闭后应摘类')
+  assert.equal(api.status().frost.aiReplyTargets, 0, '桩里没有 AI 回复节点 → 命中 0')
+  api.switcher()
+  const toggle = dom.document.querySelectorAll('[data-aireplyfx-toggle]')[0]
+  assert.ok(toggle, '面板里应有「AI 思考过程视效」开关')
+  assert.match(toggle.textContent, /AI 思考过程视效：开/)
+  toggle._listeners.click[0]({ type: 'click', target: toggle, stopPropagation() {} })
+  assert.equal(api.status().frost.aiReplyFx, false, '点一下应关')
+  assert.equal(dom.body.classList.contains('__dshui-aireplyfx'), false)
+  const saved = JSON.parse(dom.window.localStorage.getItem('__dshui.frost.v3'))
+  assert.equal(saved.aiReplyFx, false, '要存档')
+  assert.equal(layoutSnapshot(dom), before, 'AI 回复视觉不得改布局')
+  assert.match(api.setAiReplyFx(true), /AI 思考过程视效：开/)
+  assert.equal(dom.body.classList.contains('__dshui-aireplyfx'), true)
+  api.setMode('backdrop')
+  dom.advance(600)
+  assert.equal(dom.body.classList.contains('__dshui-aireplyfx'), false, '背景模式不启用纹理视觉')
+})
+
 test('面板白层滑块：拖动即时生效、写进存档、刷新后读回（只管二级面板）', async () => {
   const dom = buildChatDom()
   // 放一个鲸鱼面板进去，好让诊断里出现「二级面板」那一段

@@ -6,7 +6,7 @@
 > 原包名 `dsh-dsniang-beautify` 的旧存档会自动迁移；旧 hash（`#dsniang-off` / `#dsniang-diag`）与旧 URL 参数（`?dsniang=`）仍兼容。
 > 仓库：`Rad-Weed/DSH-UI-Beautify`（私有）
 
-**版本：v0.8.4** · 给 DSH 页面加壁纸与毛玻璃。
+**版本：v0.8.5** · 给 DSH 页面加壁纸与毛玻璃。
 
 > ⚠️ **v0.1 出过事故**：它会改目标面板的 `position` / `overflow`，导致界面布局坍塌、
 > 基本无法操作。v0.2 从设计上取消了所有这类改动，详见下面「为什么 v0.2 不会再弄坏界面」。
@@ -73,7 +73,7 @@ Defaults apply only when nothing is stored yet; once you move a slider, the stor
 
 ## Install
 
-1. Extract `dsh-ui-beautify-0.8.4.zip` → you get a `dsh-ui-beautify/` directory
+1. Extract `dsh-ui-beautify-0.8.5.zip` → you get a `dsh-ui-beautify/` directory
    (`package.json` / `cordis.patch.yml` / `lib` / `assets` (both fallback images) / `test` /
    `scripts/uninstall-cleanup.ps1` / `README.md` / `HANDOFF.md` / `LICENSE` — 13 entries);
 2. Put it somewhere that won't be deleted (an ASCII-only path is recommended);
@@ -744,7 +744,7 @@ v0.2 立了三条硬规则，并且写成了自动化测试：
 
 ### 从 zip 安装（换机器 / 给别人）
 
-1. 解压 `dsh-ui-beautify-0.8.4.zip` → 得到 `dsh-ui-beautify/` 目录
+1. 解压 `dsh-ui-beautify-0.8.5.zip` → 得到 `dsh-ui-beautify/` 目录
    （里面是 `package.json` / `cordis.patch.yml` / `lib` / `assets`（**两张兜底图都在包里**）/
    `test` / `scripts/uninstall-cleanup.ps1`（卸载后自检）/ `README.md`（本文件）/ `HANDOFF.md` / `LICENSE`，
    共 28 个条目（含开屏动画与 `restart/` 壳补丁工具）；
@@ -919,6 +919,35 @@ powershell -ExecutionPolicy Bypass -File .\scripts\uninstall-cleanup.ps1 -PurgeD
 - 二级面板：`radial-gradient` 内部 80% → 边缘 94%（原竖向 97→83），外阴影 `0 14px 36px`；
 - 注：曾尝试「上下颠倒」（渐变焦点上下翻转），实际观感差异太小，**已移除**。
 
+### 纹理模式气泡视觉（v0.8.5）
+
+纹理模式（multiply）下，「你发的消息气泡」和「输入卡片」新增一层纸感视觉（**不含蓝色竖条**，按反馈已删）：
+
+- **顶部高光**：`linear-gradient(180deg, rgba(255,255,255,.34) 0%, 0% 62%)`；
+- **1px 内高光**：`inset 0 0 0 1px rgba(255,255,255,.55)` + 顶部细线 `inset 0 1px 0 rgba(255,255,255,.45)`；
+- **柔和投影**：`0 4px 12px rgba(17,18,20,.08), 0 12px 28px rgba(17,18,20,.07)`；
+- 只写 `background-image` / `box-shadow` 两条属性：**不改底色、字色、尺寸、边框宽度** → 零布局、文字对比度不变；
+- 作用范围：**用户气泡 + 输入卡片**（输入卡片保留原有径向玻璃渐变，再叠同样高光/投影）；助手回复没有气泡底，不加；
+- 只在纹理模式启用（背景模式仍是原来的玻璃配方）；面板「气泡视觉：开/关」可实时开关并持久化；API：`__DSHUI__.setBubbleFx(true/false)`。
+
+### 纹理模式 AI 思考过程视效（v0.8.5）
+
+「AI 思考过程区域」= **左侧 AI 的整段回复 + 其中每一行思维链步骤**（不是输入框，也不是你发的右侧气泡）。
+
+- 整段回复：左侧一条 **2px 主题色细线** + 很淡的横向渐变（左 5.5% → 34% 处淡出）；
+- **每一行思维链步骤**（`turn-process` 里的步骤行）同样加左侧细线 + 渐变；
+- **每行更新时从左侧淡入**：`@keyframes __dshui-ai-line-in`（`translateX(-8px)` + 透明度，300ms `cubic-bezier(0.33,1,0.68,1)`）；
+- 动画遵守动效闸门：只有面板「动效：开」（或 `Ctrl+Shift+Alt+M`）时才跑；窗口失焦/系统「减弱动态效果」时暂停；
+- 不包卡片、不加内边距 → **零布局**；只作用于助手回复与思考步骤（用户消息 `kind=user`、思考组容器不受影响）；
+- 面板「**AI 思考过程视效：开/关**」可实时开关并持久化；API：`__DSHUI__.setAiReplyFx(true/false)`；
+- 诊断（`Ctrl+Shift+Alt+I`）显示「AI 思考过程视效: 开 · 已生效（命中 N 处）」，`N=0` 说明当前没匹配到节点。
+
+### 输入框毛玻璃加强（v0.8.5）
+
+- 纹理模式下输入卡片的高光/投影更明显：顶部高光 50% → 0%（到 72% 处淡出）、1px 内高光 + 顶部细线；
+- 外投影加强为 `0 6px 18px rgba(17,18,20,.12) + 0 18px 40px rgba(17,18,20,.10)`，并额外 `backdrop-filter` +2px 模糊、`saturate(1.35)`；
+- 依旧只写 `background-image` / `box-shadow` / `backdrop-filter`，零布局。
+
 ### 思维链（保持 DSH 原样）
 
 - 曾试过把普通操作步骤染成橘黄 `#ff7b00`、报错保持红；**用户反馈不好看，已移除** ——
@@ -926,7 +955,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\uninstall-cleanup.ps1 -PurgeD
 
 ### 方块光标（命令提示符风格）
 
-- 输入区（`div[data-composer-input]`，Lexical contenteditable）的原生 caret 隐藏，叠一个 **8×18 闪烁小方格**：颜色取**本插件开屏首屏的 accent `#3964fe`**（与开屏第一个界面的蓝一致；可用 `--dshui-caret-color` 覆盖），**1.2s** `steps(1)` 闪烁（比初版 0.5s 慢）；
+- 输入区（`div[data-composer-input]`，Lexical contenteditable）的原生 caret 隐藏，叠一个 **8×18 半透明玻璃小方块**：主题色 = 开屏首屏 accent `#3964fe`，**55% 不透明度**（`--dshui-caret-alpha` 可调），1px 同色细边框、2px 圆角、柔光 + `backdrop-filter: blur(1.5px)`，**1.2s** `steps(1)` 闪烁；
 - 用选区 `Range.getBoundingClientRect()` 实时定位，方向键/输入/点击/滚动都会跟随；量不到时回退输入区左上角；
 - 仅在插件激活（纹理/背景模式，样式表在）时启用；`getSelection` 不可用时自动保留原生光标；卸载即移除。
 
@@ -1036,6 +1065,11 @@ node test\client.test.mjs   # 93 项：挂载、交互、淡入淡出、回归�
 
 ## 版本
 
+### v0.8.5（2026-10-21）
+
+- 纹理模式新增「气泡视觉」：用户气泡 + 输入卡片的顶部高光/内高光/柔和投影（输入框玻璃再加强）；新增「AI 思考过程视效」：整段 AI 回复 + 每行思维链的左侧细线/淡渐变，并在每行更新时从左侧淡入（受动效闸门控制）；
+- 测试：host 27/27 · client 94/94。
+
 ### v0.8.4（2026-10-21）
 
 - 修复：Cordis Host 里 `process.resourcesPath` 为 undefined → `/restart-status.json` 把已装补丁误报为未安装；
@@ -1055,7 +1089,7 @@ node test\client.test.mjs   # 93 项：挂载、交互、淡入淡出、回归�
 ### v0.8.2（2026-10-20）
 
 - 视觉更新：毛玻璃径向渐变（内透外亮）+ 外阴影 + 白层更淡。
-- 输入区方块闪烁光标：颜色 = 开屏首屏 accent `#3964fe`，1.2s 慢闪。
+- 输入区方块闪烁光标：开屏首屏 accent `#3964fe` 的**半透明玻璃方块**（55% 透明、细边框、柔光、1.5px 背景模糊），1.2s 慢闪。
 - 思维链配色尝试已移除（用户反馈不好看，保持 DSH 原样）。
 - 测试：host 24/24 · client 93/93。
 
