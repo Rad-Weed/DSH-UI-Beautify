@@ -47,7 +47,7 @@
 > **接手者不需要向需求方复述或确认任何历史**（需求方明确要求过：不必复述已完成事项）。
 >
 > 用户看的是 [README.md](README.md)（用户手册）；这一份是**给下一个 AI 的交接**。
-> 记录时版本 **v0.8.1** ｜ 工作目录 `<工作目录>`
+> 记录时版本 **v0.8.2** ｜ 工作目录 `<工作目录>`
 
 ## 目录
 
@@ -79,8 +79,8 @@
 
 **它现在什么状态**：
 
-- 版本 `0.8.1`（`lib/client.js` 的 `VERSION`、`lib/index.js` 的 `PLUGIN_VERSION`、`package.json` 的 `version` 三处一致）；
-- 测试 **host 24/24 + client 91/91** 全绿（离线，不需要浏览器）；另：独立插件 `dsh-reload-ui` 6/6；
+- 版本 `0.8.2`（`lib/client.js` 的 `VERSION`、`lib/index.js` 的 `PLUGIN_VERSION`、`package.json` 的 `version` 三处一致）；
+- 测试 **host 24/24 + client 93/93** 全绿（离线，不需要浏览器）；另：独立插件 `dsh-reload-ui` 6/6；
 - **已装在用户机器上**（`lib/client.js` 走 `Cache-Control: no-store`，只要页面**真的重载**就能拿到新脚本；
   但 DSH 桌面版没有刷新快捷键 / 菜单（见 §11 P1），所以实际操作 = **退出 DSH 再启动**）。
 - **v0.2.32 这一版做了两件事**（都是用户在 2026-10-13 那条消息里点的）：
@@ -121,7 +121,7 @@
   角色/音效/取色下拉是 `.98` —— 所以平铺 85% / 90% 的白层跟原版**几乎一模一样**；
   而遮罩从实心 55% 改成 16→34% 渐变**是**看得出来的（用户也说"变暗有点变化"），
   这恰好反证新代码确实加载了、`__dshui-frost-panel` 也确实在生效。
-  → 改法：白层改成**竖向渐变** `FROST_PANEL_TOP = 0.97` → `FROST_PANEL_BOTTOM = 0.83`
+  → 改法：白层改成**径向渐变**（内部 `FROST_PANEL_BOTTOM = 0.80` → 边缘 `FROST_PANEL_TOP = 0.94`；v0.8.2 从竖向改为径向）
   （中值 = 用户要的白层 90%）：顶部几乎实心（按钮/文字最清楚）、底部透出背后内容并被
   20px 糊开 → 才有玻璃层次。
   ⚠️ 实现要点：渐变必须用 **`background` 简写**，不能拆成 `background-color:transparent` +
@@ -444,6 +444,13 @@
   4. 胶囊/面板/控制台文案统一为 `DSH UI Beautify`（胶囊短标签 `DSH UI · 纹理/背景/…`）；壁纸角色名「DS 娘」仅在描述画面时保留。
   5. 沿用 v0.7.2 的安装/卸载与外部副作用规范化能力（自检脚本、副作用声明、元数据、13 条目出包）。
   6. **文档双语**：README 增加英文版（顶部语言跳转）＋ Release 说明中英双语；包内 README 随之更新。
+- **v0.8.2（2026-10-20，视觉更新 + 莱茵生命风格化）**：
+  - 毛玻璃改**径向渐变**（内部透 = 名义 × 0.55 → 边缘亮 = 名义；默认 0.11 → 0.2；面板 0.80 → 0.94），
+    白层默认 25% → **20%**，加边缘 1px 高光 + 外阴影；
+  - 「上下颠倒」（渐变焦点上下翻转）尝试后观感差异太小，**已删除**；
+  - 输入区方块光标：隐藏原生 caret，叠一个 8×18 闪烁小方格（颜色 = **开屏首屏 accent #3964fe**，1.2s 慢闪；选区 Range 定位，失败回退原生）；
+  - **思维链配色已移除**：曾把普通操作标题/图标染 #ff7b00，用户反馈不好看 → 思考/步骤区域恢复 DSH 原样，样式表不再有 data-variant 覆盖；
+  - 测试 client 91 → **92**（删除上下颠倒后回归）；panel 滑块文案改为「面板边缘白层 / 面板内部白层」。
 - **v0.8.1（2026-10-20，开屏 GUI 抑制 + 交互卡死修复 + 重出包）**：
   - 开屏播放期间隐藏胶囊/面板（与 iframe 同 z-index、DOM 更晚插入会漏出），播完恢复；开屏期间点背景/点胶囊不响应；
   - 点背景淡出后立刻点胶囊：开面板前取消淡出（清定时器 / 摘 `is-faded`），毛玻璃 MutationObserver 跳过纯自家 GUI 批次；
@@ -741,7 +748,7 @@ default-workspace/
 | `STYLE_ID`/`DIAG_ID`/`SWITCHER_ID`/`PILL_ID` | `__dshui-style`/`-diag`/`-switcher`/`-pill` | 自己的节点都带前缀 |
 | `FADE_MS` / `RESTORE_MS` / `FADE_STEP_MS` | `420` / `2000` / `16` | 淡出 / 恢复 / 补间步长 |
 | `MODE_OPACITY_DEFAULTS` | `{overlay:0.3, multiply:0.49, luminosity:0.55}` | 各模式浓度起步值 |
-| `FROST_BLUR_DEFAULT` / `FROST_ALPHA_DEFAULT` | `2` / `0.25` | 毛玻璃出厂默认 |
+| `FROST_BLUR_DEFAULT` / `FROST_ALPHA_DEFAULT` | `2` / `0.20` | 毛玻璃出厂默认（v0.8.2：白层更淡） |
 | `FROST_ALPHA_MIN` / `FROST_ALPHA_MAX` | `0.02` / `0.85` | 「白层」滑块的**取值范围**（v0.6.2 下限 0.15→0.02；`setFrostAlpha` API 与存档校验共用） |
 | `PANEL_ALPHA_MIN` | `0.1` | 「面板白层上/下」滑块的**取值范围下限**（v0.6.2 从 0.30 降下来；`frostAlphaValue()` 也用它判存档） |
 | `SCRIM_STEP` / `SCRIM_MAX` | `0.01` / `0.9` | 「薄纱」滑块的步长与上限（v0.6.2 步长 0.05→0.01；下限是 0） |
@@ -751,7 +758,7 @@ default-workspace/
 | `EXTRA_FROST_SELECTOR` | 16 个 `.dshwv-*`：`menu` `usage-card` `bubcard` `rescard` `audiowin` `snapwin` `cropwin` `gifwin` `confirmwin` `rolelist` `audiolist` `slotlist` `rgbmenu` `listbox` `tplhelp` `qedit` | **二级面板**白名单（全是鲸鱼挂件弹层；`audiowin` 会被安全闸跳过，见 §3） |
 | `FROST_PANEL_CLASS` | `__dshui-frost-panel` | 二级面板专用类（与主表面分开，各一套参数） |
 | `FROST_PANEL_BLUR` / `FROST_PANEL_ALPHA` | `20` / `0.9` | **二级面板的毛玻璃参数**；`ALPHA` 只是名义白层（= 下面两端的中值），实际白层是渐变 |
-| `FROST_PANEL_TOP` / `FROST_PANEL_BOTTOM` | `0.97` / `0.83` | **面板白层竖向渐变的两端**（出厂默认；面板上两个滑块可拖，存档在 `state.frost.panelTop/panelBottom`）；样式表兜底，可用 `--dsniang-frost-panel-top/-bottom` 覆盖。⚠️ 必须用 `background` 简写写进 CSS，否则渐变叠在实心底色上等于白做 |
+| `FROST_PANEL_TOP` / `FROST_PANEL_BOTTOM` | `0.94` / `0.80` | **面板白层径向渐变的两端（边缘/内部）**（出厂默认；面板上两个滑块可拖，存档在 `state.frost.panelTop/panelBottom`）；样式表兜底，可用 `--dsniang-frost-panel-top/-bottom` 覆盖。⚠️ 必须用 `background` 简写写进 CSS，否则渐变叠在实心底色上等于白做 |
 | `PANEL_MASK_Z` / `PANEL_LAYER_Z` | `2147483005` / `2147483010` | **把"变暗"遮罩与二级面板抬到壁纸层（2147483000）之上**（v0.2.37，只动 z-index）；我们自己的节点在 2147483647 仍最上 |
 | `PANEL_ALPHA_MIN` | `0.3` | 额外白层（气泡/面板两端）滑块下限；`frostAlphaValue()` 用它校验存档 |
 | `BUBBLE_COLOR_RETENTION` | `55` | **气泡色层的固定保留 %**（v0.2.41；必须 < 100%，否则纯白层被它盖住） |
@@ -1146,7 +1153,7 @@ asar 里 `CodeBlock.module.css` 的原文（**逐字**，2026-10-16 从 `app.asa
 | 各模式浓度 | `overlay 0.3` / **`multiply 0.49`** / `luminosity 0.55` | `__dshui.opacities` |
 | 背景图 | `deepseek 4k.png`（面板显示 `deepseek`） | `__dshui.image` |
 | 毛玻璃 | 开 / 模糊 **2px** / 白层 **25%**（滑块范围 **0.02~0.85**，v0.6.2 起下限从 0.15 降下来） | `__dshui.frost.v3` |
-| 二级面板白层上/下 | `0.97` / `0.83`（面板滑块可调，**0.10~1.00**，v0.6.2 起下限从 0.30 降下来） | `__dshui.frost.v3`（`panelTop` / `panelBottom`） |
+| 二级面板边缘/内部白层 | `0.94` / `0.80`（面板滑块可调，**0.10~1.00**，v0.6.2 起下限从 0.30 降下来） | `__dshui.frost.v3`（`panelTop` / `panelBottom`） |
 | 薄纱（背景模式） | 强度 **0**（滑块范围 **0~0.9，0.01 一档**；v0.6.2 起步长从 0.05 降下来） | `__dshui.scrim` |
 | 胶囊位置 | `{left:10, top:10}` | `__dshui.pill` |
 | 一次性迁移标记 | — | `__dshui.glass.v1` |
@@ -1192,7 +1199,7 @@ asar 里 `CodeBlock.module.css` 的原文（**逐字**，2026-10-16 从 `app.asa
 **排障关键**：如果这里是非 0、屏幕上却"看不见玻璃"，那问题一定在**绘制层**（内层不透明底把玻璃盖住），
 不在打标上 —— v0.6.0 → v0.6.1 踩的就是这个）、`frost.panels`（**二级面板**数量，v0.2.33 起）、
 `frost.panelBlur` / `frost.panelAlpha`（二级面板那套固定参数 = 20 / 0.9 名义白层）、
-`frost.panelAlphaTop` / `frost.panelAlphaBottom`（白层竖向渐变两端，默认 0.97 / 0.83；面板滑块可改，v0.2.36 起）、
+`frost.panelAlphaTop` / `frost.panelAlphaBottom`（白层径向渐变两端，默认 0.94 / 0.80；面板滑块可改，v0.2.36 起）、
 `frost.panelMaskCenter` / `frost.panelMaskEdge`（遮罩径向渐变的中心/边缘 = 0.16 / 0.34，v0.2.34 起）、
 `frost.bubbleVeil`（气泡下那层**纯白层**的不透明度 0~100，默认 100，v0.2.41 起；
 v0.2.39/0.2.40 的 `bubbleMix` / `bubbleTransparency` 已废弃、读档忽略）、

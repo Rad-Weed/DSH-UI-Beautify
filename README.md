@@ -6,7 +6,7 @@
 > 原包名 `dsh-dsniang-beautify` 的旧存档会自动迁移；旧 hash（`#dsniang-off` / `#dsniang-diag`）与旧 URL 参数（`?dsniang=`）仍兼容。
 > 仓库：`Rad-Weed/DSH-UI-Beautify`（私有）
 
-**版本：v0.8.1** · 给 DSH 页面加壁纸与毛玻璃。
+**版本：v0.8.2** · 给 DSH 页面加壁纸与毛玻璃。
 
 > ⚠️ **v0.1 出过事故**：它会改目标面板的 `position` / `overflow`，导致界面布局坍塌、
 > 基本无法操作。v0.2 从设计上取消了所有这类改动，详见下面「为什么 v0.2 不会再弄坏界面」。
@@ -61,8 +61,8 @@ Repository: `Rad-Weed/DSH-UI-Beautify`.
 | Scrim strength | 0 (slider 0–90%, 1% steps) | `localStorage['__dshui.scrim']` |
 | Wallpaper | **`deepseek 4k.png`** (shown as `deepseek`) | `localStorage['__dshui.image']` |
 | Frosted glass | **on** | `localStorage['__dshui.frost.v3']` |
-| Glass blur / white layer | **2 px / 25%** | same |
-| Panel white layer (top/bottom) | **97% / 83%** | same |
+| Glass blur / white layer | **2 px / 20%**（径向渐变：内部更透） | same |
+| Panel white layer (edge / center) | **94% / 80%**（径向渐变） | same |
 | Bubble transparency / color / blur | **45% / original color / 12 px** | same |
 | DSH panel blur | **20 px** | same |
 | Motion | **off** (master switch; `Ctrl+Shift+Alt+M`) | `localStorage['__dshui.motion.v1']` |
@@ -73,7 +73,7 @@ Defaults apply only when nothing is stored yet; once you move a slider, the stor
 
 ## Install
 
-1. Extract `dsh-ui-beautify-0.8.1.zip` → you get a `dsh-ui-beautify/` directory
+1. Extract `dsh-ui-beautify-0.8.2.zip` → you get a `dsh-ui-beautify/` directory
    (`package.json` / `cordis.patch.yml` / `lib` / `assets` (both fallback images) / `test` /
    `scripts/uninstall-cleanup.ps1` / `README.md` / `HANDOFF.md` / `LICENSE` — 13 entries);
 2. Put it somewhere that won't be deleted (an ASCII-only path is recommended);
@@ -320,7 +320,9 @@ MIT — see [LICENSE](LICENSE).
 **毛玻璃 = 一层「模糊的白色层」**：
 
 ```css
-background-color: rgba(255,255,255,0.25);     /* 半透明白层（出厂默认 25%，可拖 2%~85%） */
+background: radial-gradient(ellipse at 50% 50%,
+    rgba(255,255,255,0.11) 0%, rgba(255,255,255,0.20) 100%); /* 内部更透、向外渐亮（出厂 0.20，可拖 2%~85%） */
+box-shadow: inset 0 0 0 1px rgba(255,255,255,.45), 0 10px 30px rgba(17,18,20,.10); /* 边缘高光 + 外阴影 */
 backdrop-filter: blur(2px) saturate(1.15);    /* 把这层"背后"的内容先糊掉（默认 2px 模糊） */
 ```
 
@@ -399,7 +401,7 @@ backdrop-filter: blur(2px) saturate(1.15);    /* 把这层"背后"的内容先�
   - **鲸鱼挂件的各级面板**（`dshwv-menu` / `dshwv-usage-card` / `dshwv-bubcard` /
     `dshwv-rolelist` / `dshwv-audiolist` / `dshwv-rgbmenu` / … —— 类名是作者手写的，
     不是构建哈希）—— 这些是**二级面板**，走**单独一套参数**：
-    **模糊 20px**、白层是**竖向渐变 97% → 83%**（中值 = 目标白层 90%；
+    **模糊 20px**、白层是**径向渐变：内部 80% → 边缘 94%**（中值 = 名义白层 87%；
     这两个端点面板上有滑块可以自己拖，见下）。
 
     > ⚠️ **为什么白层是渐变而不是一个平的白**：鲸鱼面板**本来就不透明** ——
@@ -458,7 +460,7 @@ backdrop-filter: blur(2px) saturate(1.15);    /* 把这层"背后"的内容先�
   > **这两个值现在可以直接在面板上拖（v0.2.36）**：纹理模式的面板里多了两个滑块
   > **「面板白层上」/「面板白层下」**（范围 **0.10~1.00**，v0.6.2 起下限从 0.30 降下来），
   > 拖动即时生效、自动存档、刷新后还在；
-  > 出厂默认 **97% / 83%**（中值 = 90%）。模糊仍是固定 20px（常量 `FROST_PANEL_BLUR`）。
+  > 出厂默认 **边缘 94% / 内部 80%**（中值 = 87%）。模糊仍是固定 20px（常量 `FROST_PANEL_BLUR`）。
   > 想绕过滑块也可以直接覆盖 CSS 变量
   > `--dsniang-frost-panel-top` / `--dsniang-frost-panel-bottom` / `--dsniang-frost-panel-blur`
   > （样式表里都带兜底）。
@@ -532,8 +534,8 @@ backdrop-filter: blur(2px) saturate(1.15);    /* 把这层"背后"的内容先�
   旧存档里的 false 一律忽略）。
 
 面板控件（纹理模式）：**毛玻璃：开/关**、
-**模糊** 0~30px（默认 2）、**白层** **2%~85%**（默认 25%；v0.6.2 起下限从 15% 降下来）、
-**面板白层上 / 面板白层下** **10%~100%**（默认 97% / 83%，只管鲸鱼二级面板，v0.2.36 起；
+**模糊** 0~30px（默认 2）、**白层** **2%~85%**（默认 20%；v0.6.2 起下限从 15% 降下来）、
+**面板边缘白层 / 面板内部白层** **10%~100%**（默认 94% / 80%，只管鲸鱼二级面板，v0.2.36 起；
 v0.6.2 起下限从 30% 降下来）、
 **气泡透明度** 0%~100%（默认 45%，0 = 不透明/DSH 原样；v0.2.40 起）、
 **气泡颜色**（取色器自选，默认跟随气泡原色；v0.2.40 起）、
@@ -621,8 +623,8 @@ DSH UI Beautify · 切换
 图片  [deepseek] [deepseek 黑白无水面]                    ← 纹理/背景模式显示
 浓度  ──────●──────  49%                                     ← 纹理/背景模式显示
 动效  [关]  帧率见诊断                                        ← v0.7.0，默认关
-毛玻璃 [开]  模糊 ───●─── 2px   白层 ───●─── 25%                 ← 纹理/背景模式都显示（v0.4.0 起）
-面板白层上/下 ───●─── 97%  ───●─── 83%                        ← 同上（二级面板用）
+毛玻璃 [开]  模糊 ───●─── 2px   白层 ───●─── 20%                 ← 纹理/背景模式都显示（v0.4.0 起）
+面板边缘/内部 ───●─── 94%  ───●─── 80%                        ← 同上（二级面板用）
 气泡透明度 ───●─── 45%  气泡颜色 [■] 原色  气泡模糊 ───●─── 12px    ← 同上
 DSH 面板模糊 ───●─── 20px                                      ← 同上
 薄纱  ●───────────  0%                                       ← 仅背景模式显示（v0.6.2 起 1% 一档）
@@ -724,8 +726,8 @@ v0.2 立了三条硬规则，并且写成了自动化测试：
 | 背景图 | **`deepseek 4k.png`**（面板上显示 `deepseek`） | `localStorage['__dshui.image']` |
 | 毛玻璃 | **开** | `localStorage['__dshui.frost.v3']` |
 | 毛玻璃模糊 | **2px** | 同上 |
-| 毛玻璃白层 | **25%**（可拖 **2%~85%**；v0.6.2 起下限从 15% 降下来） | 同上 |
-| 二级面板白层（上/下） | **97% / 83%**（竖向渐变两端；面板上两个滑块可调 **10%~100%**，v0.6.2 起下限从 30% 降下来） | 同上（`panelTop` / `panelBottom`） |
+| 毛玻璃白层 | **20%**（可拖 **2%~85%**；v0.6.2 起下限从 15% 降下来） | 同上 |
+| 二级面板白层（边缘/内部） | **94% / 80%**（径向渐变两端；面板上两个滑块可调 **10%~100%**，v0.6.2 起下限从 30% 降下来） | 同上（`panelTop` / `panelBottom`） |
 | 气泡透明度 | **45%**（0% = 不透明/DSH 原样，100% = 全透明；面板滑块可调） | 同上（`bubbleTransparency`） |
 | 气泡颜色 | **跟随气泡原色**（面板取色器可自选，存 `#rrggbb`） | 同上（`bubbleColor`） |
 | 气泡模糊 | **12px**（面板滑块可调，0~30px） | 同上（`bubbleBlur`） |
@@ -742,7 +744,7 @@ v0.2 立了三条硬规则，并且写成了自动化测试：
 
 ### 从 zip 安装（换机器 / 给别人）
 
-1. 解压 `dsh-ui-beautify-0.8.1.zip` → 得到 `dsh-ui-beautify/` 目录
+1. 解压 `dsh-ui-beautify-0.8.2.zip` → 得到 `dsh-ui-beautify/` 目录
    （里面是 `package.json` / `cordis.patch.yml` / `lib` / `assets`（**两张兜底图都在包里**）/
    `test` / `scripts/uninstall-cleanup.ps1`（卸载后自检）/ `README.md`（本文件）/ `HANDOFF.md` / `LICENSE`，
    共 28 个条目（含开屏动画与 `restart/` 壳补丁工具）；
@@ -906,6 +908,30 @@ powershell -ExecutionPolicy Bypass -File .\scripts\uninstall-cleanup.ps1 -PurgeD
 
 > 帧率健康线（供参考）：`fps ≥ 55` 且 `P95 ≤ 22ms` 算顺滑；`长帧 > 0` 表示出现过 > 50ms 的卡顿帧。
 
+## 视觉更新（v0.8.2）
+
+### 毛玻璃：径向渐变（内透外亮）+ 外阴影
+
+用户 2026-10-20 的视觉方向：**边框内由内向外逐渐变亮（内部稍微比边边透明，白层更淡）；边框外淡淡的阴影**。
+
+- 主表面（输入卡片）：`radial-gradient` 内部 = 边缘 alpha × 0.55；白层默认 **20%**（原先 25%）；
+  边缘 1px 高光 + 外阴影 `0 10px 30px rgba(17,18,20,.10)`；
+- 二级面板：`radial-gradient` 内部 80% → 边缘 94%（原竖向 97→83），外阴影 `0 14px 36px`；
+- 注：曾尝试「上下颠倒」（渐变焦点上下翻转），实际观感差异太小，**已移除**。
+
+### 思维链（保持 DSH 原样）
+
+- 曾试过把普通操作步骤染成橘黄 `#ff7b00`、报错保持红；**用户反馈不好看，已移除** ——
+  思考/步骤区域完全保持 DSH 原色（报错仍是 DSH 自己的红色），本插件不再覆盖任何 `data-variant` 颜色。
+
+### 方块光标（命令提示符风格）
+
+- 输入区（`div[data-composer-input]`，Lexical contenteditable）的原生 caret 隐藏，叠一个 **8×18 闪烁小方格**：颜色取**本插件开屏首屏的 accent `#3964fe`**（与开屏第一个界面的蓝一致；可用 `--dshui-caret-color` 覆盖），**1.2s** `steps(1)` 闪烁（比初版 0.5s 慢）；
+- 用选区 `Range.getBoundingClientRect()` 实时定位，方向键/输入/点击/滚动都会跟随；量不到时回退输入区左上角；
+- 仅在插件激活（纹理/背景模式，样式表在）时启用；`getSelection` 不可用时自动保留原生光标；卸载即移除。
+
+> 说明：以上风格化随插件激活（「关闭」模式仍保持 DSH 原样）；开屏/重启键等其它功能不受影响。
+
 ## 开屏动画（v0.8.0）
 
 页面加载时先盖一层**莱因生命风格**的开屏序列（黑幕标识 → 过曝洗白 → 技术档案 HUD → 六步授权 →
@@ -997,7 +1023,7 @@ dsh-ui-beautify/
 ```powershell
 cd <解压出来的目录>\dsh-ui-beautify
 node test\host.test.mjs     # 24 项：路由、栅栏、注入、卸载、脚本语法、桌面图优先与包内兜底（WebP）、别名、动效摘要
-node test\client.test.mjs   # 91 项：挂载、交互、淡入淡出、回归护栏、模式、毛玻璃与通透化、壁纸体检、动效底座与帧探针、卸载、诊断
+node test\client.test.mjs   # 93 项：挂载、交互、淡入淡出、回归护栏、模式、毛玻璃与通透化、壁纸体检、动效底座与帧探针、卸载、诊断
 ```
 
 > 想继续开发这个插件（改代码、加动效、重新打包）的**下一个 AI / 开发者**，请看
@@ -1009,6 +1035,13 @@ node test\client.test.mjs   # 91 项：挂载、交互、淡入淡出、回归�
 一旦将来有人重新引入"改布局属性"的写法，测试立刻失败。
 
 ## 版本
+
+### v0.8.2（2026-10-20）
+
+- 视觉更新：毛玻璃径向渐变（内透外亮）+ 外阴影 + 白层更淡。
+- 输入区方块闪烁光标：颜色 = 开屏首屏 accent `#3964fe`，1.2s 慢闪。
+- 思维链配色尝试已移除（用户反馈不好看，保持 DSH 原样）。
+- 测试：host 24/24 · client 93/93。
 
 ### v0.8.1（2026-10-20）
 

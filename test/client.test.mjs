@@ -297,7 +297,7 @@ test('纹理模式：挂 multiply 层 + 浓度默认 0.49', async () => {
 
   // 毛玻璃 = 半透明白 + backdrop-filter（不再用伪元素贴图）
   assert.match(style, /body\.__dshui-frost \.__dshui-frost-surface\{/)
-  assert.match(style, /background-color:rgba\(var\(--dsniang-frost-rgb,255,255,255\)/)
+  assert.match(style, /background:radial-gradient\(ellipse at 50% 50%,/)
   assert.match(style, /backdrop-filter:blur\(var\(--dsniang-frost-blur,2px\)\)/, '必须是真正的背景模糊')
   assert.match(style, /-webkit-backdrop-filter:blur/, 'Safari/旧内核也要有')
   assert.equal(/::after/.test(style), false, '不再用 ::after 贴假图（改用 backdrop-filter 白层）')
@@ -881,7 +881,7 @@ test('DSH 面板独立模糊滑块（0.4.0）：独立变量 + 独立规则 + �
   const old = buildChatDom()
   old.window.localStorage.setItem(
     '__dshui.frost.v3',
-    JSON.stringify({ enabled: true, blur: 2, alpha: 0.5, panelTop: 0.97, panelBottom: 0.83, bubbleTransparency: 45, bubbleBlur: 12 }),
+    JSON.stringify({ enabled: true, blur: 2, alpha: 0.5, panelTop: 0.94, panelBottom: 0.8, bubbleTransparency: 45, bubbleBlur: 12 }),
   )
   old.window.localStorage.setItem('__dshui.mode', 'multiply')
   const two = runClient(old)
@@ -986,7 +986,7 @@ test('背景模式：代码块与文件卡片也要气泡效果（0.6.0 贴玻�
   const css = styleTagOf(dom).textContent
   assert.match(
     css,
-    /body\.__dshui-frost \.__dshui-frost-chat\{background-color:color-mix\(in srgb,var\(--dsniang-chat-color,var\(--dsw-specific-code-bg,#f0f0f0\)\) var\(--dsniang-frost-bubble-mix,55%\),transparent\)!important;/,
+    /body\.__dshui-frost \.__dshui-frost-chat\{background-image:none!important;background-color:color-mix\(in srgb,var\(--dsniang-chat-color,var\(--dsw-specific-code-bg,#f0f0f0\)\) var\(--dsniang-frost-bubble-mix,55%\),transparent\)!important;/,
     '代码块/文件卡片的玻璃规则要和气泡同款（原色 + 气泡透明度）',
   )
   // 0.6.1 根因修复：外层卡片贴了玻璃，可内层各自又刷了一层不透明底 —— 玻璃被整块盖住，
@@ -1090,7 +1090,7 @@ test('毛玻璃：糊输入卡片 + 用户气泡，不碰输入框本身；参�
 
   // 参数：默认 2px / 25%（作者实机取值，出厂默认），可通过 API 调整并持久化
   assert.equal(api.status().frost.blur, 2)
-  assert.equal(api.status().frost.alpha, 0.25)
+  assert.equal(api.status().frost.alpha, 0.2)
   assert.equal(api.status().frost.targets, 1, '这个桩里只有输入卡片一个表面')
   assert.match(api.setFrostBlur(22), /模糊 = 22px/)
   assert.equal(dom.body.style.getPropertyValue('--dsniang-frost-blur'), '22px')
@@ -1098,7 +1098,7 @@ test('毛玻璃：糊输入卡片 + 用户气泡，不碰输入框本身；参�
   assert.equal(dom.body.style.getPropertyValue('--dsniang-frost-alpha'), '0.7')
   assert.deepEqual(
     JSON.parse(dom.window.localStorage.getItem('__dshui.frost.v3')),
-    { enabled: true, layered: true, blur: 22, alpha: 0.7, panelTop: 0.97, panelBottom: 0.83, bubbleTransparency: 45, bubbleBlur: 12, bubbleColor: '', dshBlur: 20 },
+    { enabled: true, layered: true, blur: 22, alpha: 0.7, panelTop: 0.94, panelBottom: 0.8, bubbleTransparency: 45, bubbleBlur: 12, bubbleColor: '', dshBlur: 20 },
     '毛玻璃参数应写入 localStorage（v3 键，v0.2.17 及更早的旧参数不再沿用）',
   )
 
@@ -1638,7 +1638,7 @@ test('扩展毛玻璃表面：问答窗口跟主表面同参数，二级面板�
   assert.ok(api.status().frost.extra >= 3, '扩展表面要计数（诊断可见）')
   assert.match(
     api.diagnose(),
-    /二级面板 2 个（20px · 白层 97→83% 渐变 · 遮罩 16→34% 渐变）/,
+    /二级面板 2 个（20px · 白层 边94→80% 径向渐变 · 遮罩 16→34% 渐变）/,
     '诊断里要写清二级面板与遮罩的参数',
   )
 
@@ -1647,9 +1647,9 @@ test('扩展毛玻璃表面：问答窗口跟主表面同参数，二级面板�
   assert.match(css, /body\.__dshui-frost \.__dshui-frost-panel\{/)
   assert.match(css, /blur\(var\(--dsniang-frost-panel-blur,20px\)\)/)
   // 底色必须被简写一起重置成透明：否则渐变叠在实心底色上，两端差不到 1.5%（等于白做）
-  assert.match(css, /__dshui-frost-panel\{background:linear-gradient\(180deg,/)
-  assert.match(css, /var\(--dsniang-frost-panel-top,0\.97\)\) 0%/)
-  assert.match(css, /var\(--dsniang-frost-panel-bottom,0\.83\)\) 100%\)!important/)
+  assert.match(css, /__dshui-frost-panel\{background:radial-gradient\(ellipse at 50% 50%,/)
+  assert.match(css, /var\(--dsniang-frost-panel-center,var\(--dsniang-frost-panel-bottom,0\.8\)\)\) 0%/)
+  assert.match(css, /var\(--dsniang-frost-panel-edge,var\(--dsniang-frost-panel-top,0\.94\)\)\) 100%\)!important/)
   // 全屏变暗遮罩：每个 mask 类都必须带 body 开关前缀（不带前缀的会变成全局规则）
   assert.match(css, /body\.__dshui-frost \.dshwv-usage-mask,body\.__dshui-frost \.dshwv-resmask/)
   // 0.3.1 起：DSH 自己的全屏遮罩（DropOverlay）也进同一个名单（渐变 + 抬层级）
@@ -1682,9 +1682,9 @@ test('扩展毛玻璃表面：问答窗口跟主表面同参数，二级面板�
     '主表面不许被抬高（panel/mask 才抬）',
   )
   assert.equal(api.status().frost.panelBlur, 20)
-  assert.equal(api.status().frost.panelAlpha, 0.9, '名义白层 = 渐变两端中值')
-  assert.equal(api.status().frost.panelAlphaTop, 0.97)
-  assert.equal(api.status().frost.panelAlphaBottom, 0.83)
+  assert.equal(api.status().frost.panelAlpha, 0.87, '名义白层 = 渐变两端中值')
+  assert.equal(api.status().frost.panelAlphaTop, 0.94)
+  assert.equal(api.status().frost.panelAlphaBottom, 0.8)
   assert.equal(api.status().frost.panelMaskCenter, 0.16)
   assert.equal(api.status().frost.panelMaskEdge, 0.34)
 
@@ -1696,6 +1696,37 @@ test('扩展毛玻璃表面：问答窗口跟主表面同参数，二级面板�
   assert.equal(slotList.classList.contains('__dshui-frost-panel'), false)
 })
 
+test('视觉更新（0.9）：玻璃径向渐变内透外亮 + 外阴影；思维链橙/红；方块光标样式', async () => {
+  const dom = buildChatDom()
+  const { api } = runClient(dom)
+  await flush()
+  api.setMode('multiply')
+  const css = styleTagOf(dom).textContent
+  // 主表面：径向渐变（内部 alpha 更小）+ 边缘高光 + 内阴影
+  assert.match(css, /__dshui-frost-surface\{background:radial-gradient\(ellipse at 50% 50%,/)
+  assert.match(css, /box-shadow:inset 0 0 0 1px rgba\(255,255,255,\.45\),0 10px 30px rgba\(17,18,20,\.10\)!important/)
+  assert.match(css, /--dsniang-frost-alpha-center,0\.11/)
+  // 二级面板：径向渐变 + 外阴影
+  assert.match(css, /__dshui-frost-panel\{background:radial-gradient\(ellipse at 50% 50%,/)
+  assert.match(css, /box-shadow:inset 0 0 0 1px rgba\(255,255,255,\.35\),0 14px 36px rgba\(17,18,20,\.14\)!important/)
+  // 思维链颜色已按用户反馈移除：样式表里不应再有 data-variant 颜色覆盖
+  assert.doesNotMatch(css, /\[data-variant=/, '思考区域保持 DSH 原样（不再覆盖颜色）')
+  // 方块光标：原生 caret 透明 + 闪烁小方格（莱茵生命 warning 同款）
+  assert.match(css, /body\.__dshui-caret-on \[data-composer-input\]\{caret-color:transparent!important;\}/)
+  assert.match(css, /#__dshui-caret\{position:fixed;display:none;width:8px;min-width:2px;height:18px;background:var\(--dshui-caret-color,#3964fe\)/)
+  assert.match(css, /@keyframes __dshui-caret-blink\{50%\{opacity:0;\}\}/)
+  // 白层变量：名义 0.2；径向仍「内透 0.11 → 外亮 0.2」
+  dom.advance(600)
+  const full = parseFloat(dom.body.style.getPropertyValue('--dsniang-frost-alpha'))
+  const center = parseFloat(dom.body.style.getPropertyValue('--dsniang-frost-alpha-center'))
+  const edge = parseFloat(dom.body.style.getPropertyValue('--dsniang-frost-alpha-edge'))
+  assert.ok(Math.abs(full - 0.2) < 0.01, '名义白层 0.2')
+  assert.ok(Math.abs(center - 0.11) < 0.01, '内部透 = 0.11')
+  assert.ok(Math.abs(edge - 0.2) < 0.01, '边缘亮 = 0.2')
+  // faux DOM 没有 getSelection：方块光标安全降级（不创建节点、原生 caret 保持）
+  assert.equal(dom.document.getElementById('__dshui-caret'), null)
+  assert.equal(dom.body.classList.contains('__dshui-caret-on'), false)
+})
 test('面板白层滑块：拖动即时生效、写进存档、刷新后读回（只管二级面板）', async () => {
   const dom = buildChatDom()
   // 放一个鲸鱼面板进去，好让诊断里出现「二级面板」那一段
@@ -1711,8 +1742,8 @@ test('面板白层滑块：拖动即时生效、写进存档、刷新后读回�
   const top = dom.document.querySelectorAll('[data-panel-top-slider]')[0]
   const bottom = dom.document.querySelectorAll('[data-panel-bottom-slider]')[0]
   assert.ok(top && bottom, '纹理模式下应有两个面板白层滑块')
-  assert.equal(top.value, '0.97', '默认上端 0.97')
-  assert.equal(bottom.value, '0.83', '默认下端 0.83')
+  assert.equal(top.value, '0.94', '默认边缘 0.94')
+  assert.equal(bottom.value, '0.8', '默认内部 0.8')
   assert.equal(top.min, '0.1', '下限 0.1（v0.6.2 从 0.3 降下来：范围不该替用户做决定，默认值没动）')
   assert.equal(top.max, '1')
 
@@ -1798,8 +1829,8 @@ test('面板白层滑块：拖动即时生效、写进存档、刷新后读回�
   )
 
   // 默认值已经落到 <body> 的 CSS 变量上（样式表一个字都不动）
-  assert.equal(dom.body.style.getPropertyValue('--dsniang-frost-panel-top'), '0.97')
-  assert.equal(dom.body.style.getPropertyValue('--dsniang-frost-panel-bottom'), '0.83')
+  assert.equal(dom.body.style.getPropertyValue('--dsniang-frost-panel-top'), '0.94')
+  assert.equal(dom.body.style.getPropertyValue('--dsniang-frost-panel-bottom'), '0.8')
   const cssBefore = styleTagOf(dom).textContent
 
   // 拖到 0.62 / 0.40（= 背后的内容会真的透出来）
@@ -1817,7 +1848,7 @@ test('面板白层滑块：拖动即时生效、写进存档、刷新后读回�
     '62%',
     '数值文案要跟着滑块走',
   )
-  assert.match(api.diagnose(), /白层 62→40% 渐变/, '诊断里要看得见这两个值')
+  assert.match(api.diagnose(), /白层 边62→40% 径向渐变/, '诊断里要看得见这两个值')
   assert.equal(dom.document.querySelectorAll('#__dshui-switcher').length, 1, '拖滑块不许关面板')
   assert.equal(styleTagOf(dom).textContent, cssBefore, '拖滑块不许改写样式表（静态表）')
 
@@ -1852,7 +1883,7 @@ test('v0.6.2 把「薄纱 / 白层 / 面板白层」的最低值都往下放（�
   const alpha = dom.document.querySelectorAll('[data-frost-alpha-slider]')[0]
   assert.equal(alpha.min, '0.02', '白层下限 0.02（以前 0.15）')
   assert.equal(alpha.max, '0.85')
-  assert.equal(alpha.value, '0.25', '默认值没动（还是 25%）')
+  assert.equal(alpha.value, '0.2', '默认值更新为 0.2（白层更淡）')
   alpha.value = '0.05'
   alpha._listeners.input[0]({ type: 'input', target: alpha, stopPropagation() {} })
   assert.equal(api.status().frost.alpha, 0.05, '5% 白层要接受（以前被下限挡掉）')
@@ -1927,7 +1958,7 @@ test('一次性迁移：低于出厂默认的旧模糊 / 白层只提一次（�
   const one = runClient(first)
   await flush()
   assert.equal(one.api.status().frost.blur, 2, '模糊 1px（低于出厂默认）→ 提到出厂默认')
-  assert.equal(one.api.status().frost.alpha, 0.25, '白层 15%（低于出厂默认）→ 提到出厂默认')
+  assert.equal(one.api.status().frost.alpha, 0.2, '白层 15%（低于出厂默认）→ 提到出厂默认（0.2）')
   assert.equal(JSON.parse(first.window.localStorage.getItem(key)).blur, 2, '迁移结果要落盘')
   assert.equal(first.window.localStorage.getItem('__dshui.glass.v1'), '1', '迁移标记只写一次')
 
@@ -2139,7 +2170,7 @@ test('切换模式淡入淡出：关闭→纹理 层淡入，纹理→关闭 先
   assert.equal(api.status().transition.frostAnimating, true, '毛玻璃参数应正在补间淡入')
   dom.advance(600)
   assert.equal(api.status().transition.frostAnimating, false, '补间应已结束')
-  assert.equal(dom.body.style.getPropertyValue('--dsniang-frost-alpha'), '0.25', '白层参数应淡入到目标')
+  assert.equal(dom.body.style.getPropertyValue('--dsniang-frost-alpha'), '0.2', '白层参数应淡入到目标')
   assert.equal(layer.style.getPropertyValue('opacity'), '0.49', '补间完成后浓度钉在层内联样式上')
   assert.equal(layer.style.getPropertyValue('transition'), '', '补间完成后内联过渡应清除（重新武装 CSS 过渡）')
 
@@ -2167,12 +2198,12 @@ test('毛玻璃接管/归还卡片底色无缝（不闪白光）', async () => {
   const startAlpha = Number(dom.body.style.getPropertyValue('--dsniang-frost-alpha'))
   assert.ok(startAlpha > 0.7 && startAlpha <= 0.85, '淡入应从卡片原生白底起步，实际 ' + startAlpha)
   dom.advance(600)
-  assert.equal(dom.body.style.getPropertyValue('--dsniang-frost-alpha'), '0.25', '淡入到目标白层')
+  assert.equal(dom.body.style.getPropertyValue('--dsniang-frost-alpha'), '0.2', '淡入到目标白层')
 
   // 淡出：补间回升到原生 0.85 才摘类 → 摘类瞬间原生白底无缝归还
   api.setMode('off')
   const fadingAlpha = Number(dom.body.style.getPropertyValue('--dsniang-frost-alpha'))
-  assert.ok(fadingAlpha > 0.25 && fadingAlpha <= 0.85, '淡出应朝原生白底回升，实际 ' + fadingAlpha)
+  assert.ok(fadingAlpha > 0.2 && fadingAlpha <= 0.85, '淡出应朝原生白底回升，实际 ' + fadingAlpha)
   dom.advance(600)
   assert.equal(dom.body.style.getPropertyValue('--dsniang-frost-alpha'), '', '摘类后变量清掉')
   assert.equal(dom.body.classList.contains('__dshui-frost'), false, '摘类完成')
@@ -2196,7 +2227,7 @@ test('淡出中途切回纹理：不卸载、直接淡回', async () => {
   dom.advance(600)
   assert.ok(layerOf(dom), '层应保留（没被卸载）')
   assert.equal(api.status().mode, 'multiply')
-  assert.equal(dom.body.style.getPropertyValue('--dsniang-frost-alpha'), '0.25', '毛玻璃参数应补间回目标')
+  assert.equal(dom.body.style.getPropertyValue('--dsniang-frost-alpha'), '0.2', '毛玻璃参数应补间回目标')
 })
 
 test('淡入淡出期间不碰页面布局样式', async () => {
@@ -2439,7 +2470,7 @@ test('切换器面板：三个按钮（关闭/纹理/背景）+ 浓度滑块，�
   assert.ok(frostAlpha, '应有雾度滑块')
   assert.equal(frostToggle.textContent, '毛玻璃：开', '默认应为开')
   assert.equal(frostSlider.value, '2', '默认模糊 2px（作者实机取值）')
-  assert.equal(frostAlpha.value, '0.25', '默认白层 0.25（作者实机取值）')
+  assert.equal(frostAlpha.value, '0.2', '默认白层 0.2（更淡）')
   assert.equal(
     dom.document.querySelectorAll('[data-frost-layer-toggle]').length,
     0,
