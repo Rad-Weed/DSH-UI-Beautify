@@ -38,6 +38,7 @@ $entries = @(
   'restart/install-restart-key.cmd', 'restart/uninstall-restart-key.cmd', 'restart/verify-restart-key.cmd',
   'restart/scripts/common.ps1', 'restart/scripts/install-restart-key.ps1', 'restart/scripts/uninstall-restart-key.ps1',
   'restart/scripts/verify-restart-key.ps1', 'restart/scripts/restore-on-exit.ps1',
+  'restart/scripts/auto-restore-on-uninstall.ps1',
   'restart/shell/patch-spec.json',
   'restart/shell/patches/main.js.snippet.txt', 'restart/shell/patches/preload-app.cjs.snippet.txt',
   'restart/shell/tools/apply-shell-patch.mjs',

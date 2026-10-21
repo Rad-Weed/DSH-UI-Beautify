@@ -47,7 +47,7 @@
 > **接手者不需要向需求方复述或确认任何历史**（需求方明确要求过：不必复述已完成事项）。
 >
 > 用户看的是 [README.md](README.md)（用户手册）；这一份是**给下一个 AI 的交接**。
-> 记录时版本 **v0.8.5** ｜ 工作目录 `<工作目录>`
+> 记录时版本 **v0.8.6** ｜ 工作目录 `<工作目录>`
 
 ## 目录
 
@@ -79,7 +79,7 @@
 
 **它现在什么状态**：
 
-- 版本 `0.8.5`（`lib/client.js` 的 `VERSION`、`lib/index.js` 的 `PLUGIN_VERSION`、`package.json` 的 `version` 三处一致）；
+- 版本 `0.8.6`（`lib/client.js` 的 `VERSION`、`lib/index.js` 的 `PLUGIN_VERSION`、`package.json` 的 `version` 三处一致）；
 - 测试 **host 24/24 + client 93/93** 全绿（离线，不需要浏览器）；另：独立插件 `dsh-reload-ui` 6/6；
 - **已装在用户机器上**（`lib/client.js` 走 `Cache-Control: no-store`，只要页面**真的重载**就能拿到新脚本；
   但 DSH 桌面版没有刷新快捷键 / 菜单（见 §11 P1），所以实际操作 = **退出 DSH 再启动**）。
@@ -444,6 +444,12 @@
   4. 胶囊/面板/控制台文案统一为 `DSH UI Beautify`（胶囊短标签 `DSH UI · 纹理/背景/…`）；壁纸角色名「DS 娘」仅在描述画面时保留。
   5. 沿用 v0.7.2 的安装/卸载与外部副作用规范化能力（自检脚本、副作用声明、元数据、13 条目出包）。
   6. **文档双语**：README 增加英文版（顶部语言跳转）＋ Release 说明中英双语；包内 README 随之更新。
+- **v0.8.6（2026-10-21，重启键重新适配 dsh-restart-key v1.3.1）**：
+  - 随包 restart/scripts+shell 同步到 v1.3.1；安装器调用改为绝对路径 powershell + 非 detached（修 detached 静默退出），并传 `-SkipPlugin`；
+  - 新增自动准备：插件加载 1.5s 后检测补丁，缺失则自动启动安装器（`-NoRestart`），用户只需完全退出 DSH 一次；状态路由带 `auto/autoResult`；
+  - 与 dsh-restart-key 的优先级：对方按钮生效时本插件暂缓注入并每 1.8s 复查（对方让路后由本插件接手）；诊断显示让路状态；
+  - 测试 host 27 → **28**（自动准备 dry-run/snapshot/失败路径）。
+
 - **v0.8.5（2026-10-21，纹理模式气泡视觉）**：
   - 纹理（multiply）模式下给用户气泡加 1px 内描边 + 顶部高光 + 柔和投影（只写 background-image/box-shadow，零布局）；
   - 只作用于用户气泡、只在 multiply 模式；面板「气泡视觉：开/关」+ `setBubbleFx()` + 存档 `bubbleFx`；

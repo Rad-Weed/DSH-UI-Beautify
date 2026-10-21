@@ -480,21 +480,6 @@ function Resolve-NodePath {
   throw '找不到 node.exe（DSH 自带的应在 resources\runtime\primary-runtime\dependencies\node\bin\node.exe；也可用 -NodePath 指定）。'
 }
 
-<#
-读「按钮 UI 提供方」（DSH UI Beautify）在当前 profile 里安装的真实版本号；
-未安装返回空串。只读文件，不改任何东西。
-#>
-function Get-BeautifyVersion {
-  param([string]$ProfileDir = '')
-  $dir = $(if ($ProfileDir) { $ProfileDir } else { Get-ProfileDir })
-  $pkgPath = Join-Path $dir 'node_modules\dsh-ui-beautify\package.json'
-  if (-not (Test-Path -LiteralPath $pkgPath)) { return '' }
-  try {
-    $pkg = Get-Content -LiteralPath $pkgPath -Raw -Encoding UTF8 | ConvertFrom-Json
-    return [string]$pkg.version
-  } catch { return '' }
-}
-
 function Get-ProfileDir {
   if ($env:DSH_PROFILE_DIR) { return $env:DSH_PROFILE_DIR }
   return (Join-Path $env:USERPROFILE '.dsh\profiles\desktop')
@@ -659,7 +644,7 @@ function Invoke-ProfileCleanup {
   if ($ok) {
     Write-Ok '四件套与联接均已清理干净。'
   } else {
-    Write-ErrInfo '仍有残留引用（见上方 ✗/!）。常见处理：等插件管理器彻底结束后重跑「卸载重启键.cmd」；'
+    Write-ErrInfo '仍有残留引用（见上方 ✗/!）。常见处理：等插件管理器彻底结束后重试，或运行 scripts\uninstall-restart-key.ps1（开发者）；'
     Write-ErrInfo '或手动检查 .dsh\profiles\desktop\.plugin-manager\logs\operation-*\pnpm.log 后再试。'
   }
   return $ok
@@ -675,7 +660,7 @@ function Write-EffectsDeclaration {
   Write-Log '  在线还原：否。改/还原 app.asar 必须 DSH 完全退出（运行中会被独占锁定）'
   Write-Log '  备份位置：<DSH 安装目录>\resources\.dsh-restart-button-backup\'
   Write-Log '            （app.asar.header.bin + meta.json，含 originalSize / originalSha256 / patchedSha256）'
-  Write-Log '  反向操作：双击「卸载重启键.cmd」；细节见 README「外部副作用声明」'
+  Write-Log '  反向操作：在插件管理里卸载本插件（自动清理）；细节见 README「外部副作用声明」'
   Write-Log '  用户数据：无（本插件不写任何用户数据目录，卸载默认无需清理数据）'
 }
 

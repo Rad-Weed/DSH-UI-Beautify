@@ -31,6 +31,8 @@ import plugin, {
   resolveBackgroundBytes,
   resolveDesktopImagePath,
   selfRejection,
+  restartAutoSnapshot,
+  armRestartInstaller,
 } from '../lib/index.js'
 
 const TEST_DIR = path.dirname(fileURLToPath(import.meta.url))
@@ -732,4 +734,35 @@ test('真实桌面图存在时可被解析（本机环境自检）', () => {
   assert.ok(resolved.bytes.length > 1000)
   assert.ok(['desktop', 'bundled'].includes(resolved.source))
   if (exists) assert.equal(resolved.source, 'desktop')
+})
+
+test('重启键自动准备（0.8.6）：dry-run / 已自动准备 / 已打补丁 / asar 缺失', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'dshui-restart-auto-'))
+  const asar = path.join(root, 'resources', 'app.asar')
+  fs.mkdirSync(path.dirname(asar), { recursive: true })
+  fs.writeFileSync(asar, Buffer.alloc(4096, 0))
+  const marker = path.join(root, 'auto-marker.json')
+  const options = { asarPath: asar, markerFile: marker, argv: ['node.exe', 'D:\DSH\resources\app.asar\dsh\node_modules\@deepseek-ai\dsh-desktop-host\lib\index.js'], env: { DSHUI_NO_SPAWN: '1', DSHUI_FORCE_AUTO: '1' } }
+
+  const dry = armRestartInstaller(options)
+  assert.equal(dry.ok, true)
+  assert.equal(dry.reason, 'dry-run', '测试模式只干跑，不 spawn')
+  assert.equal(dry.prepared, true)
+  const disabled = armRestartInstaller(Object.assign({}, options, { env: { DSHUI_NO_AUTO_RESTART: '1' } }))
+  assert.equal(disabled.reason, 'auto-disabled')
+
+  fs.writeFileSync(marker, JSON.stringify({
+    asarPath: asar,
+    asarMtimeMs: fs.statSync(asar).mtimeMs,
+    armedAt: Date.now(),
+  }))
+  const snap = restartAutoSnapshot({ asarPath: asar, markerFile: marker })
+  assert.equal(snap.prepared, true)
+  assert.equal(snap.reason, 'already-armed')
+
+  fs.appendFileSync(asar, '\n// DSH-RESTART-BUTTON BEGIN\n// <<< DSH-RESTART-BUTTON END\n')
+  const patched = restartAutoSnapshot({ asarPath: asar, markerFile: marker })
+  assert.equal(patched.patched, true)
+  assert.equal(patched.reason, 'already-patched')
+
 })

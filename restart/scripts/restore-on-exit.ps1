@@ -72,7 +72,7 @@ else { Initialize-Common -LogName ('restore-on-exit-' + $Action) -DryRun:$DryRun
 $script:DshProcessName = $ProcessName
 
 $exitCode = 0
-
+$packageName = 'dsh-restart-button'
 $tool = Join-Path $script:ProjectRoot 'shell\tools\apply-shell-patch.mjs'
 
 <#
@@ -163,7 +163,7 @@ if ($Action -eq 'restart') {
   $verifyResult = Invoke-Capture -FilePath $NodePath -Arguments @($tool, 'verify', '--asar', $AsarPath)
   Write-Captured $verifyResult
   if ($verifyResult.Code -ne 0) {
-    Finish-Orchestrator -Code 4 -Message '补丁校验失败（标记/锚点/语法/结构与预期不符）。备份已保留，可运行「卸载重启键.cmd」还原。' -Icon 16
+    Finish-Orchestrator -Code 4 -Message '补丁校验失败（标记/锚点/语法/结构与预期不符）。备份已保留，可运行 scripts\uninstall-restart-key.ps1 还原（开发者）。' -Icon 16
   }
   $meta = Read-BackupMeta -BackupDirectory $BackupDir
   $afterSha = Get-Sha256OfFile $AsarPath
@@ -190,7 +190,7 @@ if ($Action -eq 'restart') {
       $restoreResult = Invoke-Capture -FilePath $NodePath -Arguments @($tool, 'restore', '--asar', $AsarPath, '--backup-dir', $BackupDir)
       Write-Captured $restoreResult
       if ($restoreResult.Code -ne 0) {
-        Finish-Orchestrator -Code 1 -Message '还原失败。备份已保留，可排除问题后重试「卸载重启键.cmd」。' -Icon 16
+        Finish-Orchestrator -Code 1 -Message '还原失败。备份已保留，可重试或运行 scripts\uninstall-restart-key.ps1（开发者）。' -Icon 16
       }
       $restoredSha = Get-Sha256OfFile $AsarPath
       if ($restoredSha -ne $meta.originalSha256) {
@@ -213,8 +213,14 @@ if ($Action -eq 'restart') {
     }
   }
 
-  # 注：按钮 UI（半区 A）已并入 DSH UI Beautify 插件，本目录不再安装独立插件包，
-  # 因此没有「四件套 + 联接」需要清理；-SkipProfileCheck 参数保留仅为兼容旧调用。
+  # 最终断言：插件管理四件套 + 联接（§3.4 M4）
+  if (-not $SkipProfileCheck) {
+    $profileOk = Invoke-ProfileCleanup -ProfileDir (Get-ProfileDir) -PackageName $packageName -Fix
+    if (-not $profileOk) {
+      $exitCode = 4
+      Write-ErrInfo '四件套/联接仍有残留 —— 按退出码 4 处理（app.asar 已还原，可重跑卸载脚本做最后一次清理）。'
+    }
+  }
 } else {
   Finish-Orchestrator -Code 2 -Message ('参数错误：未知 Action ' + $Action) -Icon 16
 }

@@ -6,7 +6,7 @@
 > 原包名 `dsh-dsniang-beautify` 的旧存档会自动迁移；旧 hash（`#dsniang-off` / `#dsniang-diag`）与旧 URL 参数（`?dsniang=`）仍兼容。
 > 仓库：`Rad-Weed/DSH-UI-Beautify`（私有）
 
-**版本：v0.8.5** · 给 DSH 页面加壁纸与毛玻璃。
+**版本：v0.8.6** · 给 DSH 页面加壁纸与毛玻璃。
 
 > ⚠️ **v0.1 出过事故**：它会改目标面板的 `position` / `overflow`，导致界面布局坍塌、
 > 基本无法操作。v0.2 从设计上取消了所有这类改动，详见下面「为什么 v0.2 不会再弄坏界面」。
@@ -73,7 +73,7 @@ Defaults apply only when nothing is stored yet; once you move a slider, the stor
 
 ## Install
 
-1. Extract `dsh-ui-beautify-0.8.5.zip` → you get a `dsh-ui-beautify/` directory
+1. Extract `dsh-ui-beautify-0.8.6.zip` → you get a `dsh-ui-beautify/` directory
    (`package.json` / `cordis.patch.yml` / `lib` / `assets` (both fallback images) / `test` /
    `scripts/uninstall-cleanup.ps1` / `README.md` / `HANDOFF.md` / `LICENSE` — 13 entries);
 2. Put it somewhere that won't be deleted (an ASCII-only path is recommended);
@@ -744,7 +744,7 @@ v0.2 立了三条硬规则，并且写成了自动化测试：
 
 ### 从 zip 安装（换机器 / 给别人）
 
-1. 解压 `dsh-ui-beautify-0.8.5.zip` → 得到 `dsh-ui-beautify/` 目录
+1. 解压 `dsh-ui-beautify-0.8.6.zip` → 得到 `dsh-ui-beautify/` 目录
    （里面是 `package.json` / `cordis.patch.yml` / `lib` / `assets`（**两张兜底图都在包里**）/
    `test` / `scripts/uninstall-cleanup.ps1`（卸载后自检）/ `README.md`（本文件）/ `HANDOFF.md` / `LICENSE`，
    共 28 个条目（含开屏动画与 `restart/` 壳补丁工具）；
@@ -1074,6 +1074,15 @@ node test\client.test.mjs   # 93 项：挂载、交互、淡入淡出、回归�
 一旦将来有人重新引入"改布局属性"的写法，测试立刻失败。
 
 ## 版本
+
+### v0.8.6（2026-10-21）
+
+- **重启键集成重新适配 dsh-restart-key v1.3.1**：随包 `restart/scripts` 与 `restart/shell` 同步到 v1.3.1（含补丁所有权检测、自动还原脚本、冲突检测的脚本侧行为）；
+- **修复一键启用实际不生效**：Windows 上 detached + 无控制台的 PowerShell 会静默退出（exit 0 但脚本不执行）→ 改为绝对路径 `powershell.exe` + 非 detached 启动（安装器内部再用 WMI 逃逸长驻编排进程）；
+- **自动准备（Plan A）**：插件加载后自动检测壳补丁，缺失时自动准备安装器（`-SkipPlugin -NoRestart`），用户只需完全退出 DSH 一次；可用 `DSHUI_NO_AUTO_RESTART=1` 关闭；
+- **重启键优先级（与 dsh-restart-key 协作）**：另一边检测到本插件会自动让路；本插件检测到对方按钮已生效时暂缓注入，并每 1.8s 复查一次（对方撤下后由本插件接手，避免双方都让路）；
+- `/restart-status.json` 增加 `auto/autoResult/pluginVersion`；面板显示「壳补丁已自动准备（退出生效）」；诊断增加「独立重启插件已让路」提示；
+- 测试：host 27 → **28**，client 96（新增自动准备状态展示）。
 
 ### v0.8.5（2026-10-21）
 

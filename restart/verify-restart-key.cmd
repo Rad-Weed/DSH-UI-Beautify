@@ -5,7 +5,7 @@ echo =====================================================
 echo   DSH Restart Key - health check
 echo =====================================================
 echo.
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\verify-restart-key.ps1" %*
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\verify-restart-key.ps1" -SkipPlugin %*
 set "EC=%ERRORLEVEL%"
 echo.
 if not "%EC%"=="0" echo [FAILED] exit code %EC% - see messages above and the logs folder.
