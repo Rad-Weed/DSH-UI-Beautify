@@ -6,7 +6,7 @@
 > 原包名 `dsh-dsniang-beautify` 的旧存档会自动迁移；旧 hash（`#dsniang-off` / `#dsniang-diag`）与旧 URL 参数（`?dsniang=`）仍兼容。
 > 仓库：`Rad-Weed/DSH-UI-Beautify`（私有）
 
-**版本：v0.8.6** · 给 DSH 页面加壁纸与毛玻璃。
+**版本：v0.8.12** · 给 DSH 页面加壁纸与毛玻璃。
 
 > ⚠️ **v0.1 出过事故**：它会改目标面板的 `position` / `overflow`，导致界面布局坍塌、
 > 基本无法操作。v0.2 从设计上取消了所有这类改动，详见下面「为什么 v0.2 不会再弄坏界面」。
@@ -73,7 +73,7 @@ Defaults apply only when nothing is stored yet; once you move a slider, the stor
 
 ## Install
 
-1. Extract `dsh-ui-beautify-0.8.6.zip` → you get a `dsh-ui-beautify/` directory
+1. Extract `dsh-ui-beautify-0.8.12.zip` → you get a `dsh-ui-beautify/` directory
    (`package.json` / `cordis.patch.yml` / `lib` / `assets` (both fallback images) / `test` /
    `scripts/uninstall-cleanup.ps1` / `README.md` / `HANDOFF.md` / `LICENSE` — 13 entries);
 2. Put it somewhere that won't be deleted (an ASCII-only path is recommended);
@@ -744,7 +744,7 @@ v0.2 立了三条硬规则，并且写成了自动化测试：
 
 ### 从 zip 安装（换机器 / 给别人）
 
-1. 解压 `dsh-ui-beautify-0.8.6.zip` → 得到 `dsh-ui-beautify/` 目录
+1. 解压 `dsh-ui-beautify-0.8.12.zip` → 得到 `dsh-ui-beautify/` 目录
    （里面是 `package.json` / `cordis.patch.yml` / `lib` / `assets`（**两张兜底图都在包里**）/
    `test` / `scripts/uninstall-cleanup.ps1`（卸载后自检）/ `README.md`（本文件）/ `HANDOFF.md` / `LICENSE`，
    共 28 个条目（含开屏动画与 `restart/` 壳补丁工具）；
@@ -1074,6 +1074,60 @@ node test\client.test.mjs   # 93 项：挂载、交互、淡入淡出、回归�
 一旦将来有人重新引入"改布局属性"的写法，测试立刻失败。
 
 ## 版本
+
+### v0.8.12（2026-10-22）
+
+- **修复深色下按钮“白底白字”**（截图确认）：DSH 深色主题的 brand token 是白色，
+  导致激活态按钮（纹理/背景/开屏开关/图片按钮等胶囊）与白字融为一体；
+- `swatchStyle()` 深色下改为：**激活 = 白底 + 黑字**（`#f5f7fa` / `#111111`），未激活 = 透明底 + 浅字；
+  浅色主题保持原来的品牌蓝底白字不变；
+- 测试：host 29/29 · client 98/98（新增深色激活按钮白底黑字断言）。
+
+### v0.8.11（2026-10-22）
+
+- **深色下自家 GUI 对比度兜底**：静态 CSS 直接按 `body[data-ds-dark-theme]` 强制
+  左上角胶囊、设置面板、诊断面板深底浅字（`rgba(17,18,20,.82~.94)` + `#f5f7fa`），
+  不再依赖 JS 执行时机或 DSH 半透明 token；
+- 面板里的模式按钮（关闭/纹理/背景）与各项控件文字在深色下强制浅色，浅色主题完全不变；
+- 启动后 800ms 再补套一次胶囊配色（覆盖"主题晚于插件脚本投影"的时机）；
+- 测试：host 29/29 · client 98/98。
+
+### v0.8.10（2026-10-22）
+
+- **修复深色主题下胶囊文字看不清**：深色胶囊改为固定深底浅字（`rgba(17,18,20,.82)` + `#f5f7fa`），
+  并加 `backdrop-filter: blur(10px)`；浅色胶囊仍使用 DSH token，保持原样；
+- 主题切换时胶囊配色跟随重算（`applyPillTheme()`），不会再残留上一主题的颜色；
+- 测试：host 29/29 · client 98/98（新增深色胶囊底色/字色断言）。
+
+### v0.8.9（2026-10-22）
+
+- **深色主题独立参数**：纹理模式浓度深浅两套（深色默认 **0.85**，浅色仍是 0.49）；
+  滑块改的是"当前主题"那一套，深色存 `__dshui.opacities.dark`、浅色仍是 `__dshui.opacities`；
+  面板标签显示「浓度（深色）」，诊断行标明当前是深/浅参数；
+- **深色纹理混合模式**：`multiply` 会把暗色壁纸压成近黑（暗 UI × 暗图几乎不可见），深色下改为 `lighten`；
+  浅色主题仍保持原来的 `multiply` 行为；
+- **主题切换全量重算**：深→浅/浅→深时重新应用图层图与浓度、毛玻璃变量、气泡/代码块原色、
+  二级面板/问答窗口/DSH 菜单遮罩、薄纱与通透化（修复"二级面板、气泡不更新"）；
+- 测试：host 29/29 · client 98/98。
+
+### v0.8.8（2026-10-21）
+
+- **修复深色主题识别**：DSH 真实主题投影是 `body[data-ds-dark-theme]`（见 ui 主题代码），
+  旧实现只看 `--dsw-alias-bg-base` 计算值，在真实页面里拿不到/为空 → 切深色不换壁纸、图片栏也不变；
+- 现在优先判断 body/html 的 `data-ds-dark-theme` / `data-theme` / class / color-scheme，CSS token 与系统偏好仅兜底；
+- 主题监听改为同时观察 body + html 的 `data-ds-dark-theme`、`data-theme`、`class`、`style`，按主题变化去重后再同步壁纸；
+- 启动探针新增 `theme/themeKey/themeAttrs`（body/html 深色属性、color-scheme），下次可直接从 `/diag.json` 验证；
+- 测试：host 29/29 · client 98/98。
+
+### v0.8.7（2026-10-21）
+
+- **深浅色主题壁纸**：检测 DSH 主题（`--dsw-alias-bg-base` / `body[data-ds-dark-theme]`）；
+  - 深色 → 自动使用桌面上的 `DeepSeek 暗夜模式.png`（也可以 `deepseek暗夜模式.png` 等大小写变体）；
+  - 浅色 → 完全保持原来的两张壁纸与行为不变；
+  - 暗夜图不存在时自动退回浅色行为（不报错、不写坏偏好）；
+- **胶囊图片栏按主题切换**：浅色显示原来的两张，深色只显示「暗夜」一张；两套偏好分开保存（`__dshui.image` / `__dshui.image.dark`），切回浅色会恢复你之前选的浅色图；
+- `/status.json` 增加 `darkImages`（只从桌面读）与 `?theme=dark` 默认图；诊断新增「主题 / 壁纸」一行；
+- 测试：host 29/29 · client 97/97。
 
 ### v0.8.6（2026-10-21）
 

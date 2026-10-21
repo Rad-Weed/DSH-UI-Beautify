@@ -28,6 +28,10 @@ import plugin, {
   detectShellPatchInAsar,
   resolveShellPatchAsarPath,
   normalizeImageName,
+  DARK_IMAGE_NAME,
+  listAvailableImages,
+  listAvailableDarkImages,
+  resolveImageSource,
   resolveBackgroundBytes,
   resolveDesktopImagePath,
   selfRejection,
@@ -765,4 +769,26 @@ test('重启键自动准备（0.8.6）：dry-run / 已自动准备 / 已打补�
   assert.equal(patched.patched, true)
   assert.equal(patched.reason, 'already-patched')
 
+})
+
+test('深色壁纸（0.8.7）：只从桌面读、浅色候选列表不变；没有暗色图时返回空', () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'dshui-dark-wall-'))
+  fs.mkdirSync(path.join(home, 'Desktop'), { recursive: true })
+  const darkFile = path.join(home, 'Desktop', 'DeepSeek 暗夜模式.png')
+  fs.writeFileSync(darkFile, Buffer.alloc(128, 7))
+
+  const dark = listAvailableDarkImages(home)
+  assert.equal(dark.length, 1)
+  assert.equal(dark[0].name, DARK_IMAGE_NAME)
+  assert.equal(dark[0].source, 'desktop')
+
+  const resolved = resolveImageSource(home, DARK_IMAGE_NAME)
+  assert.equal(resolved.name, DARK_IMAGE_NAME)
+  assert.equal(resolved.bytes.length, 128)
+
+  const light = listAvailableImages(home)
+  assert.deepEqual(light.map((entry) => entry.name), ['deepseek 4k.png', 'deepseek 黑白无水面.png'], '浅色候选保持不变')
+
+  const empty = fs.mkdtempSync(path.join(os.tmpdir(), 'dshui-dark-none-'))
+  assert.equal(listAvailableDarkImages(empty).length, 0)
 })

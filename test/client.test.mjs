@@ -34,6 +34,7 @@ function runClient(dom, options) {
   const logs = []
   const requested = opts.requested || []
   const images = opts.statusImages || []
+  const darkImages = opts.statusDarkImages || []
   const context = {
     window: dom.window,
     document: dom.document,
@@ -65,6 +66,7 @@ function runClient(dom, options) {
             url: '/dsh-ui-beautify/bg.png' + (name ? '?img=' + encodeURIComponent(name) : ''),
             bytes: 123,
             images,
+            darkImages,
             user: opts.statusUser || '',
           })
         },
@@ -1828,6 +1830,82 @@ test('AI 思维链只读读取（0.8.5）：thinkingRows() 能取到行数/文�
   assert.ok(after.count >= 1, '应读到伪造的思维链行')
   assert.ok(after.rows.some(function (row) { return row.text.includes('输入法焦点') }), '应能读到思维链文字摘要')
 })
+test('深色属性检测（0.8.8）：body[data-ds-dark-theme] 存在时启动即用暗夜壁纸，图片栏只有 1 张', async () => {
+  const lightImages = [
+    { name: 'deepseek 4k.png', label: 'deepseek', bytes: 11, source: 'desktop' },
+    { name: 'deepseek 黑白无水面.png', label: 'deepseek 黑白无水面', bytes: 22, source: 'desktop' },
+  ]
+  const darkImages = [{ name: 'DeepSeek 暗夜模式.png', label: '暗夜', bytes: 33, source: 'desktop' }]
+
+  const dom = buildChatDom()
+  dom.body.setAttribute('data-ds-dark-theme', '')
+  const { api } = runClient(dom, { statusImages: lightImages, statusDarkImages: darkImages })
+  await flush()
+  api.setMode('multiply')
+  await flush()
+  dom.advance(600)
+  await flush()
+  assert.equal(api.status().theme, 'dark', 'body 深色属性应被识别')
+  assert.equal(api.status().image, 'DeepSeek 暗夜模式.png', '启动即应使用暗夜壁纸')
+  const pill = dom.document.getElementById('__dshui-pill')
+  assert.ok(pill, '胶囊应存在')
+  assert.equal(pill.style.getPropertyValue('color'), '#f5f7fa', '深色胶囊应为浅色字')
+  assert.ok(String(pill.style.getPropertyValue('background')).includes('255,255,255') || String(pill.style.getPropertyValue('background')).includes('rgba(17,18,20'), '深色胶囊应为深底')
+  assert.equal(api.status().opacity, 0.85, '深色纹理模式默认浓度 0.85（暗夜图才看得清）')
+  const darkCss = styleTagOf(dom).textContent
+  assert.ok(darkCss.includes('body[data-ds-dark-theme] #__dshui-layer[data-mode="multiply"]'), '深色纹理应覆盖混合模式')
+  assert.ok(darkCss.includes('mix-blend-mode:lighten'), '深色纹理应用 lighten（multiply 会让暗色壁纸几乎不可见）')
+  api.setOpacity(0.6)
+  assert.equal(api.status().opacity, 0.6)
+  const savedDark = JSON.parse(dom.window.localStorage.getItem('__dshui.opacities.dark'))
+  assert.equal(savedDark.multiply, 0.6, '深色浓度存到独立键')
+  assert.equal(dom.window.localStorage.getItem('__dshui.opacities'), null, '不应写浅色浓度键')
+  api.switcher()
+  const modeBtn = dom.document.querySelector('[data-mode-button="multiply"]')
+  assert.ok(modeBtn, '应有纹理模式按钮')
+  assert.equal(modeBtn.style.getPropertyValue('color'), '#111111', '深色激活按钮应为黑字（白底）')
+  assert.equal(modeBtn.style.getPropertyValue('background'), '#f5f7fa', '深色激活按钮应为白底')
+  const darkButtons = dom.document.querySelectorAll('[data-image-button]')
+  assert.equal(darkButtons.length, 1, '深色图片栏只显示暗夜图')
+  assert.equal(darkButtons[0].getAttribute('data-image-button'), 'DeepSeek 暗夜模式.png')
+})
+
+test('深浅色主题壁纸（0.8.7）：深色自动用暗夜图，浅色仍用原两张', async () => {
+  const lightImages = [
+    { name: 'deepseek 4k.png', label: 'deepseek', bytes: 11, source: 'desktop' },
+    { name: 'deepseek 黑白无水面.png', label: 'deepseek 黑白无水面', bytes: 22, source: 'desktop' },
+  ]
+  const darkImages = [{ name: 'DeepSeek 暗夜模式.png', label: '暗夜', bytes: 33, source: 'desktop' }]
+
+  // 深色主题：自动用暗夜图，图片栏只有一张
+  const dark = buildChatDom({ baseToken: 'rgb(22, 24, 29)' })
+  const a = runClient(dark, { statusImages: lightImages, statusDarkImages: darkImages })
+  await flush()
+  a.api.setMode('multiply')
+  await flush()
+  dark.advance(600)
+  await flush()
+  assert.equal(a.api.status().theme, 'dark')
+  assert.equal(a.api.status().image, 'DeepSeek 暗夜模式.png', '深色应用暗夜壁纸')
+  a.api.switcher()
+  const darkButtons = dark.document.querySelectorAll('[data-image-button]')
+  assert.equal(darkButtons.length, 1, '深色图片栏只显示暗夜图')
+  assert.equal(darkButtons[0].getAttribute('data-image-button'), 'DeepSeek 暗夜模式.png')
+
+  // 浅色主题：保持原来的两张
+  const light = buildChatDom()
+  const b = runClient(light, { statusImages: lightImages, statusDarkImages: darkImages })
+  await flush()
+  b.api.setMode('multiply')
+  await flush()
+  light.advance(600)
+  assert.equal(b.api.status().theme, 'light')
+  assert.ok(lightImages.some((entry) => entry.name === b.api.status().image), '浅色用原候选图')
+  b.api.switcher()
+  const lightButtons = light.document.querySelectorAll('[data-image-button]')
+  assert.equal(lightButtons.length, 2, '浅色图片栏仍是两张')
+})
+
 test('面板白层滑块：拖动即时生效、写进存档、刷新后读回（只管二级面板）', async () => {
   const dom = buildChatDom()
   // 放一个鲸鱼面板进去，好让诊断里出现「二级面板」那一段

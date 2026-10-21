@@ -47,7 +47,7 @@
 > **接手者不需要向需求方复述或确认任何历史**（需求方明确要求过：不必复述已完成事项）。
 >
 > 用户看的是 [README.md](README.md)（用户手册）；这一份是**给下一个 AI 的交接**。
-> 记录时版本 **v0.8.6** ｜ 工作目录 `<工作目录>`
+> 记录时版本 **v0.8.12** ｜ 工作目录 `<工作目录>`
 
 ## 目录
 
@@ -79,7 +79,7 @@
 
 **它现在什么状态**：
 
-- 版本 `0.8.6`（`lib/client.js` 的 `VERSION`、`lib/index.js` 的 `PLUGIN_VERSION`、`package.json` 的 `version` 三处一致）；
+- 版本 `0.8.12`（`lib/client.js` 的 `VERSION`、`lib/index.js` 的 `PLUGIN_VERSION`、`package.json` 的 `version` 三处一致）；
 - 测试 **host 24/24 + client 93/93** 全绿（离线，不需要浏览器）；另：独立插件 `dsh-reload-ui` 6/6；
 - **已装在用户机器上**（`lib/client.js` 走 `Cache-Control: no-store`，只要页面**真的重载**就能拿到新脚本；
   但 DSH 桌面版没有刷新快捷键 / 菜单（见 §11 P1），所以实际操作 = **退出 DSH 再启动**）。
@@ -444,6 +444,35 @@
   4. 胶囊/面板/控制台文案统一为 `DSH UI Beautify`（胶囊短标签 `DSH UI · 纹理/背景/…`）；壁纸角色名「DS 娘」仅在描述画面时保留。
   5. 沿用 v0.7.2 的安装/卸载与外部副作用规范化能力（自检脚本、副作用声明、元数据、13 条目出包）。
   6. **文档双语**：README 增加英文版（顶部语言跳转）＋ Release 说明中英双语；包内 README 随之更新。
+- **v0.8.12（2026-10-22，深色按钮白底白字）**：
+  - `swatchStyle()` 深色激活态 = 白底黑字、未激活 = 透明浅字；浅色不变；
+  - 覆盖模式按钮/开屏/音效/图片/毛玻璃/气泡视觉/AI 视觉/动效等全部胶囊按钮；测试 client 98。
+
+- **v0.8.11（2026-10-22，深色 GUI 静态兜底）**：
+  - 静态 CSS 按 `body[data-ds-dark-theme]` 强制胶囊/设置面板/诊断面板深底浅字；
+  - 面板模式按钮与控件文字深色下强制浅色；延迟 800ms 补套胶囊配色；测试 host 29 / client 98。
+
+- **v0.8.10（2026-10-22，深色胶囊对比度）**：
+  - `applyPillTheme()`：深色胶囊固定深底浅字（rgba(17,18,20,.82)/#f5f7fa）+ blur(10px)；浅色仍走 DSH token；
+  - 主题切换时同步重算胶囊配色；测试 host 29 / client 98。
+
+- **v0.8.9（2026-10-22，深色参数 + 主题切换重算）**：
+  - 深色独立浓度：`MODE_OPACITY_DARK_DEFAULTS.multiply = 0.85`；滑块按主题分别存 `__dshui.opacities.dark`；
+  - 深色纹理改用 `mix-blend-mode: lighten`（multiply 下暗夜壁纸在暗色 UI 上几乎不可见），浅色不变；
+  - `applyThemeVisuals()`：主题切换时重算图层/浓度/毛玻璃变量/气泡与代码块原色/二级面板遮罩/薄纱；
+  - 测试 host 29 / client 98。
+
+- **v0.8.8（2026-10-21，修复真实深色主题识别）**：
+  - `isDarkTheme()` 改为以 `body[data-ds-dark-theme]`（+html data-theme/class/color-scheme）为准；
+  - 主题监听同时观察 body 与 html 的 data-ds-dark-theme/data-theme/class/style，按变化去重；
+  - 启动探针带 theme/themeAttrs；测试 host 29 / client **98**。
+
+- **v0.8.7（2026-10-21，深浅色主题壁纸）**：
+  - 深色主题自动切到桌面 `DeepSeek 暗夜模式.png`（支持常见大小写/空格变体），浅色保持原两张；
+  - 胶囊图片栏按主题显示候选（深色仅「暗夜」一张）；深浅偏好分键保存，切回浅色恢复原选择；
+  - 暗夜图缺失时自动退回浅色行为；status.json 增加 darkImages / theme 默认图；诊断加主题行；
+  - 测试 host 28 → **29**，client 96 → **97**。
+
 - **v0.8.6（2026-10-21，重启键重新适配 dsh-restart-key v1.3.1）**：
   - 随包 restart/scripts+shell 同步到 v1.3.1；安装器调用改为绝对路径 powershell + 非 detached（修 detached 静默退出），并传 `-SkipPlugin`；
   - 新增自动准备：插件加载 1.5s 后检测补丁，缺失则自动启动安装器（`-NoRestart`），用户只需完全退出 DSH 一次；状态路由带 `auto/autoResult`；
