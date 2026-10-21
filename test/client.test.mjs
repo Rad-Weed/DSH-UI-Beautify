@@ -1830,6 +1830,24 @@ test('AI 思维链只读读取（0.8.5）：thinkingRows() 能取到行数/文�
   assert.ok(after.count >= 1, '应读到伪造的思维链行')
   assert.ok(after.rows.some(function (row) { return row.text.includes('输入法焦点') }), '应能读到思维链文字摘要')
 })
+test('浅色纸白底不误判（0.8.13）：paper-white token 下仍是浅色、用浅色图和浅色浓度', async () => {
+  const lightImages = [
+    { name: 'deepseek 4k.png', label: 'deepseek', bytes: 11, source: 'desktop' },
+    { name: 'deepseek 黑白无水面.png', label: 'deepseek 黑白无水面', bytes: 22, source: 'desktop' },
+  ]
+  const darkImages = [{ name: 'DeepSeek 暗夜模式.png', label: '暗夜', bytes: 33, source: 'desktop' }]
+  const dom = buildChatDom({ baseToken: '#f6f8fc' })
+  const { api } = runClient(dom, { statusImages: lightImages, statusDarkImages: darkImages })
+  await flush()
+  api.setMode('multiply')
+  await flush()
+  dom.advance(600)
+  await flush()
+  assert.equal(api.status().theme, 'light', 'paper-white 浅色不能被判成深色')
+  assert.equal(api.status().image, 'deepseek 4k.png', '浅色应使用浅色壁纸')
+  assert.equal(api.status().opacity, 0.49, '浅色纹理浓度仍是 0.49')
+})
+
 test('深色属性检测（0.8.8）：body[data-ds-dark-theme] 存在时启动即用暗夜壁纸，图片栏只有 1 张', async () => {
   const lightImages = [
     { name: 'deepseek 4k.png', label: 'deepseek', bytes: 11, source: 'desktop' },
