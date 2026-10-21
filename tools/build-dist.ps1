@@ -32,7 +32,7 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 $entries = @(
   'package.json', 'cordis.patch.yml', 'README.md', 'HANDOFF.md', 'LICENSE',
   'lib/client.js', 'lib/index.js',
-  'assets/deepseek-4k.webp', 'assets/deepseek-bw-nowater.webp', 'assets/splash.html',
+  'assets/deepseek-4k.webp', 'assets/deepseek-bw-nowater.webp', 'assets/deepseek-dark.webp', 'assets/splash.html',
   'scripts/uninstall-cleanup.ps1',
   'restart/README.md', 'restart/USAGE.txt',
   'restart/install-restart-key.cmd', 'restart/uninstall-restart-key.cmd', 'restart/verify-restart-key.cmd',

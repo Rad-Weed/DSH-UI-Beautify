@@ -789,6 +789,13 @@ test('深色壁纸（0.8.7）：只从桌面读、浅色候选列表不变；没
   const light = listAvailableImages(home)
   assert.deepEqual(light.map((entry) => entry.name), ['deepseek 4k.png', 'deepseek 黑白无水面.png'], '浅色候选保持不变')
 
+  // 空桌面：包内 deepseek-dark.webp 兜底（v0.8.12 起随包）
   const empty = fs.mkdtempSync(path.join(os.tmpdir(), 'dshui-dark-none-'))
-  assert.equal(listAvailableDarkImages(empty).length, 0)
+  const bundled = listAvailableDarkImages(empty)
+  assert.equal(bundled.length, 1)
+  assert.equal(bundled[0].name, DARK_IMAGE_NAME)
+  assert.equal(bundled[0].source, 'bundled')
+  const bundledResolved = resolveImageSource(empty, DARK_IMAGE_NAME)
+  assert.equal(bundledResolved.source, 'bundled')
+  assert.ok(bundledResolved.bytes.length > 0)
 })

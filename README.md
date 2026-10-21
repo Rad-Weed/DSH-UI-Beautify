@@ -1122,7 +1122,8 @@ node test\client.test.mjs   # 93 项：挂载、交互、淡入淡出、回归�
 ### v0.8.7（2026-10-21）
 
 - **深浅色主题壁纸**：检测 DSH 主题（`--dsw-alias-bg-base` / `body[data-ds-dark-theme]`）；
-  - 深色 → 自动使用桌面上的 `DeepSeek 暗夜模式.png`（也可以 `deepseek暗夜模式.png` 等大小写变体）；
+  - 深色 → 自动使用桌面上的 `DeepSeek 暗夜模式.png`（兼容 `deepseek暗夜模式.png` 等大小写变体）；
+  **桌面上没有时用包内 `assets/deepseek-dark.webp` 兜底（v0.8.12 起随包，125 KB）**；
   - 浅色 → 完全保持原来的两张壁纸与行为不变；
   - 暗夜图不存在时自动退回浅色行为（不报错、不写坏偏好）；
 - **胶囊图片栏按主题切换**：浅色显示原来的两张，深色只显示「暗夜」一张；两套偏好分开保存（`__dshui.image` / `__dshui.image.dark`），切回浅色会恢复你之前选的浅色图；
