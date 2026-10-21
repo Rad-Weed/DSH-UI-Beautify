@@ -930,17 +930,27 @@ powershell -ExecutionPolicy Bypass -File .\scripts\uninstall-cleanup.ps1 -PurgeD
 - 作用范围：**用户气泡 + 输入卡片**（输入卡片保留原有径向玻璃渐变，再叠同样高光/投影）；助手回复没有气泡底，不加；
 - 只在纹理模式启用（背景模式仍是原来的玻璃配方）；面板「气泡视觉：开/关」可实时开关并持久化；API：`__DSHUI__.setBubbleFx(true/false)`。
 
-### 纹理模式 AI 思考过程视效（v0.8.5）
+### AI 思考过程视效（纹理 / 背景模式，v0.8.5）
 
-「AI 思考过程区域」= **左侧 AI 的整段回复 + 其中每一行思维链步骤**（不是输入框，也不是你发的右侧气泡）。
+「AI 思考过程区域」= **左侧 AI 的整段回复 + 其中每一行思维链步骤**（不是输入框，也不是你发的右侧气泡）。纹理（multiply）和背景（backdrop）两种模式都生效，面板开关同样两种模式都显示。
 
 - 整段回复：左侧一条 **2px 主题色细线** + 很淡的横向渐变（左 5.5% → 34% 处淡出）；
 - **每一行思维链步骤**（`turn-process` 里的步骤行）同样加左侧细线 + 渐变；
 - **每行更新时从左侧淡入**：`@keyframes __dshui-ai-line-in`（`translateX(-8px)` + 透明度，300ms `cubic-bezier(0.33,1,0.68,1)`）；
-- 动画遵守动效闸门：只有面板「动效：开」（或 `Ctrl+Shift+Alt+M`）时才跑；窗口失焦/系统「减弱动态效果」时暂停；
-- 不包卡片、不加内边距 → **零布局**；只作用于助手回复与思考步骤（用户消息 `kind=user`、思考组容器不受影响）；
+- 动画**默认就播**（不再要求「动效：开」）：系统「减弱动态效果」时自动关闭，窗口失焦时暂停；关键帧只做 6px 位移、**不改文字透明度**；
+- 不包卡片、不加内边距 → **零布局**；只作用于助手回复与思考步骤（用户消息 `kind=user`、思考组容器不受影响）；步骤行选择器对 DSH 的 `turn-process` / `step-process` / `step-process-body` 多属性兜底；
 - 面板「**AI 思考过程视效：开/关**」可实时开关并持久化；API：`__DSHUI__.setAiReplyFx(true/false)`；
-- 诊断（`Ctrl+Shift+Alt+I`）显示「AI 思考过程视效: 开 · 已生效（命中 N 处）」，`N=0` 说明当前没匹配到节点。
+- 诊断（`Ctrl+Shift+Alt+I`）显示「AI 思考过程视效: 开 · 已生效（回复 N 处 / 思考行 M 处）」，数值为 0 说明当前页面没匹配到对应节点；
+
+### 读取 AI 思维链 + 逐行重播（v0.8.5）
+
+插件只读 DOM 即可拿到 AI 思考链（不碰 React 内部状态、不写回文字）：
+
+- 思维链行 = DSH 的 `[data-variant="think"]` / `[data-variant="others"]` 等步骤行（`[data-step-process]`、`[data-step-process-body]`、`[data-turn-process]` 多路兜底）；
+- 读取：`__DSHUI__.thinkingRows()` → `{ count, rows:[{text, variant}], replayCount }`（text 为去空白后的 120 字摘要）；
+- 动画：`MutationObserver` 监听思维链新增行 / 行内流式文字更新 → 对该行重播 `__dshui-ai-line-in`（左侧滑入 300ms）；行级节流 500ms，避免流式 token 每帧抖动；
+- 关键帧只做 `translateX(-6px) → 0`，**不改变文字透明度**（此前 35% 透明度会让思考文字发虚，已移除）；
+- 诊断（`Ctrl+Shift+Alt+I`）与 `/diag.json` 会带上 `stepTargets`、`aiReplayCount` 以及前几行的 `text` 摘要、计算出的 `opacity`/`animation`，可直接验证“能不能读到思维链”。
 
 ### 输入框毛玻璃加强（v0.8.5）
 

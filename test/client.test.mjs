@@ -1774,9 +1774,10 @@ test('纹理模式 AI 思考过程视效（0.8.5）：默认开、语义选择�
   assert.match(css, /body\.__dshui-aireplyfx \[data-chat-flow\] \[data-chat-flow-key\]:not\(\[data-chat-flow-kind\]\)\{/)
   assert.match(css, /box-shadow:inset 2px 0 0 rgba\(57,100,254,\.5\)!important/)
   // 每行思维链：同一套细线/渐变 + 动效闸门下的淡入动画
-  assert.ok(css.includes('[data-chat-flow-kind="turn-process"] :is([data-variant],[data-turn-process-member])'), '应命中 turn-process 的步骤行')
+  assert.ok(css.includes('[data-chat-flow-kind="turn-process"] [data-variant]'), '应命中 turn-process 的步骤行')
   assert.ok(css.includes('@keyframes __dshui-ai-line-in'), '应从左侧淡入的 keyframes')
-  assert.ok(css.includes('__dshui-motion-on'), 'CSS 动画必须挂在动效闸门类下')
+  assert.ok(css.includes('prefers-reduced-motion: no-preference'), '系统减弱动态时关闭动画')
+  assert.ok(css.includes('[data-step-process-body] [data-variant]'), '思维链步骤行多属性兜底（只认 data-variant 行）')
   assert.ok(css.includes('animation-play-state:paused'), '失焦/减弱动态时暂停')
   // 输入框玻璃加强：更强高光/投影 + 更实的模糊
   assert.ok(css.includes('rgba(255,255,255,.50) 0%,rgba(255,255,255,0) 72%'), '输入框顶部高光更强')
@@ -1802,9 +1803,31 @@ test('纹理模式 AI 思考过程视效（0.8.5）：默认开、语义选择�
   assert.equal(dom.body.classList.contains('__dshui-aireplyfx'), true)
   api.setMode('backdrop')
   dom.advance(600)
-  assert.equal(dom.body.classList.contains('__dshui-aireplyfx'), false, '背景模式不启用纹理视觉')
+  assert.equal(dom.body.classList.contains('__dshui-aireplyfx'), true, '背景模式也启用 AI 思考过程视效')
+  const bdToggle = dom.document.querySelectorAll('[data-aireplyfx-toggle]')[0]
+  assert.ok(bdToggle, '背景模式面板也应有 AI 视觉开关')
 })
 
+test('AI 思维链只读读取（0.8.5）：thinkingRows() 能取到行数/文字摘要，且不报错', async () => {
+  const dom = buildChatDom()
+  const { api } = runClient(dom)
+  await flush()
+  const before = api.thinkingRows()
+  assert.equal(typeof before.count, 'number', '初始计数应为数字')
+  assert.ok(Array.isArray(before.rows))
+  assert.equal(typeof before.replayCount, 'number', '应带重播计数')
+  // 伪造一行思维链：包在 [data-step-process] 里让选择器命中
+  const box = dom.document.createElement('div')
+  box.setAttribute('data-step-process', '')
+  const row = dom.document.createElement('div')
+  row.setAttribute('data-variant', 'think')
+  row.textContent = '先检查输入法焦点，再继续推理'
+  box.appendChild(row)
+  dom.body.appendChild(box)
+  const after = api.thinkingRows()
+  assert.ok(after.count >= 1, '应读到伪造的思维链行')
+  assert.ok(after.rows.some(function (row) { return row.text.includes('输入法焦点') }), '应能读到思维链文字摘要')
+})
 test('面板白层滑块：拖动即时生效、写进存档、刷新后读回（只管二级面板）', async () => {
   const dom = buildChatDom()
   // 放一个鲸鱼面板进去，好让诊断里出现「二级面板」那一段
@@ -2146,17 +2169,17 @@ test('点击永不拦截页面事件（不 preventDefault、不 stopPropagation�
   assert.equal(event.cancelBubble, undefined, '不能 stopPropagation')
 })
 
-test('「待更新」是占位：点了不改变任何东西', async () => {
+test('旧模式 luminosity 已弃用：只提示、不改变当前模式', async () => {
   const dom = buildChatDom()
   const { api } = runClient(dom)
   await flush()
 
-  assert.match(api.setMode('luminosity'), /待更新/)
+  assert.match(api.setMode('luminosity'), /已弃用/)
   assert.equal(api.status().mode, 'off', '点待更新后仍应是关闭')
 
   api.setMode('multiply')
   assert.equal(api.status().mode, 'multiply')
-  assert.match(api.setMode('luminosity'), /待更新/)
+  assert.match(api.setMode('luminosity'), /已弃用/)
   assert.equal(api.status().mode, 'multiply', '在纹理模式下点待更新也不该切走')
   assert.ok(layerOf(dom), '层应保留')
 })
@@ -2481,7 +2504,7 @@ test('诊断：文本可读、面板可开可关、点面板不触发恢复', as
 
   const text = api.diagnose()
   assert.match(text, /DSH UI Beautify v\d+\.\d+\.\d+/)
-  assert.match(text, /模式: off/)
+  assert.match(text, /模式: 关闭（off）/)
 
   const box = api.diag()
   assert.ok(box, '应开出诊断面板')
