@@ -2,7 +2,7 @@
 
 给 DSH 桌面端页面加**壁纸 + 毛玻璃**的轻量美化插件：不碰布局、不改宿主代码，自带开屏动画、方块光标、重启键与深浅色主题适配。
 
-- **版本：v0.8.13** · 包名 `dsh-ui-beautify` · 路由 `/dsh-ui-beautify/*` · 全局 `__DSHUI__` · 存储键 `__dshui.*`
+- **版本：v0.8.15** · 包名 `dsh-ui-beautify` · 路由 `/dsh-ui-beautify/*` · 全局 `__DSHUI__` · 存储键 `__dshui.*`
 - 支持 Windows 10/11 + DSH 桌面端；所有改动都发生在本插件自己的节点/样式里。
 - 详细开发记录、实测数据与决策记录见 [HANDOFF.md](HANDOFF.md)；重启键独立说明见 [restart/README.md](restart/README.md)。
 
@@ -28,7 +28,7 @@
 
 **要求**：Windows 10/11、DSH 桌面端（Chromium/Electron）。
 
-1. 下载 `dsh-ui-beautify-0.8.13.zip` 并解压；
+1. 下载 `dsh-ui-beautify-0.8.15.zip` 并解压；
 2. 在 DSH 插件管理里安装本地目录（target 用绝对路径，例如 `file:C:/path/to/dsh-ui-beautify`）；
 3. 重启 DSH 一次。
 
@@ -107,9 +107,29 @@ node test/client.test.mjs    # client 侧（fake DOM）
 powershell -ExecutionPolicy Bypass -File tools/build-dist.ps1  # 出 zip
 ```
 
-当前测试：host **29/29** · client **98/98** · reload-ui 6/6（离线）。
+当前测试：host **30/30** · client **102/102** · reload-ui 6/6（离线）。
 
 ## 版本
+
+### v0.8.15（2026-10-22）
+- **修真实 Host 里的壳补丁检测**：Cordis Host 以 `ELECTRON_RUN_AS_NODE` 运行，普通 `fs` 会把
+  `resources/app.asar` 当成虚拟目录（`stat.size=0`、`open` 读不到字节），导致 `/restart-status.json`
+  永远 `patched:false`：面板误报「壳补丁缺失」、每次启动还会白启动一次安装器。
+  现在读取原始 asar 全部走 `original-fs`（不可用时临时 `process.noAsar=true` 兜底），
+  纯 Node/测试环境自动退化为普通 fs；`restart-status.json` 新增 `asarPath` / `rawAsarFs` 便于诊断。
+- **看护增强**：标题栏整体重建时自动补回按钮；休眠恢复若没有 visibility/focus 事件，用计时器跳变（≥30s）
+  兜底检查并强制重绘；冲突让路时停看护；诊断新增 `watchdog` / `repairs` / `lastRepairAt`。
+- 测试：host 29 → **30**（新增 Electron 虚拟目录 + 注入原始 fs 的回归）、client 101 → **102**
+  （新增「标题栏整体重建后看护重注入」回归与看护诊断字段）。
+
+### v0.8.14（2026-10-22）
+- **修复休眠恢复后「重启」键短暂消失**：标题栏「重启」是注入的 DOM；窗口长时间隐藏 / 系统休眠恢复、
+  或宿主重排菜单栏时，按钮可能被摘掉而「应用」「编辑」仍在。新增看护：`visibilitychange`（变为可见）、
+  `window.focus`、`pageshow` 后立即检查，并用 1.5s 低频轮询 + 菜单栏 `childList` 观察兜底；
+  发现按钮不在菜单栏 → 自动重新注入（仍遵守与 `dsh-restart-key` 的双向冲突让路）。
+- **关闭壁纸/背景模式不再摘重启键**：`uninstall()` 增加 `keepRestart`，关模式只拆视觉层；
+  只有 `__DSHUI__.uninstall()` / 卸载插件才摘按钮。
+- 测试：host 29/29 · client **101/101**（新增休眠看护、关闭模式保留重启键回归）。
 
 ### v0.8.13（2026-10-22）
 - **修复浅色主题被误判成深色**：DSH 浅色底是 paper-white（`#f7f8fa` 类），旧兜底"非纯白即深色"导致浅色也套暗夜壁纸/深色参数，纹理与背景模式都出现一层灰罩；
@@ -145,6 +165,6 @@ MIT。开屏动画的结构参考了 MIT 项目 [`dsh-startup-screen`](https://g
 
 Install: unzip, install the folder as a local DSH plugin (`file:C:/path/to/dsh-ui-beautify`), restart DSH. Shortcuts: `Ctrl+Shift+Alt+1/2/D/I/M`. Diagnostics: on-screen panel, `/dsh-ui-beautify/status.json`, `/dsh-ui-beautify/diag.json`.
 
-No network, no telemetry, no user-data collection; settings live in `localStorage` only. Tests: host 29/29, client 98/98. MIT license; see [HANDOFF.md](HANDOFF.md) for detailed development notes.
+No network, no telemetry, no user-data collection; settings live in `localStorage` only. Tests: host 30/30, client 102/102. MIT license; see [HANDOFF.md](HANDOFF.md) for detailed development notes.
 
 </details>

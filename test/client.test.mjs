@@ -3216,6 +3216,64 @@ test('重启键：检测到独立插件 dsh-restart-button 提供按钮时，不
   assert.equal(api.status().restart.suppressed, 'provided-by-dsh-restart-button')
   assert.match(api.diagnose(), /按钮由独立插件 dsh-restart-button 提供/)
 })
+
+test('重启键：休眠恢复看护 —— 按钮被摘掉后，看护自动补回', async () => {
+  const dom = buildChatDom()
+  const menu = attachWindowsMenu(dom, { lang: 'zh-CN' })
+  const { api } = runClient(dom)
+  await flush()
+  const first = restartButtonOf(dom)
+  assert.ok(first, '先确认按钮已注入')
+  // 模拟休眠恢复后只有第三个按钮被摘掉（应用/编辑还在）
+  menu.bar.removeChild(first)
+  assert.equal(restartButtonOf(dom), null)
+  dom.flushMutations()
+  const second = restartButtonOf(dom)
+  assert.ok(second, '看护应把按钮补回')
+  assert.notEqual(second, first, '补回的是新节点')
+  assert.equal(second.textContent, '重启')
+  assert.equal(menu.bar.childNodes[menu.bar.childNodes.length - 1], second, '补回后仍排在末尾')
+  const snap = api.status().restart
+  assert.equal(snap.installed, true)
+  assert.equal(snap.watchdog, true, '看护应在运行')
+  assert.equal(snap.repairs, 1, '看护应记一次补回')
+})
+
+test('重启键：休眠后标题栏整个重建 → 看护会在新菜单栏里重新注入', async () => {
+  const dom = buildChatDom()
+  const oldMenu = attachWindowsMenu(dom, { lang: 'zh-CN' })
+  const { api } = runClient(dom)
+  await flush()
+  assert.ok(restartButtonOf(dom), '先确认按钮已注入')
+  // 模拟宿主重建整个 [data-windows-menu]（旧节点连同按钮一起被移除）
+  oldMenu.host.parentNode.removeChild(oldMenu.host)
+  assert.equal(restartButtonOf(dom), null)
+  const newMenu = attachWindowsMenu(dom, { lang: 'zh-CN' })
+  dom.advance(1600) // 看护的低频轮询兜底
+  const button = newMenu.bar.querySelectorAll('[data-dshui-restart-button]')[0]
+  assert.ok(button, '看护应在新菜单栏里补回按钮')
+  assert.equal(button.textContent, '重启')
+  const snap = api.status().restart
+  assert.equal(snap.installed, true)
+  assert.ok(snap.repairs >= 1, '应记录补回次数')
+})
+
+test('重启键：关闭壁纸/背景模式不摘重启键（只有真正卸载才摘）', async () => {
+  const dom = buildChatDom()
+  attachWindowsMenu(dom, { lang: 'zh-CN' })
+  const { api } = runClient(dom)
+  await flush()
+  assert.ok(restartButtonOf(dom), '先确认按钮已注入')
+  api.setMode('multiply')
+  dom.advance(600)
+  assert.ok(restartButtonOf(dom), '切到纹理模式后按钮仍在')
+  api.setMode('off')
+  dom.advance(600) // 等淡出 + uninstall 跑完
+  assert.ok(restartButtonOf(dom), '关闭壁纸模式后按钮应保留')
+  assert.equal(api.status().restart.installed, true)
+  api.uninstall()
+  assert.equal(restartButtonOf(dom), null, '真正卸载才摘按钮')
+})
 const welcomeOf = (dom) => dom.document.getElementById('__dshui-welcome')
 
 test('开屏后的 WELCOME BACK 卡片（0.8.0）：播完出现在真实页面右上角，约 3.6s 自动淡出', async () => {

@@ -682,6 +682,28 @@ test('重启键集成：detectShellPatchInAsar 只认 app.asar 尾部的补丁�
   assert.equal(detectShellPatchInAsar(''), false, '空路径安全返回 false')
 })
 
+test('重启键集成：Electron asar 虚拟目录下，注入原始 fs 仍能读到补丁标记', () => {
+  // 模拟 Electron Host：普通 fs 把 app.asar 当目录（isFile=false），original-fs 才是真实文件。
+  const marker = Buffer.from('// DSH-RESTART-BUTTON BEGIN //')
+  const fakeFs = {
+    statSync: () => ({ isFile: () => true, size: marker.length }),
+    openSync: () => 1,
+    readSync: (fd, buffer, offset, length, position) => {
+      const start = position || 0
+      const end = Math.min(start + length, marker.length)
+      marker.copy(buffer, offset, start, end)
+      return end - start
+    },
+    closeSync: () => {},
+  }
+  assert.equal(detectShellPatchInAsar('C:/virtual/app.asar', { fs: fakeFs }), true)
+  assert.equal(
+    detectShellPatchInAsar('C:/virtual/app.asar', { fs: { statSync: () => ({ isFile: () => false, size: 0 }) } }),
+    false,
+    '普通 fs 的虚拟目录 → 安全返回 false',
+  )
+})
+
 test('重启键集成：restart-status.json 可查状态；restart-enable 只接受 POST + 动作头', async () => {
   const { webServer } = boot()
   const status = await callRoute(webServer, `${ROUTE_PREFIX}/restart-status.json`)
@@ -689,6 +711,8 @@ test('重启键集成：restart-status.json 可查状态；restart-enable 只接
   assert.equal(payload.ok, true)
   assert.equal(typeof payload.patched, 'boolean')
   assert.equal(typeof payload.desktop, 'boolean')
+  assert.equal(typeof payload.asarPath, 'string')
+  assert.ok(['node-fs', 'original-fs', 'no-asar'].includes(payload.rawAsarFs), 'rawAsarFs 必须是已知读取通道')
   const wrongMethod = await callRoute(webServer, `${ROUTE_PREFIX}/restart-enable`, { method: 'GET' })
   assert.equal(wrongMethod.statusCode, 405)
   const noHeader = await callRoute(webServer, `${ROUTE_PREFIX}/restart-enable`, { method: 'POST' })

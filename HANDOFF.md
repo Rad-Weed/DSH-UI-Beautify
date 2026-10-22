@@ -47,7 +47,7 @@
 > **接手者不需要向需求方复述或确认任何历史**（需求方明确要求过：不必复述已完成事项）。
 >
 > 用户看的是 [README.md](README.md)（用户手册）；这一份是**给下一个 AI 的交接**。
-> 记录时版本 **v0.8.12** ｜ 工作目录 `<工作目录>`
+> 记录时版本 **v0.8.15** ｜ 工作目录 `<工作目录>`
 
 ## 目录
 
@@ -444,6 +444,25 @@
   4. 胶囊/面板/控制台文案统一为 `DSH UI Beautify`（胶囊短标签 `DSH UI · 纹理/背景/…`）；壁纸角色名「DS 娘」仅在描述画面时保留。
   5. 沿用 v0.7.2 的安装/卸载与外部副作用规范化能力（自检脚本、副作用声明、元数据、13 条目出包）。
   6. **文档双语**：README 增加英文版（顶部语言跳转）＋ Release 说明中英双语；包内 README 随之更新。
+- **v0.8.15（2026-10-22，修 Cordis Host 读 app.asar 的虚拟目录问题）**：
+  - 实机发现：客户端 diag `bridge=available`，但 Host `/restart-status.json` 报 `patched:false`；
+    用 DSH 的 Electron-as-node 复现：普通 `fs.statSync(app.asar)` 返回 `isDirectory=true,size=0`，
+    `openSync` 报 ENOENT——Electron 的 asar 虚拟文件系统把归档当目录。
+  - 修复：新增 `withRawAsarFs()`（优先 `original-fs`，否则临时 `process.noAsar=true`），
+    `resolveShellPatchAsarPath` 的存在性判断 / `detectShellPatchInAsar` / `safeMtime` 全部走原始 fs；
+    `shellPatchStatus` 暴露 `asarPath` 与 `rawAsarFs`。实测 Electron-as-node：`original-fs`、patched=true。
+  - `detectShellPatchInAsar(path, { fs })` 支持注入原始 fs，新增回归测试（host 29 → 30）。
+  - 看护增强：标题栏整体重建时补回按钮；休眠恢复无 visibility/focus 时用计时器跳变（≥30s）兜底检查
+    + 强制重绘；conflict 让路时停掉看护；`restartSnapshot` 暴露 watchdog/repairs/lastRepairAt。client 101 → **102**。
+- **v0.8.14（2026-10-22，修休眠恢复后重启键短暂消失）**：
+  - 实机反馈：长期休眠/隐藏后重新打开窗口，标题栏「重启」会短暂消失，「应用」「编辑」正常；
+    源码层面确认按钮只在页面加载时注入一次，成功后无自愈（`restartTryInstall` 成功后即停发现循环）。
+  - 新增 `restartStartWatchdog()`：`visibilitychange`（变为可见）/ `window.focus` / `pageshow` 立即检查，
+    1.5s 低频轮询 + 当前菜单栏 `childList` 观察兜底；按钮不在菜单栏就 `restartEnsureButton()` 补回
+    （仍遵守 `state.restart.suppressed` / `restartProvidedByOtherPlugin()` 让路，不跟 dsh-restart-key 抢）。
+  - `uninstall()` 新增 `keepRestart`：关闭壁纸/背景模式只拆视觉层，不再顺手 `stopRestartButton()`；
+    `__DSHUI__.uninstall()` 仍会完整摘除按钮与看护。
+  - 测试 client 99 → **101**（新增「按钮被摘后自动补回」「关闭模式保留重启键」）。
 - **v0.8.12（2026-10-22，深色按钮白底白字）**：
   - 深色壁纸 `DeepSeek 暗夜模式.png` 转 WebP 后随包（`assets/deepseek-dark.webp`，125,598 B，去元数据），桌面优先、包内兜底；
   - 发布前清理：仓库历史中的本机用户名路径统一替换为 `user`（git 历史重写 + 旧 Release 资产替换）。
