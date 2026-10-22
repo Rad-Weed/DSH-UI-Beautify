@@ -2,7 +2,7 @@
 
 给 DSH 桌面端页面加**壁纸 + 毛玻璃**的轻量美化插件：不碰布局、不改宿主代码，自带开屏动画、方块光标、重启键与深浅色主题适配。
 
-- **版本：v0.8.19** · 包名 `dsh-ui-beautify` · 路由 `/dsh-ui-beautify/*` · 全局 `__DSHUI__` · 存储键 `__dshui.*`
+- **版本：v0.8.20** · 包名 `dsh-ui-beautify` · 路由 `/dsh-ui-beautify/*` · 全局 `__DSHUI__` · 存储键 `__dshui.*`
 - 支持 Windows 10/11 + DSH 桌面端；所有改动都发生在本插件自己的节点/样式里。
 - 详细开发记录、实测数据与决策记录见 [HANDOFF.md](HANDOFF.md)；重启键独立说明见 [restart/README.md](restart/README.md)。
 
@@ -29,7 +29,7 @@
 
 **要求**：Windows 10/11、DSH 桌面端（Chromium/Electron）。
 
-1. 下载 `dsh-ui-beautify-0.8.19.zip` 并解压；
+1. 下载 `dsh-ui-beautify-0.8.20.zip` 并解压；
 2. 在 DSH 插件管理里安装本地目录（target 用绝对路径，例如 `file:C:/path/to/dsh-ui-beautify`）；
 3. 重启 DSH 一次。
 
@@ -111,6 +111,15 @@ powershell -ExecutionPolicy Bypass -File tools/build-dist.ps1  # 出 zip
 当前测试：host **30/30** · client **102/102** · reload-ui 6/6（离线）。
 
 ## 版本
+
+### v0.8.20（2026-10-22）
+- **修复主题切换“黑罩/闪”互相冲突的根因**：旧壁纸层的混合模式由 `body[data-ds-dark-theme]` 的 CSS 规则控制，切主题瞬间被翻转；
+  - 深→浅：旧深色图瞬间变 `multiply` 压在新浅色 UI 上 = 黑色遮挡；
+  - 浅→深：旧浅色图瞬间变 `lighten` 压在新深色 UI 上 = 白闪；
+  - 之前“隐藏旧图”能消黑罩但会空白闪，“旧图淡出”能消空白但会黑罩 —— 所以两个 bug 反复出现；
+- 现在主题交叉淡化期间给两层**分别钉住各自主题的混合模式**（旧层保留旧主题的 lighten/multiply，新层用新主题的），淡化结束后再把内联值交还 CSS；
+- 深→浅不再黑罩、浅→深不再白闪，且始终有壁纸覆盖（不隐藏、不空白）；启动预解码两种壁纸保留；
+- 测试：host 30/30 · client 102/102。
 
 ### v0.8.19（2026-10-22）
 - **撤销 0.8.18 的“隐藏旧壁纸”方案**：隐藏再淡入会让壁纸瞬间消失（看起来像被删/空白闪）；
