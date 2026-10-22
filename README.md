@@ -2,7 +2,7 @@
 
 给 DSH 桌面端页面加**壁纸 + 毛玻璃**的轻量美化插件：不碰布局、不改宿主代码，自带开屏动画、方块光标、重启键与深浅色主题适配。
 
-- **版本：v0.8.16** · 包名 `dsh-ui-beautify` · 路由 `/dsh-ui-beautify/*` · 全局 `__DSHUI__` · 存储键 `__dshui.*`
+- **版本：v0.8.17** · 包名 `dsh-ui-beautify` · 路由 `/dsh-ui-beautify/*` · 全局 `__DSHUI__` · 存储键 `__dshui.*`
 - 支持 Windows 10/11 + DSH 桌面端；所有改动都发生在本插件自己的节点/样式里。
 - 详细开发记录、实测数据与决策记录见 [HANDOFF.md](HANDOFF.md)；重启键独立说明见 [restart/README.md](restart/README.md)。
 
@@ -29,7 +29,7 @@
 
 **要求**：Windows 10/11、DSH 桌面端（Chromium/Electron）。
 
-1. 下载 `dsh-ui-beautify-0.8.16.zip` 并解压；
+1. 下载 `dsh-ui-beautify-0.8.17.zip` 并解压；
 2. 在 DSH 插件管理里安装本地目录（target 用绝对路径，例如 `file:C:/path/to/dsh-ui-beautify`）；
 3. 重启 DSH 一次。
 
@@ -111,6 +111,12 @@ powershell -ExecutionPolicy Bypass -File tools/build-dist.ps1  # 出 zip
 当前测试：host **30/30** · client **102/102** · reload-ui 6/6（离线）。
 
 ## 版本
+
+### v0.8.17（2026-10-22）
+- **主题切换防闪修正**：0.8.16 的遮罩晚了约 60ms 才插入（观察器里 setTimeout 去抖），新主题先画出来再盖旧底色 → 仍会闪一下；现在观察器回调里**同步**执行，遮罩赶在同一帧绘制前插入；
+- **遮罩等壁纸就绪后再淡出**：先盖住旧主题底色，等新壁纸加载完成（或 260ms 兜底）再淡出，避免“遮罩淡完了壁纸还没出来”的空白帧；
+- 遮罩/补间不再跟随插件的「动效总开关」，只尊重系统「减弱动态效果」；关动效的用户切换主题也平滑；
+- 测试：host 30/30 · client 102/102。
 
 ### v0.8.16（2026-10-22）
 - **主题切换柔化**：深浅色切换时不再"啪"地整页跳变；

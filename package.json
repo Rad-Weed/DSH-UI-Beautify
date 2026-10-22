@@ -1,6 +1,6 @@
 {
   "name": "dsh-ui-beautify",
-  "version": "0.8.16",
+  "version": "0.8.17",
   "description": "DSH UI Beautify（DSH 界面美化）· 给 DSH 页面加壁纸 + 真毛玻璃 + 可选的莱因生命风格开屏动画；标题栏「重启」按钮（真重启能力由随包的桌面壳补丁提供）。",
   "keywords": [
     "dsh",
