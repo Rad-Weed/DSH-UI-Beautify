@@ -47,7 +47,7 @@
 > **接手者不需要向需求方复述或确认任何历史**（需求方明确要求过：不必复述已完成事项）。
 >
 > 用户看的是 [README.md](README.md)（用户手册）；这一份是**给下一个 AI 的交接**。
-> 记录时版本 **v0.8.15** ｜ 工作目录 `<工作目录>`
+> 记录时版本 **v0.8.16** ｜ 工作目录 `<工作目录>`
 
 ## 目录
 
@@ -444,6 +444,12 @@
   4. 胶囊/面板/控制台文案统一为 `DSH UI Beautify`（胶囊短标签 `DSH UI · 纹理/背景/…`）；壁纸角色名「DS 娘」仅在描述画面时保留。
   5. 沿用 v0.7.2 的安装/卸载与外部副作用规范化能力（自检脚本、副作用声明、元数据、13 条目出包）。
   6. **文档双语**：README 增加英文版（顶部语言跳转）＋ Release 说明中英双语；包内 README 随之更新。
+- **v0.8.16（2026-10-22，主题切换柔化）**：
+  - `playThemeVeil()`：旧主题底色全屏遮罩淡出（插件自己的节点，覆盖 DSH 原生 UI，不改宿主样式）；
+  - 主题切换时壁纸走 `syncThemeImage` 交叉淡化，浓度/毛玻璃走 `tweenLayerOpacity` / `tweenFrostVars` 补间；
+  - 胶囊/面板/诊断与模式按钮加 background-color/color/border-color 过渡；`motionAllowed()` 关闭时全部跳过；
+  - 测试 host 30 / client 102。
+
 - **v0.8.15（2026-10-22，修 Cordis Host 读 app.asar 的虚拟目录问题）**：
   - 实机发现：客户端 diag `bridge=available`，但 Host `/restart-status.json` 报 `patched:false`；
     用 DSH 的 Electron-as-node 复现：普通 `fs.statSync(app.asar)` 返回 `isDirectory=true,size=0`，

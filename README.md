@@ -2,7 +2,7 @@
 
 给 DSH 桌面端页面加**壁纸 + 毛玻璃**的轻量美化插件：不碰布局、不改宿主代码，自带开屏动画、方块光标、重启键与深浅色主题适配。
 
-- **版本：v0.8.15** · 包名 `dsh-ui-beautify` · 路由 `/dsh-ui-beautify/*` · 全局 `__DSHUI__` · 存储键 `__dshui.*`
+- **版本：v0.8.16** · 包名 `dsh-ui-beautify` · 路由 `/dsh-ui-beautify/*` · 全局 `__DSHUI__` · 存储键 `__dshui.*`
 - 支持 Windows 10/11 + DSH 桌面端；所有改动都发生在本插件自己的节点/样式里。
 - 详细开发记录、实测数据与决策记录见 [HANDOFF.md](HANDOFF.md)；重启键独立说明见 [restart/README.md](restart/README.md)。
 
@@ -22,13 +22,14 @@
 | 方块光标 | 命令提示符风格方块光标，`Ctrl+Shift+Alt+M` 开关动效 |
 | AI 思考视效 | 纹理/背景模式下，思维链与回复的左侧细线 + 淡渐变；逐行重播可读 |
 | 重启键 | 标题栏原生「重启」按钮；可选壳补丁；与 `dsh-restart-key` 自动让位/接管 |
+| 主题过渡 | 切换深浅色时旧主题底色淡出 + 壁纸交叉淡化 + 浓度/毛玻璃补间 + 自家 GUI 颜色过渡；减少动态时自动关闭 |
 | 诊断 | 屏幕内诊断面板 + `diag.json`，无需控制台 |
 
 ## 安装
 
 **要求**：Windows 10/11、DSH 桌面端（Chromium/Electron）。
 
-1. 下载 `dsh-ui-beautify-0.8.15.zip` 并解压；
+1. 下载 `dsh-ui-beautify-0.8.16.zip` 并解压；
 2. 在 DSH 插件管理里安装本地目录（target 用绝对路径，例如 `file:C:/path/to/dsh-ui-beautify`）；
 3. 重启 DSH 一次。
 
@@ -110,6 +111,13 @@ powershell -ExecutionPolicy Bypass -File tools/build-dist.ps1  # 出 zip
 当前测试：host **30/30** · client **102/102** · reload-ui 6/6（离线）。
 
 ## 版本
+
+### v0.8.16（2026-10-22）
+- **主题切换柔化**：深浅色切换时不再"啪"地整页跳变；
+- 旧主题底色做一层全屏遮罩淡出（插件自己的节点，覆盖 DSH 原生 UI，不改宿主样式）；
+- 壁纸走交叉淡化，浓度/毛玻璃走补间；胶囊/面板/诊断/模式按钮加颜色过渡；
+- 减少动态（系统减弱动态或关闭动效）时自动跳过全部过渡，行为与之前一致；
+- 测试：host 30/30 · client 102/102。
 
 ### v0.8.15（2026-10-22）
 - **修真实 Host 里的壳补丁检测**：Cordis Host 以 `ELECTRON_RUN_AS_NODE` 运行，普通 `fs` 会把
