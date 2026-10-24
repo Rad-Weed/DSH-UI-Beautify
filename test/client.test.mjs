@@ -610,6 +610,23 @@ test('壁纸体检（0.6.4）：弹窗/菜单打开时那层变暗遮罩不算"�
   assert.equal(api.layoutReport().wallpaper.coverCount, 0, '也不该记进盖子账本')
 })
 
+test('壁纸体检：悬浮 tooltip/临时浮层不当“盖子”清掉（0.8.27）', async () => {
+  const dom = buildChatDom()
+  const { api } = runClient(dom)
+  await flush()
+  api.setMode('backdrop')
+  dom.advance(600)
+  const tip = dom.document.createElement('div')
+  tip.setAttribute('role', 'tooltip')
+  tip.className = '_tooltip_hover_test'
+  tip._rect = { top: 0, left: 0, right: 1920, bottom: 1080, width: 1920, height: 1080 }
+  dom.body.appendChild(tip)
+  dom.setComputedStyle(tip, { backgroundColor: 'rgb(255, 255, 255)', position: 'fixed', overflow: 'visible' })
+  api.reapply()
+  assert.equal(tip.style.getPropertyValue('background-color'), '', 'tooltip 不能被当成壁纸盖子清掉')
+  assert.equal(api.layoutReport().wallpaper.coverCount, 0, '也不该记进盖子账本')
+})
+
 test('壁纸体检（0.6.4）：pointer-events:none 的加载壳命中测试看不见，靠顶层补扫兜住', async () => {
   const dom = buildChatDom()
   const { api } = runClient(dom)
@@ -1267,6 +1284,48 @@ test('毛玻璃：认 DSH 的 data-chat-flow-kind 标记（气泡父层不右对
   assert.equal(userRow.classList.contains('__dshui-frost-surface'), false, '糊的是气泡，不是整行')
 })
 
+test('追加信息（flow-kind=steering）气泡也要有气泡视觉（0.8.25）', async () => {
+  const dom = buildChatDom()
+  const { api } = runClient(dom)
+  await flush()
+  const steerRow = dom.document.createElement('div')
+  steerRow.setAttribute('data-chat-flow-kind', 'steering')
+  const steerStack = dom.document.createElement('div')
+  const steerBubble = dom.document.createElement('div')
+  steerBubble.className = '_bubble_steer'
+  steerBubble._rect = { top: 560, left: 420, right: 920, bottom: 640, width: 500, height: 80 }
+  steerStack.appendChild(steerBubble)
+  steerRow.appendChild(steerStack)
+  dom.transcript.appendChild(steerRow)
+  dom.setComputedStyle(steerStack, { backgroundColor: 'rgba(0,0,0,0)', position: 'static', overflow: 'visible' })
+  dom.setComputedStyle(steerBubble, { backgroundColor: 'rgb(240,240,240)', position: 'static', overflow: 'visible' })
+  api.setMode('multiply')
+  dom.advance(600)
+  assert.ok(steerBubble.classList.contains('__dshui-frost-surface'), '追加信息气泡也要被识别为我的气泡')
+  assert.ok(dom.body.classList.contains('__dshui-bubblefx'), '纹理模式气泡视觉类应生效')
+})
+
+test('光标模糊（0.8.25）：默认 5px、面板滑块可调并持久化', async () => {
+  const dom = buildChatDom()
+  const { api } = runClient(dom)
+  await flush()
+  api.setMode('multiply')
+  dom.advance(600)
+  assert.equal(dom.body.style.getPropertyValue('--dshui-caret-blur'), '5px', '默认光标光晕 5px')
+  api.switcher()
+  const slider = dom.document.querySelector('[data-caret-blur-slider]')
+  assert.ok(slider, '面板里应有光标模糊滑块')
+  assert.equal(slider.value, '5')
+  slider.value = '2'
+  slider._listeners.input[0]({ type: 'input', target: slider, stopPropagation() {} })
+  assert.equal(dom.body.style.getPropertyValue('--dshui-caret-blur'), '2px')
+  assert.equal(dom.document.querySelector('.__dshui-caret-blur-value').textContent, '2px')
+  const saved = JSON.parse(dom.window.localStorage.getItem('__dshui.caret.v1'))
+  assert.equal(saved.blur, 2, '要存档')
+  assert.match(api.setCaretBlur(7), /光标模糊 = 7px/)
+  assert.equal(dom.body.style.getPropertyValue('--dshui-caret-blur'), '7px')
+})
+
 test('分层：把输入区座位抬成覆盖层 + 给消息区补底部留白，关闭时完整还原', async () => {
   const dom = buildChatDom()
   const { api } = runClient(dom)
@@ -1713,12 +1772,15 @@ test('视觉更新（0.9）：玻璃径向渐变内透外亮 + 外阴影；思�
   assert.match(css, /box-shadow:inset 0 0 0 1px rgba\(255,255,255,\.35\),0 14px 36px rgba\(17,18,20,\.14\)!important/)
   // 思维链颜色已按用户反馈移除：样式表里不应再有 data-variant 颜色覆盖
   assert.doesNotMatch(css, /\[data-variant=/, '思考区域保持 DSH 原样（不再覆盖颜色）')
+  assert.ok(css.includes('body.__dshui-texture [data-composer-card].__dshui-frost-surface{backdrop-filter:none!important'), '纹理模式输入卡片应关掉 backdrop-filter')
+  // 悬浮防闪（0.8.28）：发送键 hover 过渡要关掉
+  assert.match(css, /aria-label="发送消息"[^{]*{transition:none!important/, '发送键 hover 过渡要关掉')
   // 方块光标：原生 caret 透明 + 闪烁小方格（莱茵生命 warning 同款）
   assert.match(css, /body\.__dshui-caret-on \[data-composer-input\]\{caret-color:transparent!important;\}/)
   assert.ok(css.includes('#__dshui-caret{position:fixed;display:none;width:8px;min-width:2px;height:18px;box-sizing:border-box;background:color-mix(in srgb,var(--dshui-caret-color,#3964fe) var(--dshui-caret-alpha,55%),transparent)'), '光标是半透明主题色方块')
   assert.ok(css.includes('border:1px solid color-mix(in srgb,var(--dshui-caret-color,#3964fe) 70%,transparent)'), '光标有细边框')
   assert.ok(css.includes('border-radius:2px;z-index:2147483004'), '光标 2px 圆角')
-  assert.ok(css.includes('backdrop-filter:blur(1.5px) saturate(1.2)'), '光标带背景模糊')
+  assert.ok(css.includes('backdrop-filter:blur(calc(var(--dshui-caret-blur,5px) * .2)) saturate(1.2)'), '光标带背景模糊（随模糊滑块）')
   assert.match(css, /@keyframes __dshui-caret-blink\{50%\{opacity:0;\}\}/)
   // 白层变量：名义 0.2；径向仍「内透 0.11 → 外亮 0.2」
   dom.advance(600)
@@ -2999,6 +3061,10 @@ test('开屏动画音效（0.8.0）：默认开、配置传给开屏页、面板
   await flush()
   assert.equal(api.status().splash.sound, true, '音效默认开')
   assert.equal(splashCfgOf(dom).sound, true, '配置里应带 sound:true')
+  assert.ok(
+    ['fit', 'scramble'].indexOf(splashCfgOf(dom).titleMode) !== -1,
+    '每次播放应随机选 fit / scramble',
+  )
   assert.match(api.diagnose(), /音效开/)
   // 关掉 → 持久化 → 重播时新配置生效
   assert.equal(api.splash.setSound(false), false)
@@ -3279,7 +3345,7 @@ test('重启键：关闭壁纸/背景模式不摘重启键（只有真正卸载�
 })
 const welcomeOf = (dom) => dom.document.getElementById('__dshui-welcome')
 
-test('开屏后的 WELCOME BACK 卡片（0.8.0）：播完出现在真实页面右上角，约 3.6s 自动淡出', async () => {
+test('开屏后的 WELCOME BACK 卡片（0.8.0）：播完出现在右上角（下移避开顶部按钮），约 2.4s 自动淡出', async () => {
   const dom = buildChatDom()
   const { api } = runClient(dom, { splash: true, statusUser: 'RAD' })
   await flush()
@@ -3291,13 +3357,13 @@ test('开屏后的 WELCOME BACK 卡片（0.8.0）：播完出现在真实页面�
   assert.match(card.textContent, /WELCOME BACK/)
   assert.match(card.textContent, /RAD/, '卡片应显示宿主给的本机登录名')
   assert.equal(api.status().splash.welcomeShown, true)
-  // 自动淡出（3.6s 后开始淡出，再等 400ms 移除）
-  dom.advance(3700)
+  // 自动淡出（2.4s 后开始淡出，再等 400ms 移除）
+  dom.advance(2500)
   dom.advance(500)
-  assert.equal(welcomeOf(dom), null, '3.6s 后应自动移除')
+  assert.equal(welcomeOf(dom), null, '2.4s 后应自动移除')
 })
 
-test('开屏/欢迎卡片：按标题栏高度下移（避开 Windows 窗口按钮）', async () => {
+test('开屏/欢迎卡片：右上角下移 64px，避开顶部侧边栏按钮', async () => {
   const dom = buildChatDom()
   const menu = attachWindowsMenu(dom)
   // 模拟 DSH 标题栏实际 52px（Win11 高标题栏/DPI 放大）
@@ -3309,9 +3375,29 @@ test('开屏/欢迎卡片：按标题栏高度下移（避开 Windows 窗口按�
   dom.advance(SPLASH_FADE_MS_FOR_TEST + 80)
   const card = welcomeOf(dom)
   assert.ok(card, '应有欢迎卡片')
-  assert.match(card.style.cssText, /top:74px/, '卡片应在标题栏下方（52+22）')
+  // 标题栏 52 + 86 = 往上原来的 22 再下移 64px
+  assert.match(card.style.cssText, /top:138px/, '卡片应从标题栏+22 的位置再下移 64px')
+  assert.match(card.style.cssText, /right:18px/, '卡片仍在右上角')
+  assert.doesNotMatch(card.style.cssText, /bottom:96px/, '不应再到底部')
   assert.equal(api.status().titlebarHeight, undefined) // 内部状态不进快照
 })
+test('开屏重播后：方块光标仍然启用（0.8.26）', async () => {
+  const dom = buildChatDom()
+  const { api } = runClient(dom, { splash: true })
+  await flush()
+  // 桩环境没有 getSelection：先补一个，模拟真实页面里光标可绑定
+  dom.window.getSelection = function () {
+    return { rangeCount: 0, isCollapsed: true, getRangeAt: function () { return null } }
+  }
+  // 桩里 document.activeElement 默认未定义；真实页面里总是有值（null 也算已定义）
+  dom.document.activeElement = dom.textarea
+  api.splash.replay()
+  await flush()
+  fireSplashMessage(dom, { __dshuiSplash: 'done' })
+  dom.advance(SPLASH_FADE_MS_FOR_TEST + 120)
+  assert.ok(dom.body.classList.contains('__dshui-caret-on'), '重播揭幕后应重新启用方块光标')
+})
+
 test('开屏欢迎卡片：?splash=0 / 卸载 都不留卡片', async () => {
   const off = buildChatDom()
   off.window.location.href = 'http://localhost/?splash=0'

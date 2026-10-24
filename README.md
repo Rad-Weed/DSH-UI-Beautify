@@ -2,7 +2,7 @@
 
 给 DSH 桌面端页面加**壁纸 + 毛玻璃**的轻量美化插件：不碰布局、不改宿主代码，自带开屏动画、方块光标、重启键与深浅色主题适配。
 
-- **版本：v0.8.20** · 包名 `dsh-ui-beautify` · 路由 `/dsh-ui-beautify/*` · 全局 `__DSHUI__` · 存储键 `__dshui.*`
+- **版本：v0.8.21** · 包名 `dsh-ui-beautify` · 路由 `/dsh-ui-beautify/*` · 全局 `__DSHUI__` · 存储键 `__dshui.*`
 - 支持 Windows 10/11 + DSH 桌面端；所有改动都发生在本插件自己的节点/样式里。
 - 详细开发记录、实测数据与决策记录见 [HANDOFF.md](HANDOFF.md)；重启键独立说明见 [restart/README.md](restart/README.md)。
 
@@ -18,8 +18,8 @@
 | 气泡视觉 | 气泡自动取原色、可调透明/模糊/自定义颜色；代码块与 chat 高亮同样适配 |
 | 深浅色主题 | 自动检测 `body[data-ds-dark-theme]`；深色用桌面 `DeepSeek 暗夜模式.png`（包内 `assets/deepseek-dark.webp` 兜底），浅色保持原两张 |
 | 深色独立参数 | 深色纹理浓度默认 0.85、背景 0.7；浅色仍为 0.49/0.5，滑块按主题分别保存 |
-| 开屏动画 | 六幕授权序列 + 欢迎卡片 + 音效；可重播/跳过/关闭；跳过不阻塞启动 |
-| 方块光标 | 命令提示符风格方块光标，`Ctrl+Shift+Alt+M` 开关动效 |
+| 开屏动画 | 新「弧线定稿」：拟合/乱码两种开场**每次随机**；跟随 DSH 深浅色；欢迎卡片由插件统一显示；可重播/跳过/关闭 |
+| 方块光标 | 命令提示符风格方块光标；光晕模糊可在面板调（默认 5px）；`Ctrl+Shift+Alt+M` 开关动效 |
 | AI 思考视效 | 纹理/背景模式下，思维链与回复的左侧细线 + 淡渐变；逐行重播可读 |
 | 重启键 | 标题栏原生「重启」按钮；可选壳补丁；与 `dsh-restart-key` 自动让位/接管 |
 | 主题过渡 | 切换深浅色时旧壁纸先隐藏、新壁纸淡入 + 浓度/毛玻璃补间 + 自家 GUI 颜色过渡；启动预加载另一主题壁纸；减少动态时关闭补间 |
@@ -29,7 +29,7 @@
 
 **要求**：Windows 10/11、DSH 桌面端（Chromium/Electron）。
 
-1. 下载 `dsh-ui-beautify-0.8.20.zip` 并解压；
+1. 下载 `dsh-ui-beautify-0.8.21.zip` 并解压；
 2. 在 DSH 插件管理里安装本地目录（target 用绝对路径，例如 `file:C:/path/to/dsh-ui-beautify`）；
 3. 重启 DSH 一次。
 
@@ -112,6 +112,13 @@ powershell -ExecutionPolicy Bypass -File tools/build-dist.ps1  # 出 zip
 
 ## 版本
 
+### v0.8.21（2026-10-25）
+- **新开屏动画**：接入「弧线定稿 v17a」；每次播放随机 AI 拟合 / 乱码生成（重播重新随机）；隐藏开屏自带 CFG/欢迎卡片，跟随 DSH 深浅色；
+- **欢迎卡片**：不再挡顶部「打开侧边栏」按钮（右上角下移 64px）；更小、半透明、跟随主题、2.4s 自动消失、任意操作立即消失；
+- **追加信息气泡**：`data-chat-flow-kind="steering"` 与普通用户消息一样套用气泡/毛玻璃视觉；
+- **方块光标**：新增「光标模糊」滑块（0–16px，默认 5px，持久化 + `__DSHUI__.setCaretBlur`）；修复面板重播开屏后光标退回普通竖线；
+- **悬浮发送键闪烁排查**：探针确认插件无抢修动作（合成层问题）；壁纸层加 `will-change`、tooltip 不误清、去掉发送键 hover 过渡、纹理模式关闭输入卡片 `backdrop-filter`；新增悬浮探针上报 `/diag`；
+- 测试：host 30/30 · client 106/106。
 ### v0.8.20（2026-10-22）
 - **修复主题切换“黑罩/闪”互相冲突的根因**：旧壁纸层的混合模式由 `body[data-ds-dark-theme]` 的 CSS 规则控制，切主题瞬间被翻转；
   - 深→浅：旧深色图瞬间变 `multiply` 压在新浅色 UI 上 = 黑色遮挡；
@@ -191,7 +198,7 @@ powershell -ExecutionPolicy Bypass -File tools/build-dist.ps1  # 出 zip
 
 ## License
 
-MIT。开屏动画的结构参考了 MIT 项目 [`dsh-startup-screen`](https://github.com/6shenhonghong9/dsh-startup-screen)，视觉与代码为本项目原创实现；DSH 为其各自权利人的产品，本项目与官方无隶属关系。
+MIT。开屏动画为项目自带的单文件页面（历史版本结构参考 MIT 项目 [`dsh-startup-screen`](https://github.com/6shenhonghong9/dsh-startup-screen)）；DSH 为其各自权利人的产品，本项目与官方无隶属关系。
 
 ---
 

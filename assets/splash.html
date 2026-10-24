@@ -3,1114 +3,1183 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DSH · 莱因生命风格开屏 v2 — 全自动授权序列</title>
-<!--
-  ============================================================================
-  DSH 开屏画面 v2 · 莱因生命（Rhine Lab Motion）风格 × 交互式授权序列
-  ----------------------------------------------------------------------------
-  结构参考（MIT）：dsh-startup-screen © 沈宏宏
-    https://github.com/6shenhonghong9/dsh-startup-screen
-  借鉴点：六幕授权叙事 / 交互确认 / 环形准星(缺口朝下) / 鲸鱼一笔画 /
-          hex 权限雨 / 色散故障揭幕 / 语音时长驱动节奏 / __DSH_STARTUP__ 配置接口。
-  视觉与动效语言：莱因生命风格（本机 skill: rhine-lab-motion），代码原创重写。
-  配色：对齐 桌面/DSH界面.html（dsniang 美化插件）色板：
-    墨(柔) #46589a · 纸面 #f6f8fc · 强调蓝 #3964fe · 次级 #9fb0d9 · 暗底 #1c1e28 ·
-    琥珀 #f7ad31 · 红 #d54941
-  兼容：配置读 window.__DSH_STARTUP__（键名与 dsh-startup-screen 一致）；
-        结束时 resolve window.DSH_BOOT_READY__ 并派发 dsh-startup:done。
-  ============================================================================
--->
+<title>DSH · 弧线定稿 v17a — AI 拟合（逐字乱码修正 · 弧段自适应）</title>
 <style>
-/* ===================== 设计 Token（DSH 版 · 浅色调，贴近留白） ===================== */
 :root{
-  /* 浅色主题（暖白档案底板 → DSH 纸面，墨色提亮到柔和藏蓝） */
-  --bg:#f6f8fc; --bg2:#edf1f9;
-  --ink:#46589a; --ink-soft:rgba(70,88,154,.6); --muted:#97a3c4;
-  --hair:rgba(70,88,154,.15); --hair-soft:rgba(70,88,154,.06);
-  --accent:#3964fe; --accent-deep:#2f4488;
-  --glitch-a:#d54941; --glitch-b:#2971b8;
-  --box-bg:#46589a; --box-ink:#f6f8fc;
-  --peri:#9fb0d9; --amber:#f7ad31;
-  --font-din:"Bahnschrift","DIN Alternate","DIN Condensed","Montserrat","Segoe UI",sans-serif;
-  --font-mono:"Cascadia Mono","SFMono-Regular",Consolas,"JetBrains Mono",ui-monospace,monospace;
-  --font-zh:"MiSans","Microsoft YaHei","PingFang SC","HarmonyOS Sans SC",sans-serif;
+  --paper:#e3ecfb; --ink:#0e1d40; --accent:#3964fe;
+  --hair:rgba(14,29,64,.22); --grid:rgba(14,29,64,.055);
+  --sans:"Helvetica Neue",Helvetica,Arial,"PingFang SC","Microsoft YaHei",sans-serif;
+  --mono:"Helvetica Neue",Arial,"Segoe UI",sans-serif;
   --speed:1;
-  --grain-op:.05;
 }
-.d2-dark{
-  --bg:#1c1e28; --bg2:#242735;
-  --ink:#dfe5f5; --ink-soft:rgba(223,229,245,.66); --muted:#8e97b4;
-  --hair:rgba(159,176,217,.2); --hair-soft:rgba(159,176,217,.08);
-  --accent:#539cfa; --accent-deep:#9fb0d9;
-  --glitch-a:#d54941; --glitch-b:#539cfa;
-  --box-bg:#dfe5f5; --box-ink:#1c1e28;
-  --grain-op:.09;
+#sw-root.dark{
+  --paper:#0a1224; --ink:#e8eefb; --accent:#6f97ff;
+  --hair:rgba(232,238,251,.24); --grid:rgba(232,238,251,.06);
 }
 *{margin:0;padding:0;box-sizing:border-box}
-html,body{height:100%;overflow:hidden}
-body{font-family:var(--font-din);background:#16171f;color:var(--ink)}
-html.d2-lock,html.d2-lock body{overflow:hidden}
+html,body{height:100%;overflow:hidden;background:#e3ecfb}
+html.dark-base,html.dark-base body{background:#0a1224}
 
-/* ===================== 揭幕后假主界面（DSH 藏蓝风） ===================== */
-#mockApp{position:fixed;inset:0;z-index:1;display:flex;background:#f3f5fb;font-family:var(--font-zh)}
-#mockApp .side{width:250px;background:#edf1f9;border-right:1px solid rgba(70,88,154,.13);padding:14px 12px;display:flex;flex-direction:column;gap:6px}
-#mockApp .brand{display:flex;align-items:center;gap:9px;font-weight:700;color:#46589a;letter-spacing:.03em;margin-bottom:6px}
-#mockApp .brand svg{width:21px;height:21px;fill:#3964fe}
-#mockApp .item{font-size:13px;color:#5a6488;padding:7px 10px;border-radius:8px}
-#mockApp .item.on{background:#fff;color:#46589a;box-shadow:0 1px 3px rgba(70,88,154,.1)}
-#mockApp .main{flex:1;display:flex;flex-direction:column}
-#mockApp .top{height:46px;border-bottom:1px solid rgba(70,88,154,.1);display:flex;align-items:center;padding:0 18px;font-size:13px;color:#8e97b4}
-#mockApp .bodyc{flex:1;padding:28px 34px;display:flex;flex-direction:column;gap:14px}
-#mockApp .bubble{max-width:600px;font-size:13.5px;line-height:1.75;color:#46589a}
-#mockApp .bubble.me{align-self:flex-end;background:#e0e6f8;border-radius:12px;padding:10px 14px}
-#mockApp .bubble.ai{background:#fff;border:1px solid rgba(70,88,154,.11);border-radius:12px;padding:14px 16px}
-#mockApp .mockTag{position:absolute;right:14px;bottom:12px;font-size:11px;color:#9fb0d9;letter-spacing:.08em}
-
-/* ===================== 开屏根 ===================== */
-#dsh2-root{position:fixed;inset:0;z-index:10;overflow:hidden;user-select:none;background:var(--bg)}
-#dsh2-root.d2-handoff{transform:scale(1.035);filter:blur(5px);opacity:0;
-  transition:opacity 780ms cubic-bezier(.4,0,.2,1),transform 780ms cubic-bezier(.4,0,.2,1),filter 780ms cubic-bezier(.4,0,.2,1)}
-#dsh2-root.d2-gone{display:none}
-.d2-layer{position:absolute;inset:0}
-
-/* ---- 底板与氛围 ---- */
-.d2-plate{background:linear-gradient(168deg,var(--bg2) 0%,var(--bg) 42%,var(--bg) 100%);opacity:0}
-.d2-vignette{pointer-events:none;opacity:0;transition:opacity 900ms ease;
-  background:radial-gradient(ellipse at 50% 44%,transparent 52%,rgba(70,88,154,.1) 100%)}
-.d2-vignette.d2-in{opacity:1}
-.d2-watermark{pointer-events:none;opacity:0;transition:opacity 1100ms ease}
-.d2-watermark.d2-in{opacity:1}
-.d2-wm{position:absolute;border:1px solid var(--hair-soft);border-radius:2px}
-.d2-grain{pointer-events:none;opacity:var(--grain-op);mix-blend-mode:multiply;
-  background-image:repeating-conic-gradient(rgba(70,88,154,.45) 0% 25%,transparent 0% 50%);
-  background-size:3px 3px}
-.d2-dark .d2-grain{mix-blend-mode:screen;background-image:repeating-conic-gradient(rgba(159,176,217,.5) 0% 25%,transparent 0% 50%)}
-
-/* ---- 第一幕：黑幕 ---- */
-.d2-black{background:#16171f;display:flex;align-items:center;justify-content:center;z-index:6}
-.d2-black-inner{display:flex;flex-direction:column;align-items:center;gap:18px;color:#eef1f8;opacity:0;transform:translateY(8px);transition:opacity .6s ease,transform .6s ease}
-.d2-black-inner.d2-in{opacity:1;transform:none}
-.d2-black-inner.d2-out{opacity:0;transform:scale(1.04);transition:opacity .24s ease,transform .24s ease}
-.d2-whale{width:74px;height:74px;fill:#eef1f8}
-.d2-black-zh{font-family:var(--font-zh);font-size:30px;font-weight:600;letter-spacing:.5em;text-indent:.5em}
-.d2-black-en{font-size:20px;font-weight:600;letter-spacing:.9em;text-indent:.9em;transition:letter-spacing 1.1s cubic-bezier(.3,.7,.2,1)}
-.d2-black-en.d2-tighten{letter-spacing:.34em;text-indent:.34em}
-.d2-black-sub{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.42em;color:#9fb0d9}
-.d2-sweep{position:absolute;top:0;bottom:0;width:26%;left:-30%;pointer-events:none;
-  background:linear-gradient(100deg,transparent,rgba(238,241,248,.16) 45%,rgba(238,241,248,.3) 50%,rgba(238,241,248,.16) 55%,transparent)}
-.d2-sweep.d2-go{animation:d2-sweepmv 1.05s cubic-bezier(.5,.1,.3,1) forwards}
-@keyframes d2-sweepmv{to{left:112%}}
-.d2-wash{background:#fff;opacity:0;z-index:7;pointer-events:none}
-
-/* ---- HUD 框架 ---- */
-.d2-brand{position:absolute;left:38px;top:32px;opacity:0;transform:translateX(-14px);transition:opacity .5s ease,transform .5s ease}
-.d2-brand.d2-in{opacity:1;transform:none}
-.d2-brand-1{font-size:27px;font-weight:700;letter-spacing:.2em;line-height:1.1}
-.d2-brand-2{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.34em;color:var(--muted);margin-top:4px}
-.d2-brand-3{margin-top:7px;font-size:13px;letter-spacing:.18em}
-.d2-brand-3 b{font-weight:700}.d2-brand-3 span{font-weight:300;color:var(--muted)}
-.d2-brand-3::before{content:"";display:inline-block;width:20px;height:4px;background:var(--accent);margin-right:10px;vertical-align:2px}
-.d2-stepcount{position:absolute;right:38px;top:36px;font-family:var(--font-mono);font-size:11.5px;letter-spacing:.24em;color:var(--ink-soft);opacity:0;transition:opacity .5s ease}
-.d2-stepcount.d2-in{opacity:1}
-.d2-skip{position:absolute;right:38px;top:64px;font-family:var(--font-mono);font-size:10.5px;letter-spacing:.3em;color:var(--muted);cursor:pointer;opacity:0;transition:opacity .4s ease, color .2s}
-.d2-skip.d2-in{opacity:1}
-.d2-skip:hover{color:var(--accent)}
-.d2-foot{position:absolute;right:38px;bottom:30px;display:flex;align-items:center;gap:11px;opacity:0;transition:opacity .5s ease}
-.d2-foot.d2-in{opacity:1}
-.d2-foot i{width:22px;height:5px;background:var(--ink)}
-.d2-foot span{font-family:var(--font-mono);font-size:10px;letter-spacing:.3em;color:var(--ink-soft)}
-.d2-meta{position:absolute;left:38px;bottom:30px;font-family:var(--font-mono);font-size:10px;letter-spacing:.2em;color:var(--muted);display:flex;gap:18px;opacity:0;transition:opacity .5s ease}
-.d2-meta.d2-in{opacity:1}
-
-/* ---- 六格阶段柱 ---- */
-.d2-slats{position:absolute;left:38px;top:52%;transform:translateY(-50%);display:flex;flex-direction:column;gap:9px;opacity:0;transition:opacity .5s ease}
-.d2-slats.d2-in{opacity:1}
-.d2-slat{width:5px;height:34px;background:var(--hair);transition:background .35s ease,opacity .35s ease}
-.d2-slat.d2-on{background:var(--accent)}
-.d2-slat.d2-past{background:var(--accent-deep);opacity:.5}
-
-/* ---- 取景框 + 扫描线 ---- */
-.d2-frame{pointer-events:none;opacity:0;transition:opacity .6s ease .1s}
-.d2-frame.d2-in{opacity:1}
-.d2-corner{position:absolute;width:18px;height:18px;border:2px solid var(--hair)}
-.d2-c-tl{left:24px;top:24px;border-right:none;border-bottom:none}
-.d2-c-tr{right:24px;top:24px;border-left:none;border-bottom:none}
-.d2-c-bl{left:24px;bottom:24px;border-right:none;border-top:none}
-.d2-c-br{right:24px;bottom:24px;border-left:none;border-top:none}
-.d2-scanline{position:absolute;left:24px;right:24px;top:-4px;height:2px;opacity:0;
-  background:linear-gradient(90deg,transparent,var(--accent) 30%,var(--ink) 50%,var(--accent) 70%,transparent)}
-.d2-scanline.d2-go{animation:d2-scanmv 1s cubic-bezier(.4,.1,.3,1) forwards}
-@keyframes d2-scanmv{0%{opacity:0;top:6%}8%{opacity:.9}88%{opacity:.9}100%{opacity:0;top:94%}}
-
-/* ---- 中央区 ---- */
-.d2-center{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);width:min(860px,86vw);
-  display:flex;flex-direction:column;align-items:center;text-align:center;transition:opacity .4s ease}
-.d2-center.d2-off{opacity:0;pointer-events:none}
-.d2-status{font-family:var(--font-zh);font-size:46px;font-weight:700;letter-spacing:.14em;color:var(--ink);
-  min-height:1.3em;display:flex;align-items:baseline;justify-content:center;
-  /* 大字分层：两层无模糊的错位重影（机械套印感，深浅两档错开） */
-  text-shadow:.05em .055em 0 rgba(70,88,154,.16), .1em .11em 0 rgba(70,88,154,.07)}
-.d2-dark .d2-status{text-shadow:.05em .055em 0 rgba(83,156,250,.18), .1em .11em 0 rgba(159,176,217,.08)}
-.d2-st-sep{font-style:normal;color:var(--accent);margin:0 .16em;opacity:.9;text-shadow:none}
-.d2-st-b{color:var(--accent)}
-.d2-status .d2-ch{opacity:0;display:inline-block;transform:translateY(.28em)}
-.d2-status.d2-in .d2-ch{opacity:1;transform:none;transition:opacity .34s ease,transform .4s cubic-bezier(.2,.8,.2,1)}
-.d2-caret{width:.5em;height:.9em;background:var(--accent);display:inline-block;margin-left:.14em;opacity:0;align-self:center}
-.d2-caret.d2-on{opacity:1;animation:d2-blink 1s steps(1,end) infinite}
-@keyframes d2-blink{0%,55%{opacity:1}56%,100%{opacity:0}}
-.d2-sub-en{margin-top:10px;font-family:var(--font-mono);font-size:12.5px;letter-spacing:.34em;color:var(--muted);min-height:1.2em}
-.d2-sub-en .d2-ch{opacity:0}
-.d2-sub-en.d2-in .d2-ch{opacity:1;transition:opacity .16s linear}
-.d2-rule{width:0;height:2px;background:var(--hair);margin-top:22px;transition:width .9s cubic-bezier(.2,.8,.2,1)}
-.d2-rule.d2-in{width:min(430px,60vw)}
-.d2-logo{margin-top:20px;display:flex;flex-direction:column;align-items:center;gap:9px;opacity:0;transition:opacity .4s ease}
-.d2-logo.d2-in{opacity:1}
-.d2-logo svg{width:64px;height:64px;fill:var(--ink)}
-.d2-logolabel{font-size:11px;letter-spacing:.52em;text-indent:.52em;color:var(--ink-soft)}
-.d2-dots{margin-top:16px;display:flex;gap:10px}
-.d2-dots[hidden]{display:none}
-.d2-dots i{width:5px;height:5px;background:var(--hair);border-radius:50%;transition:background .3s}
-.d2-dots i.on{background:var(--accent)}
-.d2-hex{position:absolute;right:8%;top:24%;font-family:var(--font-mono);font-size:10.5px;line-height:1.9;
-  letter-spacing:.14em;color:var(--muted);text-align:left;opacity:0;transition:opacity .35s ease;pointer-events:none}
-.d2-hex.d2-in{opacity:.8}
-
-/* ---- 环形准星（缺口朝下） ---- */
-.d2-reticle{position:absolute;left:50%;top:46%;width:min(430px,62vh);aspect-ratio:1;transform:translate(-50%,-50%);
-  opacity:0;transition:opacity .55s ease;pointer-events:none}
-.d2-reticle.d2-in{opacity:1}
-.d2-reticle svg{width:100%;height:100%;overflow:visible}
-.d2-ret-rot-a{transform-origin:50% 50%;animation:d2-spin 9s linear infinite}
-.d2-ret-rot-b{transform-origin:50% 50%;animation:d2-spin 5.4s linear infinite reverse}
-@keyframes d2-spin{to{transform:rotate(360deg)}}
-.d2-ring-a{fill:none;stroke:var(--ink);stroke-width:5.4}
-.d2-ring-b{fill:none;stroke:var(--ink);stroke-width:1.8;opacity:.9}
-.d2-bracket{fill:none;stroke:var(--accent);stroke-width:3.2}
-.d2-dot-a{fill:var(--ink)}.d2-dot-b{fill:var(--accent)}.d2-dot-o{fill:var(--accent)}
-
-/* ---- 交互区 ---- */
-.d2-action{position:absolute;left:50%;bottom:16%;transform:translate(-50%,14px);display:flex;flex-direction:column;align-items:center;gap:13px;opacity:0;pointer-events:none;transition:opacity .4s ease,transform .4s cubic-bezier(.2,.8,.2,1)}
-.d2-action.d2-in{opacity:1;transform:translate(-50%,0);pointer-events:auto}
-.d2-btn{font-family:var(--font-zh);cursor:pointer;border:1.5px solid var(--ink);background:transparent;color:var(--ink);
-  padding:12px 30px;display:flex;align-items:center;gap:12px;letter-spacing:.14em;font-size:14.5px;font-weight:600;border-radius:3px;
-  transition:background .2s,color .2s,box-shadow .2s}
-.d2-btn small{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.24em;opacity:.55;font-weight:400}
-.d2-btn:hover{background:var(--ink);color:var(--bg)}
-.d2-btn.d2-pulse{animation:d2-pulse 1.8s ease-in-out infinite}
-@keyframes d2-pulse{0%,100%{box-shadow:0 0 0 0 rgba(57,100,254,0)}45%{box-shadow:0 0 0 7px rgba(57,100,254,.16)}}
-.d2-hint{font-family:var(--font-mono);font-size:10px;letter-spacing:.18em;color:var(--muted)}
-.d2-hint kbd{border:1px solid var(--hair);border-radius:3px;padding:1px 5px;font-family:var(--font-mono)}
-
-/* ---- 语音电平条 ---- */
-.d2-voice{position:absolute;right:38px;bottom:52px;display:flex;gap:3px;align-items:flex-end;height:15px;opacity:0;transition:opacity .4s ease}
-.d2-voice.d2-in{opacity:1}
-.d2-voice i{width:2.5px;background:var(--accent);height:3px;transition:height .12s ease}
-.d2-voice.d2-on i{animation:d2-vu .5s ease-in-out infinite alternate}
-.d2-voice.d2-on i:nth-child(2){animation-delay:.08s}.d2-voice.d2-on i:nth-child(3){animation-delay:.16s}
-.d2-voice.d2-on i:nth-child(4){animation-delay:.24s}.d2-voice.d2-on i:nth-child(5){animation-delay:.32s}
-@keyframes d2-vu{from{height:3px}to{height:14px}}
-
-/* ---- 底部双语字幕 ---- */
-.d2-subtitle{position:absolute;left:50%;bottom:74px;transform:translateX(-50%);text-align:center;pointer-events:none;max-width:86vw}
-.d2-sub-zh{font-family:var(--font-zh);font-size:15.5px;font-weight:500;letter-spacing:.24em;color:var(--ink-soft);display:block;opacity:0;transform:translateY(4px);transition:opacity .3s ease,transform .3s ease}
-.d2-sub-en2{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.3em;color:var(--muted);display:block;margin-top:4px;opacity:0;transition:opacity .3s ease .08s}
-.d2-sub-zh.d2-in{opacity:1;transform:none}
-.d2-sub-en2.d2-in{opacity:1}
-
-/* ---- 进度条 ---- */
-.d2-progress{position:absolute;left:24px;right:24px;bottom:20px;height:3px;background:var(--hair-soft)}
-.d2-progress i{display:block;height:100%;width:0;background:var(--accent);transition:width .8s cubic-bezier(.3,.8,.3,1)}
-
-/* ---- 终幕（直接切入会话：白闪 + 机位后撤） ---- */
-.d2-flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:8}
-
-/* ---- 会话右上角 Welcome Back 卡片（揭幕后短暂显示，莱因档案风） ---- */
-#wbCard{position:absolute;right:24px;top:20px;z-index:60;background:#fff;border:1px solid rgba(70,88,154,.28);
-  padding:12px 20px 12px 18px;border-radius:3px;box-shadow:0 10px 30px rgba(70,88,154,.18);overflow:hidden;
-  opacity:0;transform:translateY(-8px);transition:opacity .45s cubic-bezier(.2,.8,.2,1),transform .45s cubic-bezier(.2,.8,.2,1)}
-#wbCard.wb-in{opacity:1;transform:none}
-#wbCard.wb-out{opacity:0;transform:translateY(-6px);transition:opacity .4s ease,transform .4s ease}
-#wbCard .wb-bar{position:absolute;left:0;top:0;bottom:0;width:3px;background:#3964fe}
-#wbCard .wb-en{font-family:var(--font-din);font-size:12.5px;font-weight:700;letter-spacing:.26em;color:#46589a}
-#wbCard .wb-name{margin-top:4px;font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;color:#8e97b4}
-#wbCard .wb-corner{position:absolute;width:9px;height:9px;border:1.5px solid rgba(57,100,254,.5)}
-#wbCard .wb-corner.tr{right:0;top:0;border-left:none;border-bottom:none}
-#wbCard .wb-corner.br{right:0;bottom:0;border-left:none;border-top:none}
-
-/* ---- 控制台 ---- */
-#d2console{position:fixed;right:16px;top:16px;width:300px;z-index:2147483600;background:rgba(18,19,26,.93);
-  border:1px solid rgba(159,176,217,.25);border-radius:12px;backdrop-filter:blur(8px);box-shadow:0 18px 50px rgba(0,0,0,.45);
-  font-family:var(--font-zh);font-size:12.5px;color:#e8e8ea;overflow:hidden}
-#d2console header{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid rgba(159,176,217,.16);font-weight:600;letter-spacing:.06em;font-size:12px}
-#d2console .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#3964fe;margin-right:7px;vertical-align:1px}
-#d2console .pane{padding:12px;display:flex;flex-direction:column;gap:9px;max-height:72vh;overflow:auto}
-#d2console .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-#d2console label{color:#a9aab2;font-size:11px;letter-spacing:.04em;display:block;margin-bottom:4px}
-#d2console input[type=text],#d2console select{width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(159,176,217,.28);color:#f2f2f5;border-radius:7px;padding:6px 9px;font:inherit;outline:none}
-#d2console input[type=text]:focus,#d2console select:focus{border-color:#3964fe}
-#d2console input[type=range]{width:100%;accent-color:#3964fe}
-#d2console .chk{display:flex;align-items:center;gap:8px;color:#d6d6dd;font-size:12px}
-#d2console .chk input{accent-color:#3964fe}
-#d2console .btns{display:flex;gap:8px}
-#d2console button{flex:1;border:1px solid rgba(159,176,217,.3);background:rgba(255,255,255,.06);color:#f0f0f4;border-radius:8px;padding:7px 10px;font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
-#d2console button:hover{border-color:#3964fe}
-#d2console button.primary{background:#3964fe;border-color:#3964fe;color:#fff;font-weight:600}
-#d2console .note{color:#8b8c95;font-size:10.5px;line-height:1.6}
-#d2console.collapsed .pane{display:none}
-
-@media (prefers-reduced-motion: reduce){
-  #dsh2-root *{animation-duration:.01ms!important;transition-duration:.01ms!important}
+#sw-root{
+  position:fixed;inset:0;z-index:10;overflow:hidden;
+  background:var(--paper);color:var(--ink);
+  font-family:var(--sans);
+  padding:52px 64px 44px;
+  display:flex;flex-direction:column;
+  transition:opacity .45s linear;
 }
+#sw-root.out{opacity:0}
+
+/* 网格：12 栏细线，极淡，只作结构提示 */
+.grid{position:absolute;inset:0 64px;pointer-events:none;opacity:.9}
+.grid i{position:absolute;top:0;bottom:0;width:1px;background:var(--grid)}
+
+/* 页眉 */
+.meta{display:flex;justify-content:space-between;align-items:baseline;
+  font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:500}
+.meta .m2{letter-spacing:.2em;font-weight:400;opacity:.72}
+.meta .m2 span{font-variant-numeric:tabular-nums}
+.meta .m3{font-weight:700}
+.rule{height:1px;background:var(--ink);margin-top:12px;transform:scaleX(0);transform-origin:0 50%;
+  transition:transform .4s linear}
+.s2 .rule{transform:scaleX(1)}
+
+main{flex:1;display:flex;flex-direction:column;justify-content:center;position:relative;z-index:2}
+
+/* ── 标题的两种出现方式（.mode-fit / .mode-scramble）────────────────
+   A. AI 拟合：模糊逐轮收敛 + 左右两份重影向本体收拢，
+      配 FIT / EPOCH 读数递减，像模型在逼近目标字形。
+   B. 乱码生成：逐字解锁，未解锁的尾部 32ms 换一批乱码（莱因参数）。
+   ───────────────────────────────────────────────────────────────── */
+.word .ln{position:relative;display:block;white-space:nowrap}
+
+/* A · AI 拟合：一串乱码 → 另一串（多几个对的）→ 直到全对。
+   过渡不靠膨动、不靠整块淡入淡出，靠"乱码修正"：
+   未确定的字每 48ms 重刷一批乱码（整块始终在轻轻抖），
+   每轮把几个位置钉成真字，钉上去的那一下有一个 3px 的落位小顿（.ch.lock）；
+   钉住的字从此一动不动，也不再参与重刷。
+   起点不是正确的标志 —— 整块先 opacity:0 藏住，s3 一到才连同第一串
+   乱码一起亮出来，否则 clip-path 被豁免后正确的字会先露一脸。 */
+#sw-root.mode-fit .word span{clip-path:none;overflow:visible}
+#sw-root.mode-fit .word .ln{opacity:0}
+#sw-root.mode-fit.s3 .word .ln{opacity:1}
+/* 逐字格：inline-block 才能单独落位；宽度由 JS 按"最终那个字的步进 + 字距"写死，
+   换乱码时盒子不动，整块宽度和右缘也就不会跟着抖 */
+#sw-root.mode-fit .word .ch{display:inline-block;font-style:normal;white-space:pre;
+  letter-spacing:0;text-align:left}
+#sw-root.mode-fit .word .ch.lock{animation:chLock .26s cubic-bezier(.22,.82,.24,1) both}
+@keyframes chLock{
+  0%{opacity:.30;transform:translateY(-3px)}
+  62%{opacity:1;transform:translateY(1px)}
+  100%{opacity:1;transform:translateY(0)}
+}
+.fitmeta{display:none;margin-top:10px;font-size:9.5px;letter-spacing:.26em;
+  text-transform:uppercase;color:var(--ink);opacity:0;transition:opacity .3s linear}
+#sw-root.mode-fit .fitmeta{display:flex;gap:9px;align-items:baseline}
+.s3 .fitmeta{opacity:.55}
+.fitmeta b{font-weight:700;color:var(--accent);opacity:1;font-variant-numeric:tabular-nums;
+  letter-spacing:.1em}
+
+/* B · 乱码生成（文本由 JS 逐帧替换，这里只管显隐） */
+#sw-root.mode-scramble .word span{clip-path:none;overflow:visible}
+#sw-root.mode-scramble .word .ln{opacity:0;transition:opacity .1s linear}
+#sw-root.mode-scramble.s3 .word .ln:nth-child(1){opacity:1}
+#sw-root.mode-scramble.s4 .word .ln:nth-child(2){opacity:1}
+
+/* 主字：齐左，超大字，收紧字距；两行右端由 fitLines() 对齐成一个字块 */
+.word{margin-top:8px}
+.word span{display:block;overflow:hidden;
+  font-size:clamp(64px,12.4vw,198px);
+  line-height:.82;letter-spacing:-.042em;font-weight:700;
+  clip-path:inset(0 0 100% 0);}
+.word span:nth-child(1){transition:clip-path .42s linear}
+.word span:nth-child(2){transition:clip-path .42s linear .06s;color:var(--accent)}
+.s3 .word span:nth-child(1){clip-path:inset(0 0 0 0)}
+.s4 .word span:nth-child(2){clip-path:inset(0 0 0 0)}
+
+/* 红色结构线 */
+.redbar{height:7px;background:var(--accent);width:0;margin-top:22px;
+  transition:width .38s linear}
+.s5 .redbar{width:50%}
+
+/* 下方：模块清单 + 超大数字 */
+.cols{display:grid;grid-template-columns:repeat(12,1fr);gap:24px;margin-top:30px;align-items:end}
+.mods{grid-column:1/7;list-style:none;font-size:13px;line-height:1.5}
+.mods li{display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:baseline;
+  padding:7px 0;border-bottom:1px solid var(--hair);
+  opacity:0;transform:translateY(2px);transition:opacity .12s linear,transform .12s linear}
+.mods li.on{opacity:1;transform:none}
+.mods .n{font-weight:700;font-variant-numeric:tabular-nums}
+.mods .nm small{display:block;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;
+  opacity:.55;margin-top:1px}
+.mods .st{font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:700}
+.mods li.on .st{color:var(--accent)}
+
+.numeral{display:none}
+.numeral b{display:block;font-size:clamp(84px,12.6vw,196px);font-weight:700;letter-spacing:-.05em;
+  font-variant-numeric:tabular-nums;
+  color:transparent;-webkit-text-stroke:1.2px var(--ink)}
+.numeral i{display:block;font-style:normal;font-size:10px;letter-spacing:.3em;text-transform:uppercase;
+  margin-top:10px;opacity:.6}
+
+/* 页脚 */
+footer{display:flex;justify-content:space-between;align-items:baseline;
+  border-top:1px solid var(--ink);padding-top:10px;
+  font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:500}
+footer .go{display:inline-flex;align-items:center;gap:10px;opacity:0;transition:opacity .3s linear}
+.s7 footer .go{opacity:1}
+footer .go em{font-style:normal;font-weight:700}
+footer .pn{font-variant-numeric:tabular-nums;opacity:.6}
+footer .tail{display:inline-flex;align-items:baseline;gap:28px}
+footer .pn i{font-style:normal;font-weight:700;color:var(--accent);opacity:1}
+#swCard .d{font-size:9px;letter-spacing:.2em;text-transform:uppercase;margin-top:2px;opacity:.65}
+
+.skip{font-size:10px;letter-spacing:.18em;text-transform:uppercase;cursor:pointer;opacity:.5;
+  background:none;border:0;color:var(--ink);font-family:inherit;padding:0;
+  transition:opacity .2s linear}
+.skip:hover{opacity:1}
+.skip kbd{font:inherit;letter-spacing:.1em;opacity:.55;margin-left:8px;
+  border:1px solid var(--hair);padding:1px 4px}
+
+/* 会话右上角卡片：瑞士式黑块 */
+#swCard{position:fixed;right:24px;top:24px;z-index:20;background:#16244b;color:#eef3fc;
+  padding:14px 18px;font-family:var(--sans);opacity:0;transform:translateY(-6px);
+  transition:opacity .3s linear,transform .3s linear}
+#swCard.in{opacity:1;transform:none}
+#swCard .a{font-size:9px;letter-spacing:.26em;text-transform:uppercase;opacity:.6}
+#swCard .b{font-size:19px;font-weight:700;letter-spacing:-.01em;margin-top:4px}
+#swCard .c{font-size:9px;letter-spacing:.2em;text-transform:uppercase;margin-top:6px;color:#8badff}
+
+@media (max-width:1180px){
+  .arcs{opacity:.32}
+  .word span{font-size:clamp(52px,11.2vw,132px)}
+  .meta{font-size:10px}
+  footer{font-size:10px}
+}
+@media (max-width:900px){
+  #sw-root{padding:34px 28px 28px}
+  .grid{inset:0 28px}
+  .mods{grid-column:1/13}
+  .mods .nm small{display:none}      /* 窄屏去掉英文小注，清单更干净 */
+  .meta .m2{display:none}
+  /* 窄视口会把弧的左半段裁进来，正好压在状态列上；弧的构图无法在窄屏重排，
+     所以直接压成极淡的背景纹理，只留"还在转"的感觉 */
+  .arcs{opacity:.16}
+  .latch{display:none}               /* 测量标注在窄屏会被裁，直接收起 */
+}
+@media (max-width:640px){
+  #sw-root{padding:26px 20px 20px}
+  .grid{inset:0 20px}
+  .word span{font-size:clamp(40px,13.4vw,72px)}
+  .mods{font-size:11px}
+  footer .go{gap:6px}
+  .arcs{opacity:.1}
+  .word{margin-top:0}
+}
+</style>
+<style>
+
+/* ══ 圆环机器过渡 ══════════════════════════════════════════════════
+   七道同心弧，圆心在画面右下外侧（1420,1010）。
+   内六道用 steps(22) 逐格咬合（机械步进，不是顺滑描边），
+   红粗弧最后用 linear 滑入落位；刻度环 72 条随弧扫过逐条点亮；
+   落位后整组以 ±9° / 25s 慢摆运转，收尾时反向收回。
+   ═══════════════════════════════════════════════════════════════ */
+.arcs{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;
+  transition:opacity .5s linear}
+
+/* 底环：结构基准，s2 时极淡地立在那里 */
+.arc-base{fill:none;stroke:var(--ink);stroke-width:1;opacity:0;transition:opacity .6s linear}
+.s2 .arc-base{opacity:.055}
+
+/* 描画环：逐圈咬合 */
+.arc-draw{fill:none;stroke:var(--ink);stroke-width:1;opacity:.34;
+  stroke-dasharray:var(--len) 9999;stroke-dashoffset:var(--len);
+  transition:stroke-dashoffset 1.02s steps(22,end),opacity .45s linear}
+.arc-draw.is-bold{stroke:var(--accent);stroke-width:12;opacity:.96;
+  transition:stroke-dashoffset 1.15s linear .52s,opacity .4s linear}
+.s3 .arc-draw{stroke-dashoffset:0}
+
+/* 刻度环：每 5° 一条，扫一圈亮 */
+.tick{stroke:var(--ink);stroke-width:1;opacity:0;
+  transition:opacity .16s linear;transition-delay:var(--d)}
+.s3 .tick{opacity:.24}
+.s3 .tick.major{opacity:.42}
+
+/* 落位标记：红弧走完后才出现，像游标停在测量点上 */
+.latch{opacity:0;transition:opacity .18s linear 1.72s}
+.s3 .latch{opacity:1}
+.latch rect{fill:var(--accent)}
+.latch line{stroke:var(--accent);stroke-width:1}
+.latch-note{font-size:9px;letter-spacing:.18em;fill:var(--accent);opacity:0;
+  transition:opacity .2s linear 1.78s;text-transform:uppercase;font-weight:700}
+.s3 .latch-note{opacity:.9}
+
+/* 落位：蓝弧瞬间加粗一档再回位。刻意不做整组位移——那会让画面抖一下 */
+.s3 .arc-draw.is-bold{animation:arcSeat .44s steps(2,end) 1.66s 1}
+@keyframes arcSeat{
+  0%{stroke-width:12}
+  45%{stroke-width:14.5}
+  100%{stroke-width:12}
+}
+
+/* 圆环慢速转动：±9° 往复，25s 一个来回（≈0.72°/s）。
+   为什么不是整圈：圆心在画布外，单向转 90° 弧就整段跑出可见区、直接消失；
+   所以做成大幅度慢摆 —— 看起来是"环在缓缓转"，但两端始终留在画面外。
+   转动挂在 <g class="ring-spin"> 上，transform-origin 用 view-box 用户坐标写死
+   圆心 (1420,1010)：这样窗口比例怎么裁、slice 怎么放大，转轴都压在真正的圆心上，
+   不会像百分比原点那样在非 16:9 窗口里变成"一边转一边平移"。
+   弧段长度不写死，由 JS 按当前视口算（见 buildArcs）。 */
+.ring-spin{transform-box:view-box;transform-origin:1420px 1010px}
+.s4 .ring-spin{animation:arcTurn 25s ease-in-out infinite}
+@keyframes arcTurn{
+  0%{transform:rotate(0deg)}
+  25%{transform:rotate(9deg)}
+  75%{transform:rotate(-9deg)}
+  100%{transform:rotate(0deg)}
+}
+#sw-root.no-sway .ring-spin{animation:none}
+
+/* 控制台：在 #sw-root 外面，所以自带一套颜色变量并跟随 html.dark-base */
+.cfg{--c-ink:#0e1d40;--c-paper:#e3ecfb;--c-acc:#3964fe;--c-hair:rgba(14,29,64,.24);
+  position:fixed;right:24px;top:84px;z-index:30;display:flex;flex-direction:column;
+  align-items:flex-end;font-family:var(--sans)}
+html.dark-base .cfg{--c-ink:#e8eefb;--c-paper:#0a1224;--c-acc:#6f97ff;--c-hair:rgba(232,238,251,.26)}
+.cfg-btn{width:34px;height:34px;border:1px solid var(--c-ink);background:transparent;color:var(--c-ink);
+  font-family:inherit;font-size:9px;font-weight:700;letter-spacing:.14em;cursor:pointer;
+  transition:background .15s linear,color .15s linear}
+.cfg-btn:hover{background:var(--c-ink);color:var(--c-paper)}
+.cfg-panel{display:none;position:absolute;right:0;top:42px;width:256px;background:var(--c-paper);
+  border:1px solid var(--c-ink);padding:14px;flex-direction:column;gap:9px}
+.cfg-panel.on{display:flex}
+.cfg-t{font-size:9px;letter-spacing:.3em;text-transform:uppercase;font-weight:700;
+  border-bottom:1px solid var(--c-ink);padding-bottom:7px}
+.cfg-row{display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:.06em}
+.cfg-row>span{width:58px;flex:none;text-transform:uppercase;opacity:.65}
+.cfg-row select,.cfg-row input[type=text]{flex:1;min-width:0;font-family:inherit;font-size:10px;
+  letter-spacing:.06em;padding:4px 6px;border:1px solid var(--c-hair);background:transparent;color:var(--c-ink)}
+/* 下拉箭头自己画，别用系统那套灰三角 */
+.cfg-row select{appearance:none;-webkit-appearance:none;padding-right:20px;cursor:pointer;
+  background-image:linear-gradient(45deg,transparent 50%,var(--c-ink) 50%),
+                   linear-gradient(135deg,var(--c-ink) 50%,transparent 50%);
+  background-position:calc(100% - 12px) calc(50% - 1px), calc(100% - 8px) calc(50% - 1px);
+  background-size:4px 4px,4px 4px;background-repeat:no-repeat}
+.cfg-row input[type=range]{flex:1;min-width:0;accent-color:var(--c-acc);height:14px}
+.cfg-row b{width:46px;text-align:right;font-size:10px;font-variant-numeric:tabular-nums}
+.cfg-row input[type=checkbox]{accent-color:var(--c-acc);margin:0}
+.cfg-go{margin-top:2px;padding:7px;border:1px solid var(--c-ink);background:var(--c-ink);color:var(--c-paper);
+  font-family:inherit;font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
+  cursor:pointer;transition:background .15s linear,border-color .15s linear}
+.cfg-go:hover{background:var(--c-acc);border-color:var(--c-acc)}
+.cfg-hint{font-size:9px;letter-spacing:.08em;opacity:.5;line-height:1.6}
+
+/* 收尾：反向收回 + 淡出，切进会话 */
+#sw-root.closing .arc-draw{transition:stroke-dashoffset .58s steps(18,end);stroke-dashoffset:var(--len)}
+#sw-root.closing .arcs{opacity:0;transition:opacity .5s linear .1s}
+#sw-root.closing .tick,#sw-root.closing .latch,#sw-root.closing .latch-note{opacity:0;transition:opacity .2s linear}
+main{z-index:2}
+.word span{font-size:clamp(52px,10.4vw,168px)}
+.s5 .redbar{width:38%!important}
+.cols{margin-top:26px}
+
 </style>
 </head>
 <body>
-
-<!-- 揭幕后的假主界面（DSH 藏蓝风 mock） -->
-<div id="mockApp">
-  <div class="side">
-    <div class="brand">
-      <svg viewBox="0 0 50 50" aria-hidden="true"><path id="mockWhale" fill-rule="nonzero"/></svg>
-      <span>DeepSeek Harness</span>
-    </div>
-    <div class="item">＋ 新建会话</div>
-    <div class="item on">启动界面美化设计</div>
-    <div class="item">莱因生命风格调研</div>
-    <div class="item">dsniang 美化插件</div>
-    <div class="item">工作区文件整理</div>
-    <div class="item">⚙ 设置</div>
-  </div>
-  <div class="main">
-    <div class="top">启动界面美化设计 · main</div>
-    <div class="bodyc">
-      <div class="bubble me">开屏做成莱因生命风格，配色用现在插件的藏蓝</div>
-      <div class="bubble ai">开机序列完成：黑幕标识 → 过曝洗白 → 技术档案底板 → 六步交互授权 → 色散故障揭幕。<br>强调色已映射为 DSH 蓝 #3964fe，准星缺口朝下不压字幕。</div>
-    </div>
-  </div>
-  <div class="mockTag">MOCK — 揭幕演示用假背景</div>
+<div id="sw-root">
+  <div class="grid"></div>
+  <svg class="arcs" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <g class="ring-spin">
+      <g class="ring-bases"></g>
+      <g class="ring-draws"></g>
+      <g class="ring-ticks"></g>
+      <g class="latch">
+        <rect x="1118" y="492" width="7" height="7"/>
+        <line x1="1121" y1="499" x2="1121" y2="530"/>
+        <text class="latch-note" x="1128" y="536">R600 / LOCK 01</text>
+      </g>
+    </g>
+  </svg>
+<header class="meta"><div class="m1">DeepSeek Harness</div><div class="m2">System Start — <span id="sysDate">2026 / 10 / 24</span></div><div class="m3">DSH / 01 &nbsp;·&nbsp; Depth <b id="bigNum">0000</b> M</div></header>
+<div class="rule"></div>
+  <main>
+    <div class="word"><span class="ln" data-text="DEEPSEEK">DEEPSEEK</span><span class="ln" data-text="HARNESS">HARNESS</span></div>
+    <div class="fitmeta"><span>FIT</span><b id="fitLoss">0.842</b><span>·</span><span>EPOCH</span><b id="fitEp">00</b></div>
+    <div class="redbar"></div>
+    <div class="cols">
+      <ol class="mods">
+        <li><span class="n">01</span><span class="nm">智能体内核<small>Agent Kernel</small></span><span class="st">OK</span></li>
+        <li><span class="n">02</span><span class="nm">工具总线<small>Tool Bus</small></span><span class="st">OK</span></li>
+        <li><span class="n">03</span><span class="nm">连接器<small>Connectors</small></span><span class="st">Linked</span></li>
+        <li><span class="n">04</span><span class="nm">工作区索引<small>Workspace</small></span><span class="st">Indexed</span></li>
+        <li><span class="n">05</span><span class="nm">推理模型<small>DeepSeek-V3 · 671B / 37B Active</small></span><span class="st">Ready</span></li>
+      </ol>
+      </div>
+  </main>
+  <footer><span class="go"><em>Entering Session</em> &nbsp;→</span><span class="tail"><button class="skip" id="swSkip">Skip <kbd>Esc</kbd></button><span class="pn">ARC <i id="arcNo">00</i> / 07</span></span></footer>
 </div>
 
-<!-- 开屏挂载点 -->
-<div id="dsh2-root" class="d2-lock"></div>
-
-<!-- 控制台 -->
-<div id="d2console">
-  <header><span><span class="dot"></span>DSH 开屏 v2 · 控制台</span><button id="btnCollapse" style="flex:0 0 auto;padding:3px 9px;font-size:11px">收起</button></header>
-  <div class="pane">
-    <div class="row2">
-      <div><label>登录名（Welcome Back 卡片）</label><input type="text" id="fIdentity" value="JOYCE MOORE" maxlength="32"></div>
-      <div><label>主题</label><select id="fTheme"><option value="auto">自动 · 跟随系统</option><option value="light">浅色 · DSH 纸面</option><option value="dark">深色 · 暗底板</option></select></div>
-    </div>
-    <div><label>速度 <span id="fSpeedVal">1.10×</span></label><input type="range" id="fSpeed" min="0.35" max="3" step="0.05" value="1.1"></div>
-    <div><label>每步停留（节奏） <span id="fHoldVal">1.0s</span></label><input type="range" id="fHold" min="0.6" max="3" step="0.1" value="1.0"></div>
-    <div><label>强调色</label><select id="fAccent"><option value="#3964fe">DSH 蓝 #3964fe（默认）</option><option value="#ff7500">莱因橙 #ff7500（对比）</option><option value="#f7ad31">琥珀 #f7ad31</option></select></div>
-    <label class="chk"><input type="checkbox" id="fSkip" checked>允许跳过（SKIP / Esc）</label>
-    <label class="chk"><input type="checkbox" id="fSound" checked>界面音效（WebAudio 合成）</label>
-    <div class="btns">
-      <button class="primary" id="btnReplay">↻ 重播</button>
-      <button id="btnSkip">跳过</button>
-    </div>
-    <div class="note">序列：访问权限认证 → 身份资料确认 → 接收访问需求 → 开始读取权限 → 读取完毕·核验通过 → 直接进入会话（无欢迎页）。<br>五步停留时间已统一为「每步停留」值；文字没打完会自动顺延，快而不闪。<br>所有参数改完后点「↻ 重播」才生效。<br>结构参考 dsh-startup-screen (MIT)，视觉为莱因生命 × DSH 藏蓝。</div>
+<div class="cfg" id="swCfg" hidden>
+  <button class="cfg-btn" id="cfgBtn" type="button">CFG</button>
+  <div class="cfg-panel" id="cfgPanel">
+    <div class="cfg-t">Settings</div>
+    <label class="cfg-row"><span>主题</span>
+      <select id="cTheme"><option value="auto">自动 · 跟随系统</option><option value="light">浅色</option><option value="dark">深色</option></select>
+    </label>
+    <label class="cfg-row"><span>标题</span>
+      <select id="cTitle"><option value="fit">AI 拟合</option><option value="scramble">乱码生成</option></select>
+    </label>
+    <label class="cfg-row"><span>速度</span>
+      <input type="range" id="cSpeed" min="0.35" max="3" step="0.05" value="1">
+      <b id="cSpeedV">1.00×</b>
+    </label>
+    <label class="cfg-row"><span>登录名</span>
+      <input type="text" id="cName" maxlength="32" placeholder="Welcome back">
+    </label>
+    <label class="cfg-row"><span>弧线律动</span>
+      <input type="checkbox" id="cSway" checked>
+    </label>
+    <button class="cfg-go" id="cReplay" type="button">↻ 重播</button>
+    <div class="cfg-hint">改完点重播生效 · Esc 跳过 · Ctrl+Alt+B 重播</div>
   </div>
 </div>
 
 <script>
-/* ============================================================================
- * DSH 开屏 v2 运行时 —— 结构参考 dsh-startup-screen (MIT © 沈宏宏)，
- * 动效语言按莱因生命风格重写，配色对齐 dsniang / DSH 界面色板。
- * ========================================================================== */
 (function () {
-'use strict';
+  'use strict';
 
-/* ── DeepSeek 官方鲸鱼标识（取自 DSH favicon.svg 的公开路径数据）────────── */
-var WHALE_PATH = 'M48.8354 10.0479C48.3232 9.79199 48.1025 10.2798 47.8032 10.5278C47.7007 10.6079 47.6143 10.7119 47.5273 10.8076C46.7793 11.624 45.9048 12.1597 44.7622 12.0957C43.0923 12 41.666 12.5356 40.4058 13.8398C40.1377 12.2319 39.2476 11.272 37.8926 10.6558C37.1836 10.3359 36.4668 10.0156 35.9702 9.31982C35.6235 8.82373 35.5293 8.27197 35.356 7.72754C35.2456 7.3999 35.1353 7.06396 34.7651 7.00781C34.3633 6.94385 34.2056 7.2876 34.0479 7.57568C33.418 8.75195 33.1733 10.0479 33.1973 11.3599C33.2524 14.312 34.4736 16.6641 36.8999 18.3359C37.1758 18.5278 37.2466 18.7197 37.1597 19C36.9946 19.5757 36.7974 20.1357 36.624 20.7119C36.5137 21.0801 36.3486 21.1597 35.9624 21C34.6309 20.4321 33.481 19.5918 32.4644 18.5757C30.7393 16.8721 29.1792 14.9917 27.2334 13.52C26.7764 13.1758 26.3193 12.856 25.8467 12.5518C23.8618 10.584 26.1069 8.96777 26.627 8.77588C27.1704 8.57568 26.8159 7.8877 25.0591 7.896C23.3022 7.90381 21.6953 8.50391 19.647 9.30371C19.3477 9.42383 19.0322 9.51172 18.7095 9.58398C16.8501 9.22363 14.9199 9.14355 12.9033 9.37598C9.10596 9.80762 6.07275 11.6396 3.84326 14.7681C1.16455 18.5278 0.53418 22.7998 1.30664 27.2559C2.11768 31.9521 4.46582 35.8398 8.07373 38.8799C11.8159 42.0322 16.1255 43.5762 21.041 43.2803C24.0269 43.104 27.3516 42.6963 31.1016 39.4561C32.0469 39.936 33.0396 40.1279 34.686 40.272C35.9546 40.3921 37.1758 40.208 38.1211 40.0078C39.6021 39.688 39.4995 38.2881 38.9639 38.0322C34.623 35.9678 35.5762 36.8081 34.71 36.1279C36.9155 33.4639 40.2402 30.6958 41.54 21.728C41.6426 21.0161 41.5557 20.5679 41.54 19.9917C41.5322 19.6396 41.6108 19.5039 42.0049 19.4639C43.0923 19.3359 44.1479 19.0317 45.1167 18.4878C47.9292 16.9199 49.064 14.3438 49.3315 11.2559C49.3711 10.7837 49.3237 10.2959 48.8354 10.0479ZM24.3262 37.8398C20.1196 34.4639 18.0791 33.3521 17.2358 33.3999C16.4482 33.4482 16.5898 34.3682 16.7632 34.9678C16.9443 35.5601 17.1812 35.9683 17.5117 36.4878C17.7402 36.832 17.8979 37.3442 17.2832 37.728C15.9282 38.584 13.5728 37.4399 13.4624 37.3838C10.7207 35.7358 8.42822 33.5601 6.81348 30.584C5.25342 27.7197 4.34766 24.6479 4.19775 21.3677C4.1582 20.5757 4.38672 20.2959 5.15869 20.1519C6.17529 19.96 7.22314 19.9199 8.23926 20.0718C12.5327 20.7119 16.1885 22.6719 19.2529 25.7759C21.002 27.5439 22.3252 29.6558 23.6885 31.7202C25.1377 33.9121 26.6978 36 28.6831 37.7119C29.3843 38.312 29.9434 38.7681 30.479 39.104C28.8643 39.2881 26.1699 39.3281 24.3262 37.8398ZM26.3433 24.6001C26.3433 24.248 26.6191 23.9678 26.9658 23.9678C27.0444 23.9678 27.1152 23.9839 27.1782 24.0078C27.2651 24.04 27.3438 24.0879 27.4067 24.1602C27.5171 24.272 27.5801 24.4321 27.5801 24.6001C27.5801 24.9521 27.3042 25.2319 26.9575 25.2319C26.6108 25.2319 26.3433 24.9521 26.3433 24.6001ZM32.6064 27.8799C32.2046 28.0479 31.8027 28.1919 31.4165 28.208C30.8179 28.2397 30.1641 27.9922 29.8096 27.688C29.2583 27.2158 28.8643 26.9521 28.6987 26.1279C28.6279 25.7759 28.6675 25.2319 28.7305 24.9199C28.8721 24.248 28.7144 23.8159 28.2495 23.4238C27.8716 23.104 27.3911 23.0161 26.8633 23.0161C26.666 23.0161 26.4849 22.9277 26.3511 22.856C26.1304 22.7441 25.9492 22.4639 26.1226 22.1201C26.1777 22.0078 26.4458 21.7358 26.5088 21.688C27.2256 21.272 28.0527 21.4077 28.8169 21.7197C29.5259 22.0161 30.0615 22.5601 30.834 23.3281C31.6216 24.2559 31.7632 24.5117 32.2124 25.208C32.5669 25.752 32.8901 26.312 33.1104 26.9521C33.2446 27.3521 33.0713 27.6802 32.6064 27.8799Z';
-
-/* ── 默认配置（键名与 dsh-startup-screen 兼容，方便日后直接对接）───────── */
-var DEFAULTS = {
-  enabled: true,
-  theme: 'auto', speed: 1.1, stepHold: 1000,
-  requireInteraction: false, allowSkip: true,
-  sound: true, soundVolume: .5,
-  voice: false, voiceLang: 'en', voiceName: '', voiceRate: .88, voicePitch: .85, voiceVolume: .9, voiceCue: true, voiceLead: 240,
-  identity: 'JOYCE MOORE', loginName: '',   /* loginName：在线识别的登录名，空则回退 identity（正式集成由 DSH Host 传入） */
-  brand1: 'DSH', brand2: 'DEEPSEEK HARNESS', brand3a: 'ACCESS', brand3b: 'TERMINAL',
-  orgZh: '深度求索', orgEn: 'DEEPSEEK', orgSub: 'DEEPSEEK HARNESS',
-  footer: 'POWERED BY DSNIANG BEAUTIFY CORE',
-  accent: '#3964fe', glitchA: '#d54941', glitchB: '#2971b8'
-};
-function cfg() {
-  var raw = (window.__DSH_STARTUP__ && typeof window.__DSH_STARTUP__ === 'object') ? window.__DSH_STARTUP__ : {};
-  var out = {}; var k;
-  for (k in DEFAULTS) if (Object.prototype.hasOwnProperty.call(DEFAULTS, k)) out[k] = DEFAULTS[k];
-  for (k in raw) if (raw[k] !== undefined && raw[k] !== null) out[k] = raw[k];
-  out.speed = Math.min(3, Math.max(.35, Number(out.speed) || 1));
-  out.stepHold = Math.min(3000, Math.max(600, Number(out.stepHold) || 1600));
-  out.identity = String(out.identity || DEFAULTS.identity).slice(0, 48);
-  out.loginName = String(out.loginName || out.identity).slice(0, 48);
-  return out;
-}
-var C = cfg();
-window.__DSH_STARTUP_CFG__ = C;
-
-/* 主题自动跟随系统（DSH 的 prefers-color-scheme 选择） */
-var mqDark = (typeof window.matchMedia === 'function') ? window.matchMedia('(prefers-color-scheme: dark)') : null;
-function resolveDark() { return C.theme === 'dark' || (C.theme === 'auto' && !!(mqDark && mqDark.matches)); }
-if (mqDark && mqDark.addEventListener) {
-  try {
-    mqDark.addEventListener('change', function () {
-      if (root && C.theme === 'auto') root.classList.toggle('d2-dark', mqDark.matches);
-    });
-  } catch (e) {}
-}
-
-/* ── 六段序列脚本（中文主字 + 英文等宽字幕 + 底部日志 + 播报句）────────── */
-var STEPS = [
-  { zh: '访问权限认证', en: 'ACCESS AUTHENTICATION', say: 'Access authentication.',
-    log: '正在核验访问权限…', logEn: 'AUTHENTICATING ACCESS', badge: 'AUTHORIZATION',
-    action: 'grant', btnZh: '授予访问权限', btnEn: 'GRANT ACCESS', hold: 900, progress: .34 },
-  { zh: '身份资料确认', en: 'IDENTITY VERIFICATION', say: 'Identity verification.',
-    log: '核对身份资料…', logEn: 'MATCHING OPERATOR RECORD', badge: 'IDENTITY',
-    action: 'confirm', btnZh: '确认身份', btnEn: 'CONFIRM IDENTITY', hold: 700, progress: .5 },
-  { zh: '接收访问需求', en: 'ACCESS REQUEST RECEIVED', say: 'Access request received.',
-    log: '接收访问需求，建立会话通道…', logEn: 'HANDSHAKE ESTABLISHED', badge: 'REQUEST',
-    action: 'auto', hold: 1300, progress: .66, assembleLogo: true },
-  { zh: '开始读取权限', en: 'PERMISSION READ STARTED', say: 'Beginning permission read.',
-    log: '开始读取权限，索引工作区与会话…', logEn: 'READING PERMISSION SET', badge: 'READ',
-    action: 'auto', hold: 1300, progress: .8, hex: true },
-  { zh: '读取完毕 · 核验通过', zhA: '读取完毕', zhB: '核验通过', en: 'READ COMPLETE · VERIFIED', say: 'Read complete. Verification passed.',
-    log: '读取完毕，核验通过，权限已授予', logEn: 'PERMISSION AUTHORIZED', badge: 'VERIFY',
-    action: 'auto', hold: 1700, progress: .93, reticle: true }
-];
-
-/* ── 工具 ── */
-function clamp01(v, lo, hi) { var n = Number(v); return isFinite(n) ? Math.min(hi, Math.max(lo, n)) : lo; }
-function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
-function svgWhale(cls) {
-  var ns = 'http://www.w3.org/2000/svg';
-  var svg = document.createElementNS(ns, 'svg');
-  svg.setAttribute('viewBox', '0 0 50 50'); svg.setAttribute('aria-hidden', 'true');
-  if (cls) svg.setAttribute('class', cls);
-  var p = document.createElementNS(ns, 'path');
-  p.setAttribute('d', WHALE_PATH); p.setAttribute('fill-rule', 'nonzero');
-  svg.appendChild(p); return svg;
-}
-/* 逐字渐显（比逐字截断稳，居中排版不抖动） */
-function typeIn(host, text, stagger) {
-  host.textContent = '';
-  var frag = document.createDocumentFragment(); var n = 0;
-  for (var i = 0; i < text.length; i++) {
-    var ch = text.charAt(i);
-    if (ch === ' ') { frag.appendChild(document.createTextNode('\u00a0')); continue; }
-    var s = el('span', 'd2-ch', ch);
-    s.style.transitionDelay = Math.round(n * stagger) + 'ms';
-    frag.appendChild(s); n++;
-  }
-  host.appendChild(frag);
-}
-function setIn(node, on) { if (node) node.classList.toggle('d2-in', !!on); }
-
-/* ── 声音：界面音效（WebAudio 合成）+ 女声播报（speechSynthesis 评分挑音色）── */
-var audio = (function () {
-  var ctx = null;
-  function ac(force) {
-    if (!C.sound && !force) return null;
-    try {
-      var AC = window.AudioContext || window.webkitAudioContext;
-      if (!AC) return null;
-      if (!ctx) ctx = new AC();
-      if (ctx.state === 'suspended' && ctx.resume) ctx.resume();
-      return ctx;
-    } catch (e) { return null; }
-  }
-  function vol(g) { return Math.max(.0002, (g == null ? .05 : g) * clamp01(C.soundVolume, 0, 1) * 2); }
-  function tone(freq, dur, type, gain, delay, glideTo) {
-    var c = ac(); if (!c) return;
-    try {
-      var t0 = c.currentTime + (delay || 0);
-      var o = c.createOscillator(), g = c.createGain();
-      o.type = type || 'sine'; o.frequency.setValueAtTime(freq, t0);
-      if (glideTo) o.frequency.exponentialRampToValueAtTime(glideTo, t0 + dur);
-      g.gain.setValueAtTime(.0001, t0);
-      g.gain.exponentialRampToValueAtTime(vol(gain), t0 + Math.min(.02, dur * .3));
-      g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
-      o.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0 + dur + .03);
-    } catch (e) {}
-  }
-  return {
-    resume: function () { ac(); },
-    tick: function () { tone(1760, .035, 'square', .02); },
-    step: function () { tone(880, .05, 'sine', .05); tone(1320, .07, 'sine', .028, .045); },
-    confirm: function () { tone(660, .09, 'triangle', .07); tone(990, .17, 'triangle', .055, .085); },
-    /* 扫描气声：双振荡器上滑，替代原先的沙沙噪声 */
-    sweep: function () { tone(420, .38, 'triangle', .026, 0, 1500); tone(630, .38, 'sine', .015, .03, 2250); },
-    cue: function () { tone(1046.5, .05, 'sine', .028); tone(1568, .06, 'sine', .02, .075); },
-    rise: function () { tone(220, 1.1, 'sine', .032, 0, 990); },
-    chime: function () { tone(659.25, .9, 'sine', .055); tone(830.61, .9, 'sine', .04, .09); tone(987.77, 1.3, 'sine', .045, .18); },
-    /* 切入会话：干净的双音上铃（短促、收尾干脆） */
-    enter: function () { tone(784, .13, 'triangle', .05); tone(1174.7, .3, 'triangle', .042, .11); tone(1568, .26, 'sine', .018, .11); }
+  var DEFAULTS = {
+    enabled: true, speed: 1, duration: 0,
+    identity: 'JOYCE MOORE', loginName: '',
+    theme: 'auto', accent: 'red', allowSkip: true, oncePerSession: false,
+    sway: true, console: true, titleMode: 'fit'
   };
-})();
+  var EXT = window.__DSH_STARTUP__ || {};
+  var C = {};
+  for (var k in DEFAULTS) C[k] = (k in EXT) ? EXT[k] : DEFAULTS[k];
+  C.speed = Math.min(3, Math.max(.35, Number(C.speed) || 1));
+  C.loginName = C.loginName || C.identity;
+  window.__DSH_STARTUP_CFG__ = C;
 
-var voice = (function () {
-  var supported = typeof window !== 'undefined' && !!window.speechSynthesis && typeof window.SpeechSynthesisUtterance === 'function';
-  var voices = [], picked = { en: null, zh: null }, meter = null, saidOnce = false, pending = { en: '', zh: '' };
-  /* 音色打分：神经网络 > 女声 > 语种吻合 > 本地（借鉴 dsh-startup-screen 的思路） */
-  var NATURAL = ['natural', 'neural', 'online', 'premium', 'enhanced', 'siri', 'google'];
-  var FEMALE = ['aria', 'jenny', 'michelle', 'emma', 'ava', 'libby', 'sonia', 'maisie', 'zira', 'samantha', 'karen', 'moira', 'tessa', 'victoria', 'serena', 'allison', 'susan', 'fiona', 'hazel', 'female', 'woman', 'xiaoxiao', 'xiaoyi', 'huihui', 'yaoyao', '晓晓', '晓伊', '女声'];
-  var MALE = ['david', 'mark', 'guy', 'ryan', 'george', 'daniel', 'alex', 'fred', 'male', 'yunxi', 'yunjian', 'kangkang'];
-  function hits(n, list) { for (var i = 0; i < list.length; i++) if (n.indexOf(list[i]) !== -1) return true; return false; }
-  function score(v, want) {
-    var name = String(v.name || '').toLowerCase(), lang = String(v.lang || '').toLowerCase(), sc = 0;
-    if (hits(name, NATURAL)) sc += 60;
-    if (hits(name, FEMALE)) sc += 40;
-    if (hits(name, MALE)) sc -= 45;
-    if (lang.indexOf(want) === 0) sc += 25;
-    if (v.localService) sc += 4;
-    if (v.default) sc += 3;
-    return sc;
+  var mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+  function isDark() {
+    return C.theme === 'dark' || (C.theme === 'auto' && !!(mq && mq.matches));
   }
-  function bestFor(want) {
-    if (!voices.length) return null;
-    if (C.voiceName) {
-      for (var i = 0; i < voices.length; i++) {
-        var v0 = voices[i];
-        if (v0.name === C.voiceName && String(v0.lang || '').toLowerCase().indexOf(want) === 0) return v0;
+
+  var root = null, timers = [], skipped = false, finished = false, started = 0;
+
+  function ms(v) { return Math.round(v / C.speed); }
+  function wait(v) {
+    return new Promise(function (res) {
+      var id = setTimeout(res, Math.max(0, ms(v)));
+      timers.push(id);
+    });
+  }
+  function clearTimers() { timers.forEach(clearTimeout); timers = []; }
+
+  function buildDOM() {
+    var old = document.getElementById('sw-root');
+    if (old) { root = old; return; }   /* 复用静态骨架 */
+    root = null;
+  }
+
+  /* 12 栏网格线 */
+  function drawGrid() {
+    var g = root.querySelector('.grid');
+    if (!g || g.children.length) return;
+    for (var i = 1; i < 12; i++) {
+      var el = document.createElement('i');
+      el.style.left = (i * 100 / 12) + '%';
+      g.appendChild(el);
+    }
+  }
+
+  /* ── 圆环机器过渡：7 道弧 + 一整条刻度 ──────────────────────────
+     圆心在画面右下外侧 (1420,1010)，只画"看得见的那一段"，但弧长不写死：
+     按当前视口算可见角度窗口（七个半径取并集），两端各再多给 16°，
+     所以窗口什么比例、slice 怎么裁，弧和刻度的端头都落在画面外
+     —— 转动 ±9° 也够余量。七道弧从同一个方向依次"咬合"出来。
+     ─────────────────────────────────────────────────────────────── */
+  var RING = { CX: 1420, CY: 1010, R: [360, 480, 600, 720, 840, 960, 1080], EXTRA: 16, STEP: 4 };
+
+  /* slice 裁切之后，viewBox 里真正看得见的那块矩形 */
+  function ringBox(svg) {
+    var W = svg.clientWidth || 1600, H = svg.clientHeight || 900;
+    var s = Math.max(W / 1600, H / 900);
+    var ox = (W - 1600 * s) / 2, oy = (H - 900 * s) / 2;
+    return { x0: Math.max(0, -ox / s), y0: Math.max(0, -oy / s),
+             x1: Math.min(1600, (W - ox) / s), y1: Math.min(900, (H - oy) / s) };
+  }
+
+  /* 某个半径上落在可见矩形里的那段角度（取最长连续段，可跨 0°） */
+  function ringWindow(r, box) {
+    var N = 720, hit = [], i, step = 360 / N;
+    for (i = 0; i < N; i++) {
+      var a = i * step * Math.PI / 180;
+      var x = RING.CX + r * Math.cos(a), y = RING.CY + r * Math.sin(a);
+      hit.push(x >= box.x0 && x <= box.x1 && y >= box.y0 && y <= box.y1);
+    }
+    var bestA = -1, bestL = 0, curA = -1, curL = 0;
+    for (i = 0; i < N * 2; i++) {
+      if (hit[i % N]) { if (curA < 0) { curA = i; curL = 0; } curL++; }
+      else { curA = -1; curL = 0; }
+      if (curL > bestL) { bestL = curL; bestA = curA; }
+      if (curL >= N) break;
+    }
+    if (bestL < 2) return null;
+    var a0 = ((bestA % N) * step + 360) % 360;
+    return [a0, a0 + bestL * step];
+  }
+
+  function buildArcs(force) {
+    var svg = root && root.querySelector('.arcs');
+    if (!svg) return;
+    if (!force && svg.getAttribute('data-built')) return;
+    svg.setAttribute('data-built', '1');
+    var NS = 'http://www.w3.org/2000/svg';
+    var CX = RING.CX, CY = RING.CY, EXTRA = RING.EXTRA;
+
+    /* 七个半径的可见窗口取并集，两端各加 EXTRA */
+    var box = ringBox(svg), lo = 999, hi = -999;
+    RING.R.forEach(function (r) {
+      var w = ringWindow(r, box);
+      if (!w) return;
+      if (w[0] < lo) lo = w[0];
+      if (w[1] > hi) hi = w[1];
+    });
+    if (!isFinite(lo) || !isFinite(hi) || hi - lo < 30) { lo = 186; hi = 300; }
+    var START = ((lo - EXTRA) % 360 + 360) % 360;
+    var SPAN = (hi - lo) + EXTRA * 2;
+
+    var bases = svg.querySelector('.ring-bases');
+    var draws = svg.querySelector('.ring-draws');
+    var ticks = svg.querySelector('.ring-ticks');
+    if (!bases || !draws || !ticks) return;
+    [bases, draws, ticks].forEach(function (g) { while (g.firstChild) g.removeChild(g.firstChild); });
+
+    /* 已经点亮过（s3 之后）重建，就直接给终值，别把入场动画重播一遍 */
+    var lit = root.classList.contains('s3');
+
+    RING.R.forEach(function (r, i) {
+      var b = document.createElementNS(NS, 'circle');
+      b.setAttribute('cx', CX); b.setAttribute('cy', CY); b.setAttribute('r', r);
+      b.setAttribute('class', 'arc-base');
+      if (lit) { b.style.transition = 'none'; b.style.opacity = '.055'; }
+      bases.appendChild(b);
+
+      var len = 2 * Math.PI * r * (SPAN / 360);
+      var d = document.createElementNS(NS, 'circle');
+      d.setAttribute('cx', CX); d.setAttribute('cy', CY); d.setAttribute('r', r);
+      d.setAttribute('transform', 'rotate(' + START.toFixed(2) + ' ' + CX + ' ' + CY + ')');
+      d.setAttribute('class', 'arc-draw' + (i === 2 ? ' is-bold' : ''));
+      d.style.setProperty('--len', len.toFixed(1));
+      if (i !== 2) d.style.transitionDelay = (i * 70) + 'ms';
+      if (lit) { d.style.transition = 'none'; d.style.strokeDashoffset = '0'; }
+      draws.appendChild(d);
+    });
+
+    /* 刻度：贴着蓝弧外侧（r 566~584），铺满整段弧、每 STEP 度一条。
+       以前只铺 100°、比弧短一截，端口就停在画面中间 —— 现在跟弧同进同出。 */
+    var count = Math.floor(SPAN / RING.STEP);   /* 不越过弧的末角 */
+    for (var k = 0; k <= count; k++) {
+      var deg = START + k * RING.STEP;
+      var rad = deg * Math.PI / 180;
+      var major = (k % 5 === 0);
+      var r1 = major ? 566 : 572, r2 = 584;
+      var ln = document.createElementNS(NS, 'line');
+      ln.setAttribute('x1', (CX + r1 * Math.cos(rad)).toFixed(1));
+      ln.setAttribute('y1', (CY + r1 * Math.sin(rad)).toFixed(1));
+      ln.setAttribute('x2', (CX + r2 * Math.cos(rad)).toFixed(1));
+      ln.setAttribute('y2', (CY + r2 * Math.sin(rad)).toFixed(1));
+      ln.setAttribute('class', 'tick' + (major ? ' major' : ''));
+      ln.style.setProperty('--d', (600 + k * 24) + 'ms');
+      if (lit) { ln.style.transition = 'none'; ln.style.opacity = major ? '.42' : '.24'; }
+      ticks.appendChild(ln);
+    }
+  }
+
+  /* ── 两行主字右端对齐：量出文字实际宽度，把差值摊到 HARNESS 的字距里，
+        让 DEEPSEEK / HARNESS 成为一个左齐、右也齐的字块（瑞士海报的常规做法）── */
+  /* ── 乱码解码（参数取自 rhine-lab-motion 模式 1）───────────────
+     32ms 换一批乱码、尾部长 3 位、outCubic 解锁；
+     中文用汉字池（莱因原规则是中文不做乱码，这里按需求改成也做）。
+     ───────────────────────────────────────────────────────────── */
+  var POOL_EN = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#%&*+=/<>';
+  var POOL_ZH = '深度求索数据流内核链路权限索引模型潜行认证解封对话推理档案舱潜航校准矢量节点矩阵频段指令缓存指针队列帧数构▓▒░';
+  function outCubic(p) { return 1 - Math.pow(1 - p, 3); }
+  function hash2(a, b) {
+    var x = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453;
+    return x - Math.floor(x);
+  }
+  /* 对文本节点做解码：__raw 存原文，逐帧把尾部换成乱码。
+     时间一律取 performance.now()，不用 rAF 回调的时间戳 —— 两者的时钟
+     在部分环境（虚拟时间、离屏/无 vsync）能差出好几秒，一差就 p<0，
+     下面从 solved 开始补齐的循环会多吐上千个字符。p 再夹到 [0,1] 兜底。 */
+  function decodeNode(node, dur, seed, tail) {
+    if (!node || node.nodeType !== 3) return;
+    var raw = node.__raw != null ? node.__raw : (node.__raw = node.nodeValue);
+    if (!raw) return;
+    var pool = /[\u4e00-\u9fff]/.test(raw) ? POOL_ZH : POOL_EN;
+    var n = raw.length, t0 = performance.now(), t = tail == null ? 3 : tail;
+    function frame() {
+      var now = performance.now();
+      var p = Math.min(1, Math.max(0, (now - t0) / dur));
+      var solved = Math.floor(outCubic(p) * n);
+      var out = raw.slice(0, solved);
+      var tick = Math.floor(now / 32);
+      /* 未解锁的位置全部补乱码：长度始终等于原文，右端不会忽长忽短 */
+      for (var i = solved; i < n; i++) {
+        out += pool.charAt(Math.floor(hash2(i + seed * 31, tick) * pool.length));
+      }
+      node.nodeValue = out;
+      if (p < 1) requestAnimationFrame(frame);
+      else node.nodeValue = raw;
+    }
+    requestAnimationFrame(frame);
+  }
+  /* 清单一项：编号 / 中文名 / 英文小注 / 状态 各自解码，轻微错峰 */
+  function decodeItem(li, dur) {
+    var list = [];
+    var n = li.querySelector('.n');
+    var nm = li.querySelector('.nm');
+    var sm = li.querySelector('.nm small');
+    var st = li.querySelector('.st');
+    if (n && n.firstChild) list.push(n.firstChild);
+    if (nm && nm.firstChild && nm.firstChild.nodeType === 3) list.push(nm.firstChild);
+    if (sm && sm.firstChild) list.push(sm.firstChild);
+    if (st && st.firstChild) list.push(st.firstChild);
+    list.forEach(function (node, k) { decodeNode(node, dur, k + 1, 2); });
+  }
+  /* 标题整行乱码：长度长，尾部长 3 位更像终端解码 */
+  function scrambleLine(el, dur, seed) {
+    if (!el) return;
+    var raw = el.getAttribute('data-text') || el.textContent;
+    var n = raw.length, t0 = performance.now();
+    function frame() {
+      var now = performance.now();
+      var p = Math.min(1, Math.max(0, (now - t0) / dur));
+      var solved = Math.floor(outCubic(p) * n);
+      var out = raw.slice(0, solved);
+      var tick = Math.floor(now / 32);
+      for (var i = solved; i < n; i++) {
+        out += POOL_EN.charAt(Math.floor(hash2(i + seed * 31, tick) * POOL_EN.length));
+      }
+      el.textContent = out;
+      if (p < 1) requestAnimationFrame(frame);
+      else el.textContent = raw;
+    }
+    requestAnimationFrame(frame);
+  }
+  /* 拟合读数跟着轮次跳，不是线性爬 */
+  function setFitMeter(step, total) {
+    var loss = document.getElementById('fitLoss');
+    var ep = document.getElementById('fitEp');
+    if (!loss || !ep) return;
+    var p = total ? step / total : 1;
+    loss.textContent = (0.842 * Math.pow(1 - p, 2.2) + 0.004).toFixed(3);
+    ep.textContent = String(Math.round(p * 84)).padStart(2, '0');
+  }
+
+  /* ── A · AI 拟合：一串乱码 → 另一串（多几个对的）→ 直到全对 ────────
+     过渡不靠膨动，靠"乱码修正"：
+     · 未确定的字每 CHURN 毫秒重刷一批 —— 整块始终在轻轻抖；
+     · 每轮把几个位置钉成正字，钉上去那一下带一个 3px 的落位小顿；
+     · 钉住的字从此一动不动，也不再参与重刷（这是逐字拆格的理由）；
+     · 两行的位置各自洗牌后再交错成一条队列：每轮都同时动到两行。
+     逐字格必须"冻结几何"：每格宽 = 该位置最终那个字的步进 + 字距，
+     再按整串实测宽度把 kerning 的余量摊掉。这样乱码换字时整块宽度
+     一动不动，右缘不会跟着抖，两行墨迹右缘的对齐也不会被破坏。
+     ─────────────────────────────────────────────────────────────── */
+  var _advCache = {};
+  function advOf(ch, font, size) {
+    var key = size + '|' + font + '|' + ch;
+    if (_advCache[key] != null) return _advCache[key];
+    if (!_icx) {
+      try {
+        _icv = document.createElement('canvas');
+        _icx = _icv.getContext('2d', { willReadFrequently: true });
+      } catch (e) { _icx = null; }
+    }
+    /* 拿不到 canvas（无 GPU 环境 / 老浏览器）就按大写字母平均步进估，
+       几何照样冻结，只是格宽不是逐字精确 */
+    var w = _icx ? (_icx.font = font, _icx.measureText(ch).width) : size * 0.62;
+    _advCache[key] = w;
+    return w;
+  }
+
+  function fitSequence(els, seed) {
+    var lines = [], raws = [];
+    for (var q = 0; q < els.length; q++) {
+      if (!els[q]) continue;
+      lines.push(els[q]);
+      raws.push(els[q].getAttribute('data-text') || els[q].textContent);
+    }
+    if (!lines.length) return;
+    var total = 0;
+    for (var t0i = 0; t0i < raws.length; t0i++) total += raws[t0i].length;
+    if (!total) return;
+
+    /* 先量几何：字号、字距、整串实测宽度、每个位置的字形步进 */
+    var FS = [], FONT = [], LS = [], DELTA = [], ADV = [];
+    for (var g = 0; g < lines.length; g++) {
+      var cs = getComputedStyle(lines[g]);
+      var fs = parseFloat(cs.fontSize) || 96;
+      var font = cs.fontStyle + ' ' + cs.fontWeight + ' ' + fs + 'px ' + cs.fontFamily;
+      var ls = parseFloat(cs.letterSpacing);
+      if (isNaN(ls)) ls = 0;
+      var advs = [], sum = 0;
+      for (var cg = 0; cg < raws[g].length; cg++) {
+        var av = advOf(raws[g].charAt(cg), font, fs);
+        advs.push(av);
+        sum += av + ls;
+      }
+      var measured = 0;
+      try {
+        var rng = document.createRange();
+        rng.selectNodeContents(lines[g]);
+        var rects = rng.getClientRects();
+        if (rects.length) measured = rects[rects.length - 1].right - rects[0].left;
+      } catch (e) { /* 量不到就按字距算 */ }
+      FS.push(fs); FONT.push(font); LS.push(ls); ADV.push(advs);
+      DELTA.push(measured ? (measured - sum) / raws[g].length : 0);
+    }
+
+    /* 逐字格：固定宽度，只换字 */
+    var cells = [], pools = [];
+    for (var li = 0; li < lines.length; li++) {
+      var row = [], prow = [], frag = document.createDocumentFragment();
+      for (var ci = 0; ci < raws[li].length; ci++) {
+        var ch0 = raws[li].charAt(ci);
+        var c = document.createElement('i');
+        c.className = 'ch';
+        c.textContent = ch0;
+        c.__ch = ch0;
+        c.style.width = (ADV[li][ci] + LS[li] + DELTA[li]).toFixed(2) + 'px';
+        frag.appendChild(c);
+        row.push(c);
+        /* 乱码只能从"步进接近"的字里挑：宽度冻结了，宽字会压到邻居 */
+        var tol = ADV[li][ci] * 0.06, cand = [];
+        for (var pk = 0; pk < POOL_EN.length; pk++) {
+          var ck = POOL_EN.charAt(pk);
+          if (ck === ch0) continue;
+          if (Math.abs(advOf(ck, FONT[li], FS[li]) - ADV[li][ci]) <= tol) cand.push(ck);
+        }
+        if (cand.length < 5) {
+          cand = [];
+          for (var pk2 = 0; pk2 < POOL_EN.length; pk2++) {
+            var ck2 = POOL_EN.charAt(pk2);
+            if (ck2 === ch0) continue;
+            if (Math.abs(advOf(ck2, FONT[li], FS[li]) - ADV[li][ci]) <= ADV[li][ci] * 0.14) cand.push(ck2);
+          }
+        }
+        if (!cand.length) cand = POOL_EN.split('').filter(function (x) { return x !== ch0; });
+        prow.push(cand);
+      }
+      lines[li].textContent = '';
+      lines[li].appendChild(frag);
+      cells.push(row);
+      pools.push(prow);
+    }
+
+    var ROUNDS = 7;
+    var CHURN = 48;          /* 乱码重刷间隔 */
+    var HOLD = 190;          /* 每轮之间停多久 */
+
+    /* 每行各自洗牌，再交错成一条队列 */
+    var perLine = [];
+    for (var l0 = 0; l0 < raws.length; l0++) {
+      var arr = [];
+      for (var c0 = 0; c0 < raws[l0].length; c0++) arr.push([l0, c0]);
+      for (var k0 = arr.length - 1; k0 > 0; k0--) {
+        var j0 = Math.floor(hash2(k0 + l0 * 71 + seed * 17, 11) * (k0 + 1));
+        var tmp0 = arr[k0]; arr[k0] = arr[j0]; arr[j0] = tmp0;
+      }
+      perLine.push(arr);
+    }
+    var flat = [], maxLen = 0;
+    for (var m0 = 0; m0 < perLine.length; m0++) {
+      if (perLine[m0].length > maxLen) maxLen = perLine[m0].length;
+    }
+    for (var n0 = 0; n0 < maxLen; n0++) {
+      for (var p0 = 0; p0 < perLine.length; p0++) {
+        if (perLine[p0][n0]) flat.push(perLine[p0][n0]);
       }
     }
-    var pool = [];
-    for (var j = 0; j < voices.length; j++) if (String(voices[j].lang || '').toLowerCase().indexOf(want) === 0) pool.push(voices[j]);
-    if (!pool.length) pool = voices.slice();
-    var best = null, bs = -1e9;
-    for (var n = 0; n < pool.length; n++) { var sc = score(pool[n], want); if (sc > bs) { bs = sc; best = pool[n]; } }
-    return best;
+
+    var plan = [];
+    for (var r = 1; r <= ROUNDS; r++) plan.push(Math.round(total * r / ROUNDS));
+
+    var solved = [];
+    for (var s0 = 0; s0 < lines.length; s0++) solved.push({});
+    var solvedCount = 0, round = 0, stamp = 0, doneFit = false;
+
+    function noise(li1, i, st) {
+      var pool = pools[li1][i];
+      return pool[Math.floor(hash2(i + li1 * 53 + seed * 31 + st * 97, st + 1) * pool.length) % pool.length];
+    }
+    function renoise() {
+      stamp++;
+      for (var a = 0; a < cells.length; a++) {
+        for (var i = 0; i < cells[a].length; i++) {
+          if (solved[a][i]) continue;
+          var ch = noise(a, i, stamp);
+          var cell = cells[a][i];
+          if (cell.__ch !== ch) { cell.__ch = ch; cell.textContent = ch; }
+        }
+      }
+    }
+    function churnLoop() {
+      if (finished || doneFit) return;
+      renoise();
+      var id = setTimeout(churnLoop, ms(CHURN));
+      timers.push(id);
+    }
+    /* 钉住一个字：真字落位 + 一个 3px 的下落小顿 */
+    function lock(a, i) {
+      var cell = cells[a][i], ch = raws[a].charAt(i);
+      if (cell.__ch !== ch) { cell.__ch = ch; cell.textContent = ch; }
+      cell.classList.remove('lock');
+      void cell.offsetWidth;                 /* 强制重排，动画才能重复触发 */
+      cell.classList.add('lock');
+      var id = setTimeout(function () { cell.classList.remove('lock'); }, ms(300));
+      timers.push(id);
+    }
+    /* 收尾：换回整串文本 —— 定格之后不再需要逐字格，
+       恢复成普通文本，窗口缩放时 fitLines 重新算字距才不会被冻结的格宽挡住 */
+    function settleText() {
+      if (finished) return;
+      doneFit = true;
+      for (var a = 0; a < lines.length; a++) lines[a].textContent = raws[a];
+      setFitMeter(plan.length, plan.length);
+    }
+    function nextRound() {
+      if (finished || doneFit) return;
+      if (round >= plan.length) {
+        var id2 = setTimeout(settleText, ms(170));
+        timers.push(id2);
+        return;
+      }
+      var target = plan[round++];
+      while (solvedCount < target) {
+        var pos = flat[solvedCount];
+        solved[pos[0]][pos[1]] = true;
+        lock(pos[0], pos[1]);
+        solvedCount++;
+      }
+      setFitMeter(round, plan.length);
+      var id = setTimeout(nextRound, ms(HOLD));
+      timers.push(id);
+    }
+
+    renoise();                               /* 第一串：全乱码，没有一处是对的 */
+    var id0 = setTimeout(function () { churnLoop(); nextRound(); }, ms(150));
+    timers.push(id0);
   }
-  function setMeter(on) { if (meter) meter.classList.toggle('d2-on', !!on); }
-  function load() {
-    if (!supported) return;
-    try { voices = window.speechSynthesis.getVoices() || []; } catch (e) { voices = []; }
-    picked.en = bestFor('en'); picked.zh = bestFor('zh');
+
+  /* 标题按模式启动。
+     乱码版：上行 s3、下行 s4，按瑞士式错峰依次解码。
+     拟合版：两行只能起一次，一次就把两行都带上（同时变化）。 */
+  var fitStarted = false;
+  function startTitle(idx) {
+    var lns = root.querySelectorAll('.word .ln');
+    if (C.titleMode === 'scramble') {
+      scrambleLine(lns[idx], ms(880), idx * 7 + 3);
+      return;
+    }
+    if (fitStarted) return;
+    fitStarted = true;
+    fitSequence([lns[0], lns[1]], 3);
   }
-  function estimateMs(items) {
-    var chars = 0, rate = clamp01(C.voiceRate, .5, 2) || 1;
+
+  /* ── 两行主字对齐（墨迹级，不是盒子级）─────────────────────────
+     DOM 的 Range 会把负字距算进宽度，量出来不准；这里改成在 canvas 上
+     逐字符绘制 + 扫描最右不透明像素，再二分字距让 HARNESS 的墨迹右缘
+     与 DEEPSEEK 的完全重合。缩到 96px 字号算比例，误差 < 0.3%。────── */
+  var _icv = null, _icx = null;
+  function inkRightCanvas(text, lsPx, font, size) {
+    if (!_icv) {
+      _icv = document.createElement('canvas');
+      _icx = _icv.getContext('2d', { willReadFrequently: true });
+    }
+    var W = Math.ceil(size * (text.length * 0.86 + 1.2));
+    var H = Math.ceil(size * 1.7);
+    _icv.width = W; _icv.height = H;
+    _icx.clearRect(0, 0, W, H);
+    _icx.font = font;
+    _icx.textBaseline = 'alphabetic';
+    _icx.fillStyle = '#000';
+    var x = size * 0.3, y = size * 1.22;
+    for (var i = 0; i < text.length; i++) {
+      var ch = text.charAt(i);
+      _icx.fillText(ch, x, y);
+      x += _icx.measureText(ch).width + lsPx;
+    }
+    var d = _icx.getImageData(0, 0, W, H).data, right = 0;
+    for (var yy = 0; yy < H; yy += 2) {
+      for (var xx = W - 1; xx >= 0; xx--) {
+        if (d[(yy * W + xx) * 4 + 3] > 24) { if (xx > right) right = xx; break; }
+      }
+    }
+    return right;
+  }
+
+  function fitLines() {
+    var spans = root && root.querySelectorAll('.word span');
+    if (!spans || spans.length < 2) return;
+    var a = spans[0], b = spans[1];
+    var cs = getComputedStyle(b);
+    var size = Math.min(96, parseFloat(cs.fontSize) || 96);
+    var font = cs.fontStyle + ' ' + cs.fontWeight + ' ' + size + 'px ' + cs.fontFamily;
+    var baseEm = -0.042;                          /* CSS 里的原始字距 */
+    /* 量的是正解（data-text），不是当前帧的乱码 —— 拟合播放中重算也不会跑偏 */
+    var ta = a.getAttribute('data-text') || a.textContent;
+    var tb = b.getAttribute('data-text') || b.textContent;
+    try {
+      var target = inkRightCanvas(ta, baseEm * size, font, size);
+      if (!target) return;
+      var lo = -0.06 * size, hi = 0.18 * size, mid = 0;
+      for (var it = 0; it < 13; it++) {
+        mid = (lo + hi) / 2;
+        var w = inkRightCanvas(tb, mid, font, size);
+        if (w < target) lo = mid; else hi = mid;
+      }
+      b.style.letterSpacing = (mid / size).toFixed(4) + 'em';
+    } catch (e) { /* canvas 不可用时保持 CSS 默认字距 */ }
+  }
+
+  /* 页眉日期：用当天日期，别写死 */
+  function stampDate() {
+    var el = document.getElementById('sysDate');
+    if (!el) return;
+    var d = new Date();
+    var p = function (v) { return String(v).padStart(2, '0'); };
+    el.textContent = d.getFullYear() + ' / ' + p(d.getMonth() + 1) + ' / ' + p(d.getDate());
+  }
+
+  /* 页脚 ARC 计数：七道弧依次落位，数字跟着走 */
+  function arcCount(n, total) {
+    var el = document.getElementById('arcNo');
+    if (!el || finished) return;
+    el.textContent = String(n).padStart(2, '0');
+    if (n < total) {
+      var id = setTimeout(function () { arcCount(n + 1, total); }, ms(95));
+      timers.push(id);
+    }
+  }
+
+  /* 数字计数：linear，不做缓动（瑞士式克制） */
+  function countTo(node, to, dur) {
+    var t0 = performance.now();
+    function frame() {
+      if (finished) return;
+      var p = Math.min(1, Math.max(0, (performance.now() - t0) / dur));
+      node.textContent = String(Math.round(p * to)).padStart(4, '0');
+      if (p < 1) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function showCard() {
+    var card = document.createElement('div');
+    card.id = 'swCard';
+    card.innerHTML = '<div class="a">Welcome back</div>' +
+      '<div class="b">' + (C.loginName || C.identity) + '</div>' +
+      '<div class="c">Session Established</div>';
+    document.body.appendChild(card);
+    requestAnimationFrame(function () { card.classList.add('in'); });
+    setTimeout(function () {
+      card.classList.remove('in');
+      setTimeout(function () { if (card.parentNode) card.parentNode.removeChild(card); }, 340);
+    }, 3200);
+  }
+
+  function finish() {
+    if (finished) return;
+    finished = true;
+    clearTimers();
+    if (root) root.classList.add('closing');   /* 弧反向收回 */
+    setTimeout(function () { if (root) root.classList.add('out'); }, ms(320));
+    document.documentElement.classList.remove('sw-lock');
+    if (document.body) document.body.style.overflow = '';
+    setTimeout(function () {
+      if (root) root.style.display = 'none';
+      showCard();
+      try { window.dispatchEvent(new CustomEvent('dsh-startup:done')); } catch (e) {}
+      if (typeof window.DSH_BOOT_READY__ === 'function') { try { window.DSH_BOOT_READY__(); } catch (e) {} }
+      else { window.DSH_BOOT_READY__ = Promise.resolve(true); }
+    }, ms(820));
+  }
+
+  /* ── 控制台：右上角 CFG，展开就是参数面板 ────────────────
+     只绑一次事件；每次 start 只同步当前值，避免 replay 后叠加监听器 */
+  function buildConsole() {
+    var cfg = document.getElementById('swCfg');
+    if (!cfg) return;
+    if (!C.console) { cfg.style.display = 'none'; return; }
+    cfg.hidden = false;
+
+    var elTheme = document.getElementById('cTheme');
+    var elTitle = document.getElementById('cTitle');
+    var elSpeed = document.getElementById('cSpeed');
+    var elName = document.getElementById('cName');
+    var elSway = document.getElementById('cSway');
+    var elSpeedV = document.getElementById('cSpeedV');
+    var panel = document.getElementById('cfgPanel');
+
+    /* 同步当前配置 */
+    elTheme.value = C.theme;
+    elTitle.value = C.titleMode;
+    elSpeed.value = C.speed;
+    elSpeedV.textContent = Number(C.speed).toFixed(2) + '×';
+    elName.value = C.loginName || C.identity || '';
+    elSway.checked = !!C.sway;
+
+    if (cfg.getAttribute('data-bound')) return;
+    cfg.setAttribute('data-bound', '1');
+
+    document.getElementById('cfgBtn').addEventListener('click', function (e) {
+      e.stopPropagation();
+      panel.classList.toggle('on');
+    });
+    panel.addEventListener('click', function (e) { e.stopPropagation(); });
+
+    elSpeed.addEventListener('input', function () {
+      elSpeedV.textContent = Number(this.value).toFixed(2) + '×';
+    });
+
+    /* 主题即时预览，不用等重播 */
+    elTheme.addEventListener('change', function () {
+      C.theme = this.value;
+      if (!root) return;
+      root.classList.toggle('dark', isDark());
+      document.documentElement.classList.toggle('dark-base', isDark());
+    });
+
+    elSway.addEventListener('change', function () {
+      if (root) root.classList.toggle('no-sway', !this.checked);
+    });
+
+    /* 换标题动画要重播才看得出来，选完直接从头放一遍 */
+    elTitle.addEventListener('change', function () {
+      C.titleMode = this.value;
+      if (window.DSH11_SPLASH_API__) window.DSH11_SPLASH_API__.replay();
+    });
+
+    document.getElementById('cReplay').addEventListener('click', function () {
+      C.speed = Math.min(3, Math.max(.35, Number(elSpeed.value) || 1));
+      C.theme = elTheme.value;
+      C.titleMode = elTitle.value;
+      C.loginName = elName.value.trim() || C.identity;
+      C.sway = elSway.checked;
+      panel.classList.remove('on');
+      if (window.DSH11_SPLASH_API__) window.DSH11_SPLASH_API__.replay();
+    });
+  }
+
+  function skip() {
+    if (skipped || finished) return;
+    if (performance.now() - started < 500) return;
+    skipped = true;
+    finish();
+  }
+
+  /* 主序列 */
+  async function run() {
+    root.classList.add('s1');
+    await wait(240);
+    root.classList.add('s2');       /* 页眉线拉开 + 底环立起 */
+    await wait(200);
+    root.classList.add('s3');       /* 七道弧依次咬合，蓝弧最后落位 */
+    /* 深度与弧同步：弧扫完 = 到底 2025M，两者同一条时间线 */
+    startTitle(0);                  /* DEEPSEEK：拟合 / 乱码 */
+    countTo(document.getElementById('bigNum'), 2025, ms(1670));
+    arcCount(1, 7);
+    await wait(700);
+    root.classList.add('s4');       /* HARNESS 升起，红弧仍在收尾 */
+    startTitle(1);
+    await wait(340);
+    root.classList.add('s5');
+
+    var items = root.querySelectorAll('.mods li');
     for (var i = 0; i < items.length; i++) {
-      var t = String(items[i].t || '');
-      chars += /[\u4e00-\u9fa5]/.test(t) ? t.length * 1.7 : t.length;
+      if (finished) return;
+      items[i].classList.add('on');
+      decodeItem(items[i], ms(520));      /* 编号/中文/英文/状态一起解码 */
+      await wait(150);
     }
-    return Math.round((chars / 13) * 1000 / rate) + 460;
+
+    await wait(900);                /* 停留：让末行清单和 2025 被读到 */
+
+    root.classList.add('s6');       /* 圆环开始极慢运转 */
+    await wait(560);
+    root.classList.add('s7');
+    await wait(1400);
+    finish();
   }
-  function buildUtter(text, lang) {
-    var u = new window.SpeechSynthesisUtterance(text);
-    var v = lang.indexOf('zh') === 0 ? picked.zh : picked.en;
-    if (v) { u.voice = v; u.lang = v.lang || lang; } else u.lang = lang;
-    u.rate = clamp01(C.voiceRate, .5, 2); u.pitch = clamp01(C.voicePitch, 0, 2); u.volume = clamp01(C.voiceVolume, 0, 1);
-    return u;
-  }
-  /* 念一行并等念完（不 cancel 上一句——speechSynthesis 自带队列） */
-  function ttsLine(en, zh) {
-    return new Promise(function (resolve) {
-      if (!supported || !C.voice || finished) { resolve(0); return; }
-      pending = { en: en || '', zh: zh || '' };
-      var items = [];
-      if (C.voiceLang === 'zh') { if (zh) items.push({ t: zh, l: 'zh-CN' }); }
-      else if (C.voiceLang === 'both') { if (zh) items.push({ t: zh, l: 'zh-CN' }); if (en) items.push({ t: en, l: 'en-US' }); }
-      else if (en) items.push({ t: en, l: 'en-US' });
-      if (!items.length) { resolve(0); return; }
-      saidOnce = true;
-      if (C.voiceCue !== false) audio.cue();
-      var startedAt = Date.now(), est = estimateMs(items);
-      var lead = clamp01(C.voiceLead, 0, 1200), settled = false, watchdog = null;
-      function settle() { if (settled) return; settled = true; if (watchdog) clearTimeout(watchdog); setMeter(false); resolve(Math.max(0, Date.now() - startedAt)); }
-      setTimeout(function () {
-        if (finished) { settle(); return; }
-        var last = items.length - 1;
-        for (var i = 0; i <= last; i++) {
-          var u = buildUtter(items[i].t, items[i].l);
-          if (i === last) { u.onstart = function () { setMeter(true); }; u.onend = settle; u.onerror = settle; }
-          try { window.speechSynthesis.speak(u); } catch (e) { if (i === last) settle(); }
-        }
-        watchdog = setTimeout(settle, est + 900);   /* 个别引擎不触发 onend 时兜底 */
-      }, lead);
-    });
-  }
-  function spokenName(name) {
-    return String(name || '').replace(/\S+/g, function (w) {
-      return (/^[A-Z0-9.\-]+$/.test(w) && w.length > 1) ? w.charAt(0) + w.slice(1).toLowerCase() : w;
-    });
-  }
-  return {
-    supported: supported, load: load,
-    attach: function (node) { meter = node; },
-    line: function (en, zh) { return ttsLine(en, zh); },
-    unlock: function () {
-      try { if (supported) window.speechSynthesis.resume(); } catch (e) {}
-      audio.resume();
-      if (supported && !saidOnce) {   /* 预热：无声念一个空格，唤醒引擎 */
-        try {
-          var w = new window.SpeechSynthesisUtterance(' '); w.volume = 0;
-          var v = picked.en || picked.zh; if (v) { w.voice = v; w.lang = v.lang; }
-          window.speechSynthesis.speak(w);
-        } catch (e) {}
+
+  function start() {
+    started = performance.now();
+    skipped = false; finished = false;
+    fitStarted = false;              /* 重播时两行重新共用一次拟合 */
+    root = document.getElementById('sw-root');
+    buildDOM();
+    if (!root) return;
+
+    root.classList.toggle('dark', isDark());
+    document.documentElement.classList.toggle('dark-base', isDark());
+    document.documentElement.classList.add('sw-lock');
+    if (document.body) document.body.style.overflow = 'hidden';
+    root.classList.toggle('no-sway', !C.sway);
+    root.classList.toggle('mode-fit', C.titleMode !== 'scramble');
+    root.classList.toggle('mode-scramble', C.titleMode === 'scramble');
+    buildConsole();
+    drawGrid();
+    buildArcs();
+    stampDate();
+    fitLines();
+    if (document.fonts && document.fonts.ready) {
+      /* 只在开头 500ms 内补算一次；播放中途重算会让字距突变，看着像抖动 */
+      document.fonts.ready.then(function () {
+        if (!finished && performance.now() - started < 500) fitLines();
+      });
+    }
+    if (!window.__swFitBound) {
+      window.__swFitBound = true;
+      var rz;
+      window.addEventListener('resize', function () {
+        clearTimeout(rz);
+        /* 视口一变，弧的可见角度窗口就变了：按新窗口重算弧长/刻度，别让端头露进画面 */
+        rz = setTimeout(function () { buildArcs(true); fitLines(); }, 120);
+      });
+    }
+
+    /* 预览定格：?pose=1 */
+    if (/[?&]pose=1/.test(location.search)) {
+      root.classList.add('s1', 's2', 's3', 's4', 's5', 's7');
+      /* 定格模式：所有过渡一律关掉并写死终值，避免停在中间帧 */
+      root.querySelectorAll('.word span, .rule, .redbar, .go, .mods li').forEach(function (e) {
+        e.style.transition = 'none';
+      });
+      root.querySelectorAll('.word span').forEach(function (e) { e.style.clipPath = 'inset(0 0 0 0)'; });
+      root.querySelectorAll('.word .ln').forEach(function (e) {
+        e.style.animation = 'none'; e.style.opacity = '1';
+        e.style.filter = 'none'; e.style.transform = 'none';
+      });
+      root.querySelectorAll('.word .ln').forEach(function (e) {
+        var t = e.getAttribute('data-text'); if (t) e.textContent = t;
+      });
+      /* 伪元素（重影）没法用 inline 关，加一条 style 让定格图干净 */
+      var ps = document.createElement('style');
+      ps.textContent = '#sw-root .word .ln::before,#sw-root .word .ln::after' +
+        '{animation:none !important;opacity:0 !important;filter:none !important}';
+      document.head.appendChild(ps);
+      root.querySelector('.rule').style.transform = 'scaleX(1)';
+      root.querySelector('.redbar').style.width = '50%';
+      root.querySelectorAll('.go').forEach(function (e) { e.style.opacity = '1'; });
+      root.querySelectorAll('.arc-draw').forEach(function (c) {
+        c.style.transition = 'none'; c.style.strokeDashoffset = '0';
+      });
+      root.querySelectorAll('.tick').forEach(function (t) {
+        t.style.transition = 'none';
+        t.style.opacity = t.classList.contains('major') ? '.4' : '.2';
+      });
+      root.querySelectorAll('.arc-base').forEach(function (c) { c.style.opacity = '.055'; });
+      root.querySelector('.latch').style.transition = 'none';
+      root.querySelector('.latch').style.opacity = '1';
+      root.querySelector('.latch-note').style.transition = 'none';
+      root.querySelector('.latch-note').style.opacity = '.9';
+      root.querySelectorAll('.mods li').forEach(function (li) { li.classList.add('on'); });
+      var bn = document.getElementById('bigNum');
+      if (bn) bn.textContent = '0475';
+      var an = document.getElementById('arcNo');
+      if (an) an.textContent = '07';
+      var fl0 = document.getElementById('fitLoss');
+      if (fl0) fl0.textContent = '0.004';
+      var fe0 = document.getElementById('fitEp');
+      if (fe0) fe0.textContent = '84';
+      fitLines();
+      return;
+    }
+
+    /* 系统开了"减少动态效果"：直接呈现终态，停 0.9s 后进入会话 */
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) {
+      root.classList.add('s1', 's2', 's3', 's4', 's5', 's7');
+      root.querySelectorAll('.mods li').forEach(function (li) { li.classList.add('on'); });
+      var bn0 = document.getElementById('bigNum');
+      if (bn0) bn0.textContent = '2025';
+      var an0 = document.getElementById('arcNo');
+      if (an0) an0.textContent = '07';
+      fitLines();
+      setTimeout(finish, ms(900));
+      return;
+    }
+
+    document.getElementById('swSkip').addEventListener('click', function (e) { e.stopPropagation(); skip(); });
+    document.addEventListener('keydown', function (e) {
+      var t = e.target;
+      var typing = t && /^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName || '');
+      if (e.key === 'Escape' && C.allowSkip && !typing) skip();
+      if (e.altKey && e.ctrlKey && (e.key === 'b' || e.key === 'B')) {
+        e.preventDefault();
+        window.DSH11_SPLASH_API__.replay();
       }
-      if (!saidOnce && C.voice && (pending.en || pending.zh)) ttsLine(pending.en, pending.zh);
+    });
+    run();
+  }
+
+  window.DSH11_SPLASH_API__ = {
+    replay: function () {
+      finished = true; clearTimers();
+      root = document.getElementById('sw-root');
+      if (root) {
+        root.classList.remove('s1', 's2', 's3', 's4', 's5', 's6', 's7', 'out', 'closing');
+        root.style.display = '';
+        /* 先关掉过渡让弧瞬间回到起点，40ms 后再恢复，避免"倒放"一段 */
+        root.querySelectorAll('.arc-draw, .tick').forEach(function (e) { e.style.transition = 'none'; });
+        setTimeout(function () {
+          if (!root) return;
+          root.querySelectorAll('.arc-draw, .tick').forEach(function (e) { e.style.transition = ''; });
+        }, 40);
+      }
+      var bn = document.getElementById('bigNum'); if (bn) bn.textContent = '0000';
+      var an = document.getElementById('arcNo'); if (an) an.textContent = '00';
+      var fl = document.getElementById('fitLoss'); if (fl) fl.textContent = '0.842';
+      var fe = document.getElementById('fitEp'); if (fe) fe.textContent = '00';
+      /* 解码过的文本要还原，否则重播会停在乱码上 */
+      if (root) {
+        root.querySelectorAll('.word .ln').forEach(function (el) {
+          var t = el.getAttribute('data-text');
+          if (t) el.textContent = t;
+          el.style.opacity = '';
+          el.style.filter = '';
+          el.style.transform = '';
+        });
+        root.querySelectorAll('.mods li').forEach(function (li) {
+          li.classList.remove('on');
+          ['.n', '.nm', '.nm small', '.st'].forEach(function (sel) {
+            var el = li.querySelector(sel);
+            if (el && el.firstChild && el.firstChild.__raw != null) {
+              el.firstChild.nodeValue = el.firstChild.__raw;
+            }
+          });
+        });
+      }
+      setTimeout(start, 40);
     },
-    speakName: spokenName,
-    stop: function () { try { if (supported) window.speechSynthesis.cancel(); } catch (e) {} setMeter(false); }
+    skip: skip,
+    config: C
   };
-})();
 
-/* ════════════════════ DOM 搭建 ════════════════════ */
-var root, ui = {}, clockTimer = null, hexTimer = null;
-var timers = [], waiters = [], skipped = false, finished = false;
-var gen = 0;                       /* 代际号：每次重播 +1，旧链靠它自杀 */
-function stale(g) { return g !== gen; }
-
-function buildDOM() {
-  var old = document.getElementById('dsh2-root');
-  if (old && old.parentNode) old.parentNode.removeChild(old);
-  root = el('div'); root.id = 'dsh2-root';
-  root.classList.toggle('d2-dark', resolveDark());
-  root.style.setProperty('--speed', String(C.speed));
-  root.style.setProperty('--accent', C.accent);
-  root.style.setProperty('--glitch-a', C.glitchA);
-  root.style.setProperty('--glitch-b', C.glitchB);
-  root.innerHTML =
-    '<div class="d2-layer d2-plate"></div>' +
-    '<div class="d2-layer d2-watermark"></div>' +
-    '<div class="d2-layer d2-grain"></div>' +
-    '<div class="d2-layer d2-vignette"></div>' +
-    '<div class="d2-layer d2-black"><div class="d2-black-inner"></div><div class="d2-sweep"></div></div>' +
-    '<div class="d2-layer d2-wash"></div>' +
-    '<header class="d2-brand"><div class="d2-brand-1"></div><div class="d2-brand-2"></div><div class="d2-brand-3"><b></b><span></span></div></header>' +
-    '<div class="d2-stepcount">[ 00 / 06 ] INIT</div>' +
-    '<div class="d2-skip">SKIP ▸</div>' +
-    '<div class="d2-slats"></div>' +
-    '<div class="d2-center">' +
-      '<div class="d2-status"><span class="d2-status-zh"></span><i class="d2-caret"></i></div>' +
-      '<div class="d2-sub-en"></div><div class="d2-rule"></div>' +
-      '<div class="d2-logo"></div><div class="d2-dots" hidden></div>' +
-    '</div>' +
-    '<div class="d2-reticle"></div>' +
-    '<div class="d2-hex"></div>' +
-    '<div class="d2-action"><button class="d2-btn" type="button"><span class="d2-btn-zh"></span><span class="d2-btn-en"></span></button><div class="d2-hint"></div></div>' +
-    '<div class="d2-layer d2-frame"><i class="d2-corner d2-c-tl"></i><i class="d2-corner d2-c-tr"></i><i class="d2-corner d2-c-bl"></i><i class="d2-corner d2-c-br"></i><div class="d2-scanline"></div></div>' +
-    '<div class="d2-voice"><i></i><i></i><i></i><i></i><i></i></div>' +
-    '<div class="d2-meta"><span class="d2-meta-1"></span><span class="d2-meta-2"></span></div>' +
-    '<footer class="d2-foot"><span></span><i></i></footer>' +
-    '<div class="d2-subtitle"><span class="d2-sub-zh"></span><span class="d2-sub-en2"></span></div>' +
-    '<div class="d2-progress"><i></i></div>' +
-    '<div class="d2-flash"></div>';
-  document.body.appendChild(root);
-
-  function q(sel) { return root.querySelector(sel); }
-  ui.plate = q('.d2-plate'); ui.watermark = q('.d2-watermark'); ui.black = q('.d2-black');
-  ui.blackInner = q('.d2-black-inner'); ui.sweep = q('.d2-sweep'); ui.wash = q('.d2-wash');
-  ui.flash = q('.d2-flash');
-  ui.vignette = q('.d2-vignette'); ui.brand = q('.d2-brand');
-  ui.brand1 = q('.d2-brand-1'); ui.brand2 = q('.d2-brand-2');
-  ui.brand3b = q('.d2-brand-3 b'); ui.brand3s = q('.d2-brand-3 span');
-  ui.stepcount = q('.d2-stepcount'); ui.center = q('.d2-center');
-  ui.status = q('.d2-status'); ui.statusZh = q('.d2-status-zh'); ui.caret = q('.d2-caret');
-  ui.subEn = q('.d2-sub-en'); ui.rule = q('.d2-rule'); ui.logo = q('.d2-logo'); ui.dots = q('.d2-dots');
-  ui.reticle = q('.d2-reticle'); ui.hex = q('.d2-hex');
-  ui.action = q('.d2-action'); ui.btn = q('.d2-btn');
-  ui.btnZh = q('.d2-btn-zh'); ui.btnEn = q('.d2-btn-en'); ui.hint = q('.d2-hint');
-  ui.skip = q('.d2-skip'); ui.foot = q('.d2-foot'); ui.footText = q('.d2-foot span');
-  ui.subZh = q('.d2-sub-zh'); ui.subEn2 = q('.d2-sub-en2');
-  ui.progress = q('.d2-progress'); ui.bar = q('.d2-progress i');
-  ui.frame = q('.d2-frame'); ui.scanline = q('.d2-scanline');
-  ui.slats = q('.d2-slats'); ui.voice = q('.d2-voice');
-  ui.meta = q('.d2-meta'); ui.meta1 = q('.d2-meta-1'); ui.meta2 = q('.d2-meta-2');
-
-  /* 填内容 */
-  ui.brand1.textContent = C.brand1; ui.brand2.textContent = C.brand2;
-  ui.brand3b.textContent = C.brand3a; ui.brand3s.textContent = C.brand3b;
-  ui.footText.textContent = C.footer;
-  ui.meta1.textContent = 'REV 1.2.0 · DSH NAVY EDITION · RHINE LAB MOTION';
-  ui.meta2.textContent = '';
-
-  /* 黑幕内容 */
-  ui.blackInner.appendChild(svgWhale('d2-whale'));
-  ui.blackInner.appendChild(el('div', 'd2-black-zh', C.orgZh));
-  var ben = el('div', 'd2-black-en', C.orgEn);
-  ui.blackInner.appendChild(ben);
-  ui.blackInner.appendChild(el('div', 'd2-black-sub', C.orgSub));
-  ui.blackEn = ben;
-
-  /* 中央 logo 段 */
-  ui.logo.appendChild(svgWhale());
-  ui.logo.appendChild(el('div', 'd2-logolabel', 'D E E P S E E K'));
-
-  /* 背景档案水印框 */
-  var boxes = [[.6, .02, .16, .96], [.78, .02, .16, .96], [.96, .02, .16, .96], [.05, .02, .1, .5]];
-  for (var i = 0; i < boxes.length; i++) {
-    var b = boxes[i], n = el('div', 'd2-wm');
-    n.style.left = b[0] * 100 + '%'; n.style.top = b[1] * 100 + '%';
-    n.style.width = b[2] * 100 + '%'; n.style.height = b[3] * 100 + '%';
-    ui.watermark.appendChild(n);
-  }
-  /* 六格阶段柱 */
-  for (var s = 0; s < STEPS.length + 1; s++) ui.slats.appendChild(el('i', 'd2-slat'));
-
-  /* 环形准星：300° 弧缺口留在正下方 6 点钟（不压底部字幕），主环 9s / 副环 5.4s 反转 */
-  (function reticle() {
-    var ns = 'http://www.w3.org/2000/svg';
-    var svg = document.createElementNS(ns, 'svg');
-    svg.setAttribute('viewBox', '0 0 400 400');
-    function arc(r, a0, a1, cls, cap) {
-      var rad = function (d) { return (d - 90) * Math.PI / 180; };
-      var x0 = 200 + r * Math.cos(rad(a0)), y0 = 200 + r * Math.sin(rad(a0));
-      var x1 = 200 + r * Math.cos(rad(a1)), y1 = 200 + r * Math.sin(rad(a1));
-      var large = (a1 - a0) > 180 ? 1 : 0;
-      var p = document.createElementNS(ns, 'path');
-      p.setAttribute('d', 'M' + x0.toFixed(2) + ' ' + y0.toFixed(2) + ' A' + r + ' ' + r + ' 0 ' + large + ' 1 ' + x1.toFixed(2) + ' ' + y1.toFixed(2));
-      p.setAttribute('class', cls);
-      if (cap) p.setAttribute('stroke-linecap', cap);
-      return { node: p, x: x1, y: y1, x0: x0, y0: y0 };
-    }
-    var gA = document.createElementNS(ns, 'g'); gA.setAttribute('class', 'd2-ret-rot-a');
-    var a = arc(150, 215, 505, 'd2-ring-a', 'round'); gA.appendChild(a.node);
-    var da = document.createElementNS(ns, 'circle');
-    da.setAttribute('class', 'd2-dot-a'); da.setAttribute('cx', a.x.toFixed(2)); da.setAttribute('cy', a.y.toFixed(2)); da.setAttribute('r', '7');
-    gA.appendChild(da); svg.appendChild(gA);
-    var gB = document.createElementNS(ns, 'g'); gB.setAttribute('class', 'd2-ret-rot-b');
-    var b = arc(104, 200, 490, 'd2-ring-b', 'round'); gB.appendChild(b.node);
-    var db = document.createElementNS(ns, 'circle');
-    db.setAttribute('class', 'd2-dot-b'); db.setAttribute('cx', b.x0.toFixed(2)); db.setAttribute('cy', b.y0.toFixed(2)); db.setAttribute('r', '4');
-    gB.appendChild(db); svg.appendChild(gB);
-    var gC = document.createElementNS(ns, 'g');
-    gC.appendChild(arc(62, 118, 242, 'd2-bracket', 'round').node);
-    gC.appendChild(arc(62, 298, 62, 'd2-bracket', 'round').node);
-    svg.appendChild(gC);
-    var pts = [[152, 132], [252, 268], [278, 150]];
-    for (var i = 0; i < pts.length; i++) {
-      var c = document.createElementNS(ns, 'circle');
-      c.setAttribute('class', 'd2-dot-o');
-      c.setAttribute('cx', pts[i][0]); c.setAttribute('cy', pts[i][1]); c.setAttribute('r', '2.8');
-      svg.appendChild(c);
-    }
-    ui.reticle.appendChild(svg);
-  })();
-
-  voice.attach(ui.voice);
-}
-
-/* ── 时间轴引擎（Promise 链，语音时长驱动停留节奏）── */
-function ms(base) { return Math.round(base / C.speed); }
-function wait(base) {
-  return new Promise(function (resolve) {
-    if (skipped) return resolve();
-    var done = false;
-    function fin() { if (done) return; done = true; var i = waiters.indexOf(fin); if (i >= 0) waiters.splice(i, 1); resolve(); }
-    var t = setTimeout(fin, Math.max(0, ms(base)));
-    timers.push(t); waiters.push(fin);
-  });
-}
-function waitAction() {
-  return new Promise(function (resolve) {
-    if (skipped || !C.requireInteraction) return resolve();
-    var done = false;
-    function fin() { if (done) return; done = true; cleanup(); resolve(); }
-    function onKey(e) { if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); fin(); } }
-    function onClick(e) { e.preventDefault(); fin(); }
-    function cleanup() {
-      ui.btn.removeEventListener('click', onClick);
-      ui.action.removeEventListener('click', onClick);
-      document.removeEventListener('keydown', onKey);
-      var i = waiters.indexOf(fin); if (i >= 0) waiters.splice(i, 1);
-    }
-    ui.btn.addEventListener('click', onClick);
-    ui.action.addEventListener('click', onClick);
-    document.addEventListener('keydown', onKey);
-    waiters.push(fin);
-  });
-}
-function releaseAll() {
-  for (var i = 0; i < timers.length; i++) clearTimeout(timers[i]);
-  timers.length = 0;
-  var list = waiters.slice(); waiters.length = 0;
-  for (var j = 0; j < list.length; j++) { try { list[j](); } catch (e) {} }
-}
-function setProgress(p) { ui.bar.style.width = Math.round(clamp01(p, 0, 1) * 100) + '%'; }
-function setSlats(active) {
-  var items = ui.slats.children;
-  for (var i = 0; i < items.length; i++) {
-    var idx = i + 1;
-    items[i].classList.toggle('d2-on', idx === active);
-    items[i].classList.toggle('d2-past', idx < active);
-  }
-}
-function sweep() {
-  if (!ui.scanline) return;
-  ui.scanline.classList.remove('d2-go'); void ui.scanline.offsetWidth;
-  ui.scanline.classList.add('d2-go');
-}
-function paintClock() {
-  var d = new Date(), pad = function (n) { return (n < 10 ? '0' : '') + n; };
-  ui.meta2.textContent = pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
-}
-function setSubtitle(zh, en) {
-  ui.subZh.classList.remove('d2-in'); ui.subEn2.classList.remove('d2-in');
-  setTimeout(function () {
-    ui.subZh.textContent = zh || ''; ui.subEn2.textContent = en || '';
-    ui.subZh.classList.add('d2-in'); if (en) ui.subEn2.classList.add('d2-in');
-  }, ms(140));
-}
-function setStepCount(i, code) {
-  var total = STEPS.length + 1;
-  ui.stepcount.textContent = '[ ' + String(i).padStart(2, '0') + ' / ' + String(total).padStart(2, '0') + ' ] ' + code;
-}
-function startHex() {
-  stopHex();                       /* 先清掉可能残留的上一代 hex 定时器 */
-  function line() {
-    var s = '';
-    for (var i = 0; i < 26; i++) {
-      s += '0123456789ABCDEF'.charAt(Math.floor(Math.random() * 16));
-      if (i % 2 === 1) s += ' ';
-    }
-    return s;
-  }
-  function paint() {
-    var out = [];
-    for (var i = 0; i < 12; i++) out.push(line());
-    ui.hex.innerHTML = out.join('<br>');
-  }
-  paint(); ui.hex.classList.add('d2-in');
-  hexTimer = setInterval(paint, 110);
-}
-function stopHex() {
-  if (hexTimer) { clearInterval(hexTimer); hexTimer = null; }
-  ui.hex.classList.remove('d2-in');
-}
-/* 鲸鱼一笔画：先勾线再落墨成面 */
-function assembleLogo() {
-  ui.logo.classList.add('d2-in');
-  ui.dots.hidden = false;
-  var path = ui.logo.querySelector('path');
-  if (path && typeof path.getTotalLength === 'function') {
-    try {
-      var len = path.getTotalLength();
-      path.style.fill = 'none'; path.style.stroke = 'currentColor';
-      path.style.strokeWidth = '1.1';
-      path.style.strokeDasharray = len; path.style.strokeDashoffset = len;
-      path.animate([{ strokeDashoffset: len }, { strokeDashoffset: 0 }],
-        { duration: ms(1400), easing: 'cubic-bezier(.55,.06,.24,1)', fill: 'forwards' });
-      setTimeout(function () {
-        path.style.transition = 'fill ' + ms(420) + 'ms ease, stroke-width ' + ms(420) + 'ms ease';
-        path.style.fill = ''; path.style.strokeWidth = '0';
-      }, ms(1450));
-    } catch (e) {}
-  }
-  /* 呼吸点轮流点亮 */
-  var dots = ui.dots.children, di = 0;
-  var dotTimer = setInterval(function () {
-    for (var i = 0; i < dots.length; i++) dots[i].classList.toggle('on', i === di % dots.length);
-    di++;
-  }, ms(300));
-  timers.push(dotTimer);   /* finish 时一并清 */
-  return wait(300);
-}
-
-/* ── 主时间线（每段回调先做代际检查，重播后旧链自动作废）── */
-function run() {
-    runStarted = true;
-    var g = gen;
-    return Promise.resolve()
-      /* 第一幕：黑幕标识 */
-      .then(function () { if (stale(g)) return; return wait(500); })
-      .then(function () { if (stale(g)) return; ui.blackInner.classList.add('d2-in'); audio.rise(); return wait(200); })
-      .then(function () { if (stale(g)) return; ui.blackEn.classList.add('d2-tighten'); return wait(700); })
-      .then(function () { if (stale(g)) return; ui.sweep.classList.add('d2-go'); return wait(600); })
-      /* 过场：过曝洗白 */
-      .then(function () {
-        if (stale(g)) return;
-        ui.blackInner.classList.add('d2-out'); audio.sweep();
-        ui.wash.style.transition = 'opacity ' + ms(180) + 'ms linear';
-        ui.wash.style.opacity = '1';
-        return wait(200);
-      })
-      .then(function () {
-        if (stale(g)) return;
-        ui.plate.style.transition = 'opacity ' + ms(900) + 'ms ease';
-        ui.plate.style.opacity = '1';
-        ui.watermark.classList.add('d2-in');
-        ui.wash.style.transition = 'opacity ' + ms(720) + 'ms cubic-bezier(.2,.9,.2,1)';
-        ui.wash.style.opacity = '0';
-        ui.black.style.transition = 'opacity ' + ms(720) + 'ms ease';
-        ui.black.style.opacity = '0';
-        return wait(560);
-      })
-      /* 第二幕：HUD 框架入场 */
-      .then(function () {
-        if (stale(g)) return;
-        setIn(ui.brand, true); setIn(ui.foot, true); setIn(ui.stepcount, true);
-        setIn(ui.frame, true); setIn(ui.slats, true); setIn(ui.meta, true); setIn(ui.vignette, true); setIn(ui.voice, true);
-        setProgress(.12); setStepCount(0, 'BOOT'); setSlats(0);
-        setSubtitle('系统自检中…', 'SYSTEM SELF-CHECK');
-        if (C.allowSkip) setIn(ui.skip, true);
-        return wait(500);
-      })
-      .then(function () { if (stale(g)) return; ui.black.style.display = 'none'; sweep(); })
-      .then(function () { if (stale(g)) return; return stepLoop(g); })
-      .then(function () { if (stale(g)) return; return finale(g); })
-      .catch(function (err) {
-        if (stale(g)) return;   /* 旧链的异常不许触发新一次的揭幕 */
-        try { console.warn('[dsh2] 动画异常，直接揭幕：', err); } catch (e2) {}
-        return finish();
-      });
-}
-
-function stepLoop(g) {
-  var chain = Promise.resolve();
-  STEPS.forEach(function (step, i) {
-    chain = chain.then(function () {
-      if (finished || stale(g)) return;
-      var n = i + 1;
-      setStepCount(n, step.badge); setSlats(n); setProgress(step.progress);
-      setSubtitle(step.log, step.logEn);
-      audio.step();
-      var spoke = voice.line(step.say, step.zh);   /* 播报与文字同时起，不互相阻塞 */
-
-      ui.status.classList.remove('d2-in'); ui.subEn.classList.remove('d2-in');
-      void ui.status.offsetWidth;                   /* 强制重排，让逐字渐显重走 */
-      if (step.zhB) {
-        /* 分层大字：前段墨色 + 强调色分隔点 + 后段强调色 */
-        typeIn(ui.statusZh, step.zhA, 46);
-        var sep = el('i', 'd2-st-sep', '·');
-        ui.statusZh.appendChild(sep);
-        var sb = el('span', 'd2-st-b');
-        ui.statusZh.appendChild(sb);
-        typeIn(sb, step.zhB, 46);
-      } else {
-        typeIn(ui.statusZh, step.zh, 46);
-      }
-      typeIn(ui.subEn, step.en, 13);
-      ui.caret.classList.toggle('d2-on', C.requireInteraction && !!step.action && step.action !== 'auto');
-      requestAnimationFrame(function () {
-        if (finished) return;
-        ui.status.classList.add('d2-in'); ui.subEn.classList.add('d2-in');
-      });
-      ui.rule.classList.add('d2-in');
-
-      if (step.assembleLogo) assembleLogo();
-      if (step.reticle) {           /* 准星登场：中央只留状态字，别挤成一团 */
-        ui.logo.classList.remove('d2-in');
-        ui.dots.hidden = true;
-        ui.reticle.classList.add('d2-in');
-        sweep();
-      }
-      if (step.hex) startHex();
-
-      /* 停留时间统一为 C.stepHold（控制台可调）；
-         下限 = 大字/字幕打完所需时间 + 120ms 缓冲，保证快而不闪 */
-      function holdFor(spoken) {
-        var zhMs = step.zhB ? (step.zhA.length + 1 + step.zhB.length) * 46 : step.zh.length * 46;
-        var content = Math.max(zhMs, step.en.length * 13) + 120;
-        return wait(Math.max(ms(C.stepHold), content, (spoken || 0) + ms(120)));
-      }
-      if (step.action === 'grant' || step.action === 'confirm') {
-        if (C.requireInteraction) {
-          showAction(step);
-          return wait(520).then(function () { if (stale(g)) return; return waitAction(); }).then(function () {
-            if (stale(g)) return;
-            hideAction(); audio.confirm();
-            ui.caret.classList.remove('d2-on');
-            return spoke;
-          }).then(function () { return wait(ms(320)); });
-        }
-        /* 全自动播放：不弹按钮，但与其他步走同样的统一停留节奏 */
-        return holdFor();
-      }
-      if (step.hex) return spoke.then(holdFor).then(function () { stopHex(); });
-      return spoke.then(holdFor);
+  if (mq && mq.addEventListener && !window.__swThemeBound) {
+    window.__swThemeBound = true;
+    mq.addEventListener('change', function () {
+      if (!root || C.theme !== 'auto' || finished) return;
+      root.classList.toggle('dark', isDark());
+      document.documentElement.classList.toggle('dark-base', isDark());
     });
-  });
-  return chain;
-}
-
-function showAction(step) {
-  ui.btnZh.textContent = step.btnZh;
-  ui.btnEn.textContent = step.btnEn;
-  ui.hint.innerHTML = '按 <kbd>Enter</kbd> / <kbd>Space</kbd>，或点击按钮继续';
-  ui.action.classList.add('d2-in');
-  ui.btn.classList.add('d2-pulse');
-}
-function hideAction() {
-  ui.action.classList.remove('d2-in');
-  ui.btn.classList.remove('d2-pulse');
-}
-
-/* ── 终幕：不做欢迎页，核验通过后白闪一下直接切入会话 ── */
-function finale(g) {
-  if (finished || stale(g)) return Promise.resolve();
-  setStepCount(6, 'READY'); setSlats(6); setProgress(1);
-  setSubtitle('身份验证完成，正在进入会话…', 'VERIFIED · ENTERING SESSION');
-  audio.chime();
-
-  ui.status.classList.remove('d2-in'); ui.subEn.classList.remove('d2-in');
-  ui.rule.classList.remove('d2-in'); ui.reticle.classList.remove('d2-in');
-  ui.logo.classList.remove('d2-in');
-  stopHex();
-  ui.center.classList.add('d2-off');
-  ui.dots.hidden = true;
-
-  return wait(460)
-    .then(function () {
-      if (stale(g)) return;
-      /* 短促白闪 = 硬切进会话的那一下 */
-      ui.flash.style.transition = 'opacity ' + ms(70) + 'ms linear';
-      ui.flash.style.opacity = '.85';
-      audio.enter();   /* 白闪硬切配双音上铃，替代原先的沙沙噪声 */
-      return wait(100);
-    })
-    .then(function () {
-      if (stale(g)) return;
-      ui.flash.style.transition = 'opacity ' + ms(260) + 'ms cubic-bezier(.4,0,.2,1)';
-      ui.flash.style.opacity = '0';
-      root.classList.add('d2-handoff');   /* 机位后撤 + 失焦，露出会话界面 */
-      return wait(560);
-    })
-    .then(function () { if (stale(g)) return; return finish(); });
-}
-
-function finish() {
-  if (finished) return;
-  finished = true;
-  releaseAll(); stopHex(); voice.stop();
-  if (clockTimer) { clearInterval(clockTimer); clockTimer = null; }
-  document.documentElement.classList.remove('d2-lock');
-  if (document.body) document.body.style.overflow = '';
-  root.classList.add('d2-gone');
-  showWelcomeCard();   /* 进入会话：右上角 Welcome Back 卡片，停留后自动消失 */
-  try { window.dispatchEvent(new CustomEvent('dsh-startup:done')); } catch (e) {}
-  try {
-    if (window.DSH_BOOT_READY__ && window.DSH_BOOT_READY__.resolve) window.DSH_BOOT_READY__.resolve({ at: Date.now() });
-  } catch (e) {}
-}
-
-function requestSkip() {
-  if (skipped || finished) return;
-  skipped = true;
-  releaseAll(); finish();
-}
-
-/* 揭幕后：会话窗口右上角 Welcome Back 卡片（莱因档案风，短暂显示后淡出） */
-function showWelcomeCard() {
-  var mock = document.getElementById('mockApp');
-  if (!mock) return;
-  var old = document.getElementById('wbCard');
-  if (old && old.parentNode) old.parentNode.removeChild(old);
-  var card = el('div'); card.id = 'wbCard';
-  card.innerHTML = '<i class="wb-bar"></i>' +
-    '<div class="wb-en">WELCOME BACK</div>' +
-    '<div class="wb-name"></div>' +
-    '<i class="wb-corner tr"></i><i class="wb-corner br"></i>';
-  card.querySelector('.wb-name').textContent = C.loginName || C.identity;
-  mock.appendChild(card);
-  requestAnimationFrame(function () {
-    requestAnimationFrame(function () { card.classList.add('wb-in'); });
-  });
-  setTimeout(function () {
-    if (!card.parentNode) return;
-    card.classList.add('wb-out');
-    setTimeout(function () { if (card.parentNode) card.parentNode.removeChild(card); }, 450);
-  }, 3400);
-}
-
-/* 9 秒兜底：只在动画从未起跑时（run 没执行/起跑前抛异常）才强制揭幕，
-   正常播放即使被 0.35× 慢放拉长也不掐断 */
-var runStarted = false;
-var failsafe = setTimeout(function () {
-  try {
-    if (root && !finished && !runStarted) { finish(); }
-  } catch (e) {}
-}, 9000);
-timers.push(failsafe);
-
-/* ── 启动 ── */
-function start() {
-  skipped = false; finished = false;
-  gen++;                              /* 新一代开始，旧 Promise 链全部作废 */
-  buildDOM();
-  document.documentElement.classList.add('d2-lock');
-  document.documentElement.style.overflow = 'hidden';
-  if (document.body) document.body.style.overflow = 'hidden';
-  voice.load();
-  if (voice.supported && window.speechSynthesis.addEventListener) {
-    try { window.speechSynthesis.addEventListener('voiceschanged', function () { voice.load(); }); } catch (e) {}
   }
-  /* 首次手势解锁声卡 */
-  var unlocked = false;
-  function unlock() {
-    if (unlocked) return; unlocked = true;
-    voice.unlock();
-    document.removeEventListener('pointerdown', unlock, true);
-    document.removeEventListener('keydown', unlock, true);
-    document.removeEventListener('touchstart', unlock, true);
-  }
-  document.addEventListener('pointerdown', unlock, true);
-  document.addEventListener('keydown', unlock, true);
-  document.addEventListener('touchstart', unlock, true);
-  /* SKIP 按钮；Esc 在模块层只挂一次（见 start 外部） */
-  if (C.allowSkip) {
-    ui.skip.addEventListener('click', function (e) { e.stopPropagation(); requestSkip(); });
-  } else setIn(ui.skip, false);
 
-  paintClock(); clockTimer = setInterval(paintClock, 1000);
-  setProgress(.05);
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { run(); });
-  else run();
-}
-
-/* ── 对外 API ── */
-window.DSH2_SPLASH_API__ = {
-  replay: function () {
-    releaseAll(); stopHex(); voice.stop();
-    if (clockTimer) { clearInterval(clockTimer); clockTimer = null; }
-    finished = true;   /* 阻断旧链 */
-    setTimeout(function () { skipped = false; finished = false; start(); }, 30);
-  },
-  skip: requestSkip,
-  config: C
-};
-
-/* mock 鲸鱼填色 */
-var mw = document.getElementById('mockWhale');
-if (mw) mw.setAttribute('d', WHALE_PATH);
-
-/* Esc 跳过：模块层只挂一次，重播不会累积 */
-document.addEventListener('keydown', function (e) {
-  if (e.key === 'Escape' && C.allowSkip) requestSkip();
-});
-
-start();
-
-/* ── 控制台接线 ── */
-function $(id) { return document.getElementById(id); }
-function pullConfig() {
-  C.identity = $('fIdentity').value || 'JOYCE MOORE';
-  C.loginName = C.identity;   /* 控制台的登录名即 Welcome Back 卡片显示名 */
-  C.theme = $('fTheme').value;
-  C.speed = Number($('fSpeed').value);
-  C.stepHold = Math.round(Number($('fHold').value) * 1000);
-  C.accent = $('fAccent').value;
-  C.requireInteraction = false;   /* 全自动播放，不弹确认按钮 */
-  C.allowSkip = $('fSkip').checked;
-  C.voice = false;                /* 不用女声播报 */
-  C.sound = $('fSound').checked;
-  $('fSpeedVal').textContent = C.speed.toFixed(2) + '×';
-  $('fHoldVal').textContent = (C.stepHold / 1000).toFixed(1) + 's';
-}
-$('btnReplay').addEventListener('click', function () { pullConfig(); window.DSH2_SPLASH_API__.replay(); });
-$('btnSkip').addEventListener('click', function () { window.DSH2_SPLASH_API__.skip(); });
-$('btnCollapse').addEventListener('click', function () {
-  var box = $('d2console'); box.classList.toggle('collapsed');
-  this.textContent = box.classList.contains('collapsed') ? '展开' : '收起';
-});
-$('d2console').addEventListener('keydown', function (e) { e.stopPropagation(); });  /* 不抢 Enter */
-$('fSpeed').addEventListener('input', function () { $('fSpeedVal').textContent = Number(this.value).toFixed(2) + '×'; });
-$('fHold').addEventListener('input', function () { $('fHoldVal').textContent = Number(this.value).toFixed(1) + 's'; });
-window.addEventListener('dsh-startup:done', function () {
-  var box = $('d2console'); box.style.top = 'auto'; box.style.bottom = '16px';
-});
+  if (C.enabled) start();
 })();
 </script>
 </body>

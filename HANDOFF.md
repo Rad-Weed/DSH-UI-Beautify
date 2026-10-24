@@ -47,7 +47,7 @@
 > **接手者不需要向需求方复述或确认任何历史**（需求方明确要求过：不必复述已完成事项）。
 >
 > 用户看的是 [README.md](README.md)（用户手册）；这一份是**给下一个 AI 的交接**。
-> 记录时版本 **v0.8.20** ｜ 工作目录 `<工作目录>`
+> 记录时版本 **v0.8.21** ｜ 工作目录 `<工作目录>`
 
 ## 目录
 
@@ -444,6 +444,13 @@
   4. 胶囊/面板/控制台文案统一为 `DSH UI Beautify`（胶囊短标签 `DSH UI · 纹理/背景/…`）；壁纸角色名「DS 娘」仅在描述画面时保留。
   5. 沿用 v0.7.2 的安装/卸载与外部副作用规范化能力（自检脚本、副作用声明、元数据、13 条目出包）。
   6. **文档双语**：README 增加英文版（顶部语言跳转）＋ Release 说明中英双语；包内 README 随之更新。
+- **v0.8.21（2026-10-25，新开屏 + 气泡 + 光标 + 悬浮闪烁）**：
+  - 新开屏 v17a：host 桥接适配（隐藏 #swCfg/#swCard、DSH11_SPLASH_API__、#sw-root 标题栏）；client 随机 fit/scramble、显式跟随 DSH 主题、遮罩底色随主题；
+  - 欢迎卡片：右上角下移 64px，轻量/半透明/2.4s/任意操作消失；
+  - 追加信息：`data-chat-flow-kind=steering` 视为用户气泡；
+  - 方块光标：`--dshui-caret-blur` 滑块（默认 5px、`__dshui.caret.v1`、API）；重播开屏不再解绑光标并在揭幕后重绑；
+  - 悬浮发送键闪烁：探针确认插件无动作后，依次做合成层稳定、tooltip 不误清、发送键过渡去除、纹理模式输入卡片去 backdrop-filter；悬浮探针上报 /diag；
+  - 测试 host 30 / client 106。
 - **v0.8.20（2026-10-22，主题切换混合模式根因修复）**：
   - 根因：`body[data-ds-dark-theme]` 切换时 CSS 把旧图层混合模式瞬间翻转（深色 lighten→multiply、浅色 multiply→lighten），旧图因此变成黑罩/白闪；
   - 交叉淡化期间 `layer1` 钉旧主题 `themeBlendFor(fromTheme)`、`layer2` 钉新主题 `themeBlendFor(toTheme)`，finish 时 removeProperty 交还 CSS；
