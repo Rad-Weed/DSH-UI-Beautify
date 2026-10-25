@@ -2841,14 +2841,9 @@ test('动态定位锚点（0.8.22）：四个锚点可保存/重置，面板可�
 
   assert.equal(api.setGroup('dynamic'), '动态 · 开发中')
   api.switcher()
-  const toolBtn = dom.document.querySelector('[data-anchors-tool]')
-  assert.ok(toolBtn, '动态分组面板里应有定位工具按钮')
-  assert.equal(api.anchors.openTool(), true)
-  const overlay = dom.document.getElementById('__dshui-anchors')
-  assert.ok(overlay, '定位工具浮层应出现')
-  assert.equal(overlay.querySelectorAll('[data-anchor]').length, 4, '四个锚点')
-  assert.equal(api.anchors.closeTool(), true)
-  assert.equal(dom.document.getElementById('__dshui-anchors'), null)
+  assert.ok(dom.document.querySelector('[data-dynamic-import]'), '动态分组面板应有导入分镜按钮')
+  assert.ok(dom.document.querySelector('[data-dynamic-reset]'), '动态分组面板应有恢复默认分镜按钮')
+  assert.ok(dom.document.querySelector('[data-dynamic-preview]'), '动态分组面板应有预览思考态按钮')
 
   const reset = api.anchors.reset()
   assert.equal(reset.bg.x, 0.5, '重置回默认')
@@ -2870,9 +2865,62 @@ test('动态参考线（0.8.23）：实时预览四锚点影响，可开关，�
   assert.equal(api.status().dynamicGuides, true)
   assert.equal(dom.window.localStorage.getItem('__dshui.dynamic.guides.v1'), '1')
   api.switcher()
-  assert.ok(dom.document.querySelector('[data-anchor-guides-toggle]'), '动态面板应有参考线开关')
+  assert.ok(dom.document.querySelector('[data-dynamic-import]'), '动态面板应有分镜导入入口')
   api.setGroup('static')
   assert.equal(dom.document.getElementById('__dshui-anchor-guides'), null, '离开动态应移除参考线')
+})
+
+test('动态分镜（0.8.24）：思考链出现→真实元素重排，正式输出→恢复普通布局', async () => {
+  const dom = buildChatDom()
+  const { api } = runClient(dom)
+  await flush()
+  assert.equal(api.setGroup('dynamic'), '动态 · 开发中')
+  const doc = dom.document
+  const rect = (left, top, width, height) => ({ left, top, width, height, right: left + width, bottom: top + height })
+  const make = (attrs, box, text) => {
+    const el = doc.createElement('div')
+    for (const k of Object.keys(attrs)) el.setAttribute(k, attrs[k])
+    el._rect = rect(box[0], box[1], box[2], box[3])
+    if (text) el.textContent = text
+    doc.body.appendChild(el)
+    return el
+  }
+  const user = make({ 'data-chat-flow-key': 'u1', 'data-chat-flow-kind': 'user' }, [620, 420, 300, 70], 'hi')
+  const stepWrap = make({ 'data-chat-flow-key': 's1', 'data-chat-flow-kind': 'assistant-step' }, [380, 190, 560, 320])
+  const step = doc.createElement('div')
+  step.setAttribute('data-step-process', '')
+  step._rect = rect(380, 190, 560, 260)
+  stepWrap.appendChild(step)
+
+  api.dynamic.evaluate()
+  const thinking = api.status().dynamic
+  assert.equal(thinking.phase, 'thinking', '有思考链应进入思考阶段')
+  assert.equal(thinking.cinematic, true, '思考中应进入分镜态')
+  assert.ok(thinking.layout && thinking.layout.phases.thinking.backgroundTransform.scale > 1, '应加载三阶段分镜布局')
+  const composer = dom.document.querySelector('[data-composer-card]')
+  assert.ok(composer, '应有输入卡片')
+  assert.ok(String(composer.style.getPropertyValue('transform')).includes('scale('), '输入卡片应被真实 transform')
+
+  // 正式回复出现 = 开始输出：立刻恢复普通布局
+  make({ 'data-chat-flow-key': 'r1' }, [380, 300, 620, 420], 'answer')
+  api.dynamic.evaluate()
+  const output = api.status().dynamic
+  assert.equal(output.phase, 'output', '出现正式回复应进入输出阶段')
+  assert.equal(output.cinematic, false, '输出开始应恢复普通布局')
+  assert.equal(composer.style.getPropertyValue('transform'), '', '输入卡片 transform 应被还原')
+
+  // 预览开关：不依赖真实对话也能看分镜效果
+  api.dynamic.preview(true)
+  assert.equal(api.status().dynamic.cinematic, true, '预览思考态应进入分镜')
+  api.dynamic.preview(false)
+  assert.equal(api.status().dynamic.cinematic, false, '结束预览应恢复')
+
+  // 分镜导入 / 恢复默认
+  const tiny = { phases: { thinking: { backgroundTransform: { x: 10, y: 20, scale: 2 }, boxes: [] } } }
+  api.dynamic.importLayout(JSON.stringify(tiny))
+  assert.equal(api.status().dynamic.layout.phases.thinking.backgroundTransform.scale, 2, '导入后应使用新分镜')
+  api.dynamic.resetLayout()
+  assert.ok(api.status().dynamic.layout.phases.thinking.backgroundTransform.scale > 1, '恢复默认分镜后应回到内置布局')
 })
 
 test('切换器面板：点它不会触发背景恢复', async () => {
