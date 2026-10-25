@@ -259,7 +259,7 @@ test('左上角 GUI：入口标签跟随模式变化', async () => {
 
   assert.equal(pillText(dom), 'DSH UI · 关闭')
   api.setMode('multiply')
-  assert.equal(pillText(dom), 'DSH UI · 纹理', '切到纹理后入口应更新')
+  assert.equal(pillText(dom), 'DSH UI · 静态 · 纹理', '切到纹理后入口应更新')
   api.setMode('off')
   assert.equal(pillText(dom), 'DSH UI · 关闭', '切回关闭后入口应更新')
   assert.ok(pillOf(dom), '关闭模式也保留入口（否则没有入口再打开面板）')
@@ -288,7 +288,7 @@ test('纹理模式：挂 multiply 层 + 浓度默认 0.49', async () => {
   const { api } = runClient(dom)
   await flush()
 
-  assert.match(api.setMode('multiply'), /已切换到 multiply/)
+  assert.match(api.setMode('multiply'), /已切换到 静态 · 纹理/)
 
   const layer = layerOf(dom)
   assert.ok(layer, '纹理模式应挂层')
@@ -325,7 +325,7 @@ test('背景模式：挂 z-index:-1 的垫底层 + 浓度默认 0.5 + 图不写 
   const { api } = runClient(dom)
   await flush()
 
-  assert.match(api.setMode('backdrop'), /已切换到 backdrop/)
+  assert.match(api.setMode('backdrop'), /已切换到 静态 · 背景/)
 
   const layer = layerOf(dom)
   assert.ok(layer, '背景模式应挂层')
@@ -2688,7 +2688,7 @@ test('背景图缺失：层仍在，但记录错误且不崩', async () => {
   assert.match(String(api.status().error || ''), /bg missing|状态接口/)
 })
 
-test('切换器面板：三个按钮（关闭/纹理/背景）+ 浓度滑块，操作后面板保持打开', async () => {
+test('切换器面板：关闭 / 静态（纹理|背景）/ 动态 + 浓度滑块，操作后面板保持打开', async () => {
   const dom = buildChatDom()
   const { api } = runClient(dom)
   await flush()
@@ -2698,23 +2698,33 @@ test('切换器面板：三个按钮（关闭/纹理/背景）+ 浓度滑块，�
   assert.equal(box.parentNode, dom.body)
   assert.equal(dom.document.querySelectorAll('#__dshui-switcher').length, 1)
 
-  // 只有「关闭 / 纹理 / 背景」三个模式按钮（0.3.0：旧「待更新」占位被「背景」替换）
-  const buttons = box.querySelectorAll('[data-mode-button]')
-  const modes = buttons.map((b) => b.getAttribute('data-mode-button'))
-  assert.deepEqual(modes, ['off', 'multiply', 'backdrop'])
-  assert.deepEqual(
-    buttons.map((b) => b.textContent),
-    ['关闭', '纹理', '背景'],
-    '按钮文案应为 关闭/纹理/背景',
-  )
+  // 顶层只有「关闭 / 静态 / 动态」三个分组按钮（0.8.22）
+  const groups = box.querySelectorAll('[data-mode-group]')
+  assert.deepEqual(groups.map((b) => b.getAttribute('data-mode-group')), ['off', 'static', 'dynamic'])
+  assert.deepEqual(groups.map((b) => b.textContent), ['关闭', '静态', '动态'])
+  const current = () => dom.document.getElementById('__dshui-switcher')
 
-  // 点「纹理」→ 切模式，且面板保持打开
-  const multiplyBtn = buttons.find((b) => b.getAttribute('data-mode-button') === 'multiply')
-  multiplyBtn._listeners.click[0]({ type: 'click', target: multiplyBtn, stopPropagation() {} })
-  assert.equal(api.status().mode, 'multiply', '点按钮应切到 multiply')
+  // 点「静态」→ 默认进入纹理；面板重建后出现 纹理/背景 子按钮，面板保持打开
+  const staticBtn = current().querySelectorAll('[data-mode-group]').find((b) => b.getAttribute('data-mode-group') === 'static')
+  staticBtn._listeners.click[0]({ type: 'click', target: staticBtn, stopPropagation() {} })
+  assert.equal(api.status().mode, 'multiply', '静态默认进入纹理')
+  assert.equal(api.status().modeGroup, 'static')
   assert.equal(layerOf(dom).getAttribute('data-mode'), 'multiply')
   assert.equal(dom.window.localStorage.getItem('__dshui.mode'), 'multiply')
   assert.equal(dom.document.querySelectorAll('#__dshui-switcher').length, 1, '切模式后面板不应关闭')
+  const staticButtons = current().querySelectorAll('[data-mode-button]')
+  assert.deepEqual(staticButtons.map((b) => b.getAttribute('data-mode-button')), ['off', 'multiply', 'backdrop'])
+  assert.deepEqual(staticButtons.map((b) => b.textContent), ['关闭', '纹理', '背景'])
+
+  // 点「背景」→ 静态分组内切到 backdrop，面板仍开
+  const backdropBtn = current().querySelectorAll('[data-mode-button]').find((b) => b.getAttribute('data-mode-button') === 'backdrop')
+  backdropBtn._listeners.click[0]({ type: 'click', target: backdropBtn, stopPropagation() {} })
+  assert.equal(api.status().mode, 'backdrop')
+  assert.equal(layerOf(dom).getAttribute('data-mode'), 'backdrop')
+  assert.equal(dom.document.querySelectorAll('#__dshui-switcher').length, 1, '切背景后面板不应关闭')
+
+  // 再回到纹理，继续验证浓度/毛玻璃控件
+  api.setMode('multiply')
 
   // 纹理模式下有浓度滑块；拖到 0.2 应生效且面板不关
   const slider = dom.document.querySelectorAll('[data-opacity-slider]')[0]
@@ -2760,23 +2770,90 @@ test('切换器面板：三个按钮（关闭/纹理/背景）+ 浓度滑块，�
   assert.equal(dom.document.querySelectorAll('#__dshui-switcher').length, 1, '开关后面板不应关闭')
 
   // 点「背景」→ 切到 backdrop（图垫底），面板不关
-  const backdropBtn = dom.document
+  const backdropBtn2 = current()
     .querySelectorAll('[data-mode-button]')
     .find((b) => b.getAttribute('data-mode-button') === 'backdrop')
-  backdropBtn._listeners.click[0]({ type: 'click', target: backdropBtn, stopPropagation() {} })
+  backdropBtn2._listeners.click[0]({ type: 'click', target: backdropBtn2, stopPropagation() {} })
   assert.equal(api.status().mode, 'backdrop', '点背景应切到 backdrop')
   assert.equal(layerOf(dom).getAttribute('data-mode'), 'backdrop')
   assert.equal(dom.document.querySelectorAll('#__dshui-switcher').length, 1, '切背景后面板不应关闭')
 
   // 点「关闭」→ 先淡出，动画结束后恢复默认
-  const off = dom.document
-    .querySelectorAll('[data-mode-button]')
-    .find((b) => b.getAttribute('data-mode-button') === 'off')
+  const off = current()
+    .querySelectorAll('[data-mode-group]')
+    .find((b) => b.getAttribute('data-mode-group') === 'off')
   off._listeners.click[0]({ type: 'click', target: off, stopPropagation() {} })
   assert.equal(api.status().mode, 'off')
   assert.ok(layerOf(dom), '淡出期间层应还在')
   dom.advance(600)
   assert.equal(layerOf(dom), null, '关闭后不该留层')
+})
+
+test('顶层分组（0.8.22）：关闭 / 静态 / 动态，静态记忆纹理|背景，动态持久化', async () => {
+  const dom = buildChatDom()
+  const { api } = runClient(dom)
+  await flush()
+  assert.equal(api.status().modeGroup, 'off', '默认关闭')
+  assert.equal(api.setGroup('static'), '静态 · 纹理')
+  assert.equal(api.status().modeGroup, 'static')
+  assert.equal(api.status().mode, 'multiply', '静态默认纹理')
+  assert.equal(dom.window.localStorage.getItem('__dshui.group.v1'), 'static')
+  api.setMode('backdrop')
+  assert.equal(api.status().mode, 'backdrop')
+  assert.equal(api.status().modeGroup, 'static', '背景属于静态分组')
+  assert.equal(api.setGroup('dynamic'), '动态 · 开发中')
+  assert.equal(api.status().modeGroup, 'dynamic')
+  assert.equal(api.status().mode, 'backdrop', '动态暂复用最后一次静态模式')
+  assert.ok(dom.body.classList.contains('__dshui-dynamic'), '动态分组要加 body 类')
+  assert.equal(pillText(dom), 'DSH UI · 动态 · 开发中')
+  assert.equal(dom.window.localStorage.getItem('__dshui.group.v1'), 'dynamic')
+  api.setMode('multiply')
+  assert.equal(api.status().modeGroup, 'static')
+  assert.equal(dom.body.classList.contains('__dshui-dynamic'), false)
+
+  // 刷新/重启后动态分组要恢复（内部模式沿用最后静态模式）
+  const dom2 = buildChatDom()
+  dom2.window.localStorage.setItem('__dshui.group.v1', 'dynamic')
+  dom2.window.localStorage.setItem('__dshui.mode', 'multiply')
+  const b = runClient(dom2)
+  await flush()
+  assert.equal(b.api.status().modeGroup, 'dynamic')
+  assert.equal(b.api.status().mode, 'multiply', '动态组用保存的静态模式做底')
+  assert.ok(dom2.body.classList.contains('__dshui-dynamic'))
+})
+
+test('动态定位锚点（0.8.22）：四个锚点可保存/重置，面板可开定位工具', async () => {
+  const dom = buildChatDom()
+  const { api } = runClient(dom)
+  await flush()
+  const def = api.anchors.get()
+  assert.deepEqual(Object.keys(def), ['bg', 'bubble', 'thinkA', 'thinkB'])
+  assert.equal(def.bg.x, 0.5)
+
+  api.anchors.set('bg', 0.25, 0.75)
+  api.anchors.set('bubble', 0.8, 0.2)
+  const saved = api.anchors.save()
+  assert.equal(saved.bg.x, 0.25)
+  assert.equal(saved.bubble.y, 0.2)
+  const raw = JSON.parse(dom.window.localStorage.getItem('__dshui.dynamic.anchors.v1'))
+  assert.equal(raw.bg.x, 0.25)
+  assert.equal(raw.thinkA.y, 0.34)
+
+  assert.equal(api.setGroup('dynamic'), '动态 · 开发中')
+  api.switcher()
+  const toolBtn = dom.document.querySelector('[data-anchors-tool]')
+  assert.ok(toolBtn, '动态分组面板里应有定位工具按钮')
+  assert.equal(api.anchors.openTool(), true)
+  const overlay = dom.document.getElementById('__dshui-anchors')
+  assert.ok(overlay, '定位工具浮层应出现')
+  assert.equal(overlay.querySelectorAll('[data-anchor]').length, 4, '四个锚点')
+  assert.equal(api.anchors.closeTool(), true)
+  assert.equal(dom.document.getElementById('__dshui-anchors'), null)
+
+  const reset = api.anchors.reset()
+  assert.equal(reset.bg.x, 0.5, '重置回默认')
+  const raw2 = JSON.parse(dom.window.localStorage.getItem('__dshui.dynamic.anchors.v1'))
+  assert.equal(raw2.bg.x, 0.5)
 })
 
 test('切换器面板：点它不会触发背景恢复', async () => {
@@ -2811,13 +2888,12 @@ test('面板：任何操作后面板都不能乱窜（重建后仍贴在胶囊�
   assert.ok(box, '应开出面板')
   assert.deepEqual(at(), ['300px', '162px'], '开面板时应贴在胶囊下方（300, 120+42）')
 
-  // ① 点模式按钮 → 面板就地重建，位置不许动
-  const multiplyBtn = box
-    .querySelectorAll('[data-mode-button]')
-    .find((b) => b.getAttribute('data-mode-button') === 'multiply')
-  multiplyBtn._listeners.click[0]({ type: 'click', target: multiplyBtn, stopPropagation() {} })
-  assert.ok(current(), '切模式后面板应仍开着')
-  assert.deepEqual(at(), ['300px', '162px'], '切模式后面板不得跳位置')
+  // ① 点「静态」分组 → 面板就地重建，位置不许动
+  const staticBtn = box
+    .querySelectorAll('[data-mode-group]')
+    .find((b) => b.getAttribute('data-mode-group') === 'static')
+  staticBtn._listeners.click[0]({ type: 'click', target: staticBtn, stopPropagation() {} })
+  assert.deepEqual(at(), ['300px', '162px'], '切分组后面板不得跳位置')
 
   // ② 开关毛玻璃 → 同样会重建面板
   const frostToggle = dom.document.querySelectorAll('[data-frost-toggle]')[0]
