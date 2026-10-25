@@ -2,7 +2,7 @@
 
 给 DSH 桌面端页面加**壁纸 + 毛玻璃**的轻量美化插件：不碰布局、不改宿主代码，自带开屏动画、方块光标、重启键与深浅色主题适配。
 
-- **版本：v0.8.22** · 包名 `dsh-ui-beautify` · 路由 `/dsh-ui-beautify/*` · 全局 `__DSHUI__` · 存储键 `__dshui.*`
+- **版本：v0.8.23** · 包名 `dsh-ui-beautify` · 路由 `/dsh-ui-beautify/*` · 全局 `__DSHUI__` · 存储键 `__dshui.*`
 - 支持 Windows 10/11 + DSH 桌面端；所有改动都发生在本插件自己的节点/样式里。
 - 详细开发记录、实测数据与决策记录见 [HANDOFF.md](HANDOFF.md)；重启键独立说明见 [restart/README.md](restart/README.md)。
 
@@ -31,7 +31,7 @@
 
 **要求**：Windows 10/11、DSH 桌面端（Chromium/Electron）。
 
-1. 下载 `dsh-ui-beautify-0.8.22.zip` 并解压；
+1. 下载 `dsh-ui-beautify-0.8.23.zip` 并解压；
 2. 在 DSH 插件管理里安装本地目录（target 用绝对路径，例如 `file:C:/path/to/dsh-ui-beautify`）；
 3. 重启 DSH 一次。
 
@@ -113,6 +113,15 @@ powershell -ExecutionPolicy Bypass -File tools/build-dist.ps1  # 出 zip
 当前测试：host **30/30** · client **102/102** · reload-ui 6/6（离线）。
 
 ## 版本
+
+### v0.8.23（2026-10-25）
+- **动态参考线实时预览**：动态分组面板新增「参考线：开/关」；打开后（或定位工具打开时）实时显示四个锚点的影响：
+  - 背景变化：锚点处双脉冲圆环；
+  - 输入气泡：锚点处幽灵气泡 + 指向当前输入区的虚线；
+  - 思考链起点 A/B：虚线连到当前思维链前两行（无思维链时连到输入区上方参考位）；
+- 拖动锚点时参考线实时更新（700ms 兜底刷新 + resize）；参考线开关持久化 `__dshui.dynamic.guides.v1`；
+- API：`__DSHUI__.anchors.showGuides(bool)`、`__DSHUI__.anchors.guides()`；
+- 测试：host 30/30 · client **109/109**。
 
 ### v0.8.22（2026-10-25）
 - **新增模式层级**：顶层 **关闭 / 静态 / 动态**；静态包含原有的「纹理 / 背景」；动态为「开发中」（暂复用静态渲染）；

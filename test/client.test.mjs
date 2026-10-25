@@ -2856,6 +2856,25 @@ test('动态定位锚点（0.8.22）：四个锚点可保存/重置，面板可�
   assert.equal(raw2.bg.x, 0.5)
 })
 
+test('动态参考线（0.8.23）：实时预览四锚点影响，可开关，离开动态自动移除', async () => {
+  const dom = buildChatDom()
+  const { api } = runClient(dom)
+  await flush()
+  assert.equal(api.setGroup('dynamic'), '动态 · 开发中')
+  assert.equal(api.status().dynamicGuides, false)
+  assert.equal(api.anchors.showGuides(true), true)
+  assert.ok(dom.document.getElementById('__dshui-anchor-guides'), '参考线浮层应出现')
+  assert.ok(dom.document.querySelector('.__dshui-guide-ghost'), '输入气泡幽灵预览应出现')
+  assert.ok(dom.document.querySelectorAll('.__dshui-guide-ring').length >= 2, '背景脉冲应出现')
+  assert.ok(dom.document.querySelectorAll('.__dshui-guide-line').length >= 1, '思考链/气泡连线应出现')
+  assert.equal(api.status().dynamicGuides, true)
+  assert.equal(dom.window.localStorage.getItem('__dshui.dynamic.guides.v1'), '1')
+  api.switcher()
+  assert.ok(dom.document.querySelector('[data-anchor-guides-toggle]'), '动态面板应有参考线开关')
+  api.setGroup('static')
+  assert.equal(dom.document.getElementById('__dshui-anchor-guides'), null, '离开动态应移除参考线')
+})
+
 test('切换器面板：点它不会触发背景恢复', async () => {
   const dom = buildChatDom()
   const { api } = runClient(dom)
