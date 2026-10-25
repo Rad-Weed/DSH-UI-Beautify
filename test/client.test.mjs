@@ -2907,7 +2907,7 @@ test('动态分镜（0.8.24）：思考链出现→真实元素重排，正式�
   // 自动模式先只动壁纸，真实界面位移只在预览里执行（防流式抖动）
   const layer = dom.document.getElementById('__dshui-layer')
   assert.ok(layer, '应挂壁纸层')
-  assert.ok(String(layer.style.getPropertyValue('transform')).includes('scale('), '自动思考应放大壁纸')
+  assert.equal(String(layer.style.getPropertyValue('transform')||'').includes('scale('), false, '为防止整屏模糊，动态模式暂不缩放壁纸')
   assert.ok(String(composer.style.getPropertyValue('transform')).includes('translate('), '自动思考应分区平移输入卡片')
   assert.ok(String(user.style.getPropertyValue('transform')).includes('translate('), '自动思考应分区平移输入者气泡')
   assert.equal(oldMsg.style.getPropertyValue('opacity'), '0', '思考态应把旧消息移出界面')
