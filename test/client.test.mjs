@@ -2885,6 +2885,10 @@ test('动态分镜（0.8.24）：思考链出现→真实元素重排，正式�
     doc.body.appendChild(el)
     return el
   }
+  const transcript = doc.createElement('div')
+  transcript.className = 'Dc7zOa_viewArea'
+  transcript._rect = rect(300, 120, 1800, 1150)
+  doc.body.appendChild(transcript)
   const user = make({ 'data-chat-flow-key': 'u1', 'data-chat-flow-kind': 'user' }, [620, 420, 300, 70], 'hi')
   const stepWrap = make({ 'data-chat-flow-key': 's1', 'data-chat-flow-kind': 'assistant-step' }, [380, 190, 560, 320])
   const step = doc.createElement('div')
@@ -2899,7 +2903,12 @@ test('动态分镜（0.8.24）：思考链出现→真实元素重排，正式�
   assert.ok(thinking.layout && thinking.layout.phases.thinking.backgroundTransform.scale > 1, '应加载三阶段分镜布局')
   const composer = dom.document.querySelector('[data-composer-card]')
   assert.ok(composer, '应有输入卡片')
-  assert.ok(String(composer.style.getPropertyValue('transform')).includes('scale('), '输入卡片应被真实 transform')
+  // 自动模式先只动壁纸，真实界面位移只在预览里执行（防流式抖动）
+  const layer = dom.document.getElementById('__dshui-layer')
+  assert.ok(layer, '应挂壁纸层')
+  assert.ok(String(layer.style.getPropertyValue('transform')).includes('scale('), '自动思考应放大壁纸')
+  assert.equal(composer.style.getPropertyValue('transform'), '', '自动思考不应动真实输入卡片')
+  assert.equal(transcript.style.getPropertyValue('transform'), '', '自动思考不应动真实消息区')
 
   // 正式回复出现 = 开始输出：立刻恢复普通布局
   make({ 'data-chat-flow-key': 'r1' }, [380, 300, 620, 420], 'answer')
@@ -2907,12 +2916,15 @@ test('动态分镜（0.8.24）：思考链出现→真实元素重排，正式�
   const output = api.status().dynamic
   assert.equal(output.phase, 'output', '出现正式回复应进入输出阶段')
   assert.equal(output.cinematic, false, '输出开始应恢复普通布局')
-  assert.equal(composer.style.getPropertyValue('transform'), '', '输入卡片 transform 应被还原')
+  assert.equal(composer.style.getPropertyValue('transform'), '', '输入卡片 transform 应被还原 (输出)')
+  assert.equal(transcript.style.getPropertyValue('transform'), '', '消息区 transform 应被还原 (输出)')
 
   // 预览开关：不依赖真实对话也能看分镜效果
   api.dynamic.preview(true)
   assert.equal(api.status().dynamic.cinematic, true, '预览思考态应进入分镜')
-  assert.ok(dom.document.getElementById('__dshui-dynamic-preview'), '预览应出现气泡/思考链示意框')
+  assert.ok(dom.document.getElementById('__dshui-dynamic-preview'), '预览应出现消息区/输入卡片示意框')
+  assert.ok(String(composer.style.getPropertyValue('transform')).includes('scale('), '预览时输入卡片应被真实 transform')
+  assert.ok(String(transcript.style.getPropertyValue('transform')).includes('scale('), '预览时消息区整块应被真实 transform')
   assert.ok(dom.document.getElementById('__dshui-dynamic-cinema'), '预览应出现暗角')
   api.dynamic.preview(false)
   assert.equal(api.status().dynamic.cinematic, false, '结束预览应恢复')
