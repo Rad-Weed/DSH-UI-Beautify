@@ -2912,8 +2912,11 @@ test('动态分镜（0.8.24）：思考链出现→真实元素重排，正式�
   // 预览开关：不依赖真实对话也能看分镜效果
   api.dynamic.preview(true)
   assert.equal(api.status().dynamic.cinematic, true, '预览思考态应进入分镜')
+  assert.ok(dom.document.getElementById('__dshui-dynamic-preview'), '预览应出现气泡/思考链示意框')
+  assert.ok(dom.document.getElementById('__dshui-dynamic-cinema'), '预览应出现暗角')
   api.dynamic.preview(false)
   assert.equal(api.status().dynamic.cinematic, false, '结束预览应恢复')
+  assert.equal(dom.document.getElementById('__dshui-dynamic-preview'), null, '结束预览应移除示意框')
 
   // 分镜导入 / 恢复默认
   const tiny = { phases: { thinking: { backgroundTransform: { x: 10, y: 20, scale: 2 }, boxes: [] } } }

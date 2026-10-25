@@ -2,7 +2,7 @@
 
 给 DSH 桌面端页面加**壁纸 + 毛玻璃**的轻量美化插件：不碰布局、不改宿主代码，自带开屏动画、方块光标、重启键与深浅色主题适配。
 
-- **版本：v0.8.24** · 包名 `dsh-ui-beautify` · 路由 `/dsh-ui-beautify/*` · 全局 `__DSHUI__` · 存储键 `__dshui.*`
+- **版本：v0.8.25** · 包名 `dsh-ui-beautify` · 路由 `/dsh-ui-beautify/*` · 全局 `__DSHUI__` · 存储键 `__dshui.*`
 - 支持 Windows 10/11 + DSH 桌面端；所有改动都发生在本插件自己的节点/样式里。
 - 详细开发记录、实测数据与决策记录见 [HANDOFF.md](HANDOFF.md)；重启键独立说明见 [restart/README.md](restart/README.md)。
 
@@ -31,7 +31,7 @@
 
 **要求**：Windows 10/11、DSH 桌面端（Chromium/Electron）。
 
-1. 下载 `dsh-ui-beautify-0.8.24.zip` 并解压；
+1. 下载 `dsh-ui-beautify-0.8.25.zip` 并解压；
 2. 在 DSH 插件管理里安装本地目录（target 用绝对路径，例如 `file:C:/path/to/dsh-ui-beautify`）；
 3. 重启 DSH 一次。
 
@@ -113,6 +113,13 @@ powershell -ExecutionPolicy Bypass -File tools/build-dist.ps1  # 出 zip
 当前测试：host **30/30** · client **102/102** · reload-ui 6/6（离线）。
 
 ## 版本
+
+### v0.8.25（2026-10-25）
+- **动态预览补全**：「预览思考态」除了壁纸放大/真实输入卡片重排，还会画出输入气泡 / 思考链区的**虚线示意框**，并加暗角，方便看整套分镜构图；
+- 分镜目标元素选择改为**可见元素优先**（多输入卡片/隐藏节点时选真正在屏幕上的那个），真实思考时的气泡/思考链/输入卡片重排更可靠；
+- 离开动态分组时先停止分镜再切模式，避免壁纸 transform 残留到静态模式；
+- 新增动态分镜探针（`/diag` 里 `probe:"dynamic"`）：上报候选输入卡片、选中的气泡/思考链、图层 transform，便于远程定位偏差；
+- 测试：host 30/30 · client **110/110**。
 
 ### v0.8.24（2026-10-25）
 - **动态模式真实分镜**：出现思考链时，壁纸按「思考中」分镜放大/平移，当前轮的用户气泡、思考链容器、输入卡片+发送键做真实 DOM transform 重排；
