@@ -2889,6 +2889,7 @@ test('动态分镜（0.8.24）：思考链出现→真实元素重排，正式�
   transcript.className = 'Dc7zOa_viewArea'
   transcript._rect = rect(300, 120, 1800, 1150)
   doc.body.appendChild(transcript)
+  const oldMsg = make({ 'data-chat-flow-key': 'old1', 'data-chat-flow-kind': 'user' }, [300, 200, 300, 70], 'old')
   const user = make({ 'data-chat-flow-key': 'u1', 'data-chat-flow-kind': 'user' }, [620, 420, 300, 70], 'hi')
   const stepWrap = make({ 'data-chat-flow-key': 's1', 'data-chat-flow-kind': 'assistant-step' }, [380, 190, 560, 320])
   const step = doc.createElement('div')
@@ -2909,6 +2910,7 @@ test('动态分镜（0.8.24）：思考链出现→真实元素重排，正式�
   assert.ok(String(layer.style.getPropertyValue('transform')).includes('scale('), '自动思考应放大壁纸')
   assert.ok(String(composer.style.getPropertyValue('transform')).includes('translate('), '自动思考应分区平移输入卡片')
   assert.ok(String(user.style.getPropertyValue('transform')).includes('translate('), '自动思考应分区平移输入者气泡')
+  assert.equal(oldMsg.style.getPropertyValue('opacity'), '0', '思考态应把旧消息移出界面')
   assert.equal(transcript.style.getPropertyValue('transform'), '', '自动思考不应整块缩放消息区')
 
   // 正式回复出现 = 开始输出：立刻恢复普通布局
@@ -2919,6 +2921,7 @@ test('动态分镜（0.8.24）：思考链出现→真实元素重排，正式�
   assert.equal(output.cinematic, false, '输出开始应恢复普通布局')
   assert.equal(composer.style.getPropertyValue('transform'), '', '输入卡片 transform 应被还原 (输出)')
   assert.equal(user.style.getPropertyValue('transform'), '', '输入者气泡 transform 应被还原 (输出)')
+  assert.equal(oldMsg.style.getPropertyValue('opacity'), '', '输出开始应恢复旧消息')
   assert.equal(transcript.style.getPropertyValue('transform'), '', '消息区 transform 应被还原 (输出)')
 
   // 预览开关：不依赖真实对话也能看分镜效果
