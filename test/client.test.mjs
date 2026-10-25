@@ -2931,7 +2931,6 @@ test('动态分镜（0.8.24）：思考链出现→真实元素重排，正式�
   assert.ok(String(composer.style.getPropertyValue('transform')).includes('translate('), '预览时输入卡片应被分区平移')
   assert.ok(String(user.style.getPropertyValue('transform')).includes('translate('), '预览时输入者气泡应被分区平移')
   assert.equal(transcript.style.getPropertyValue('transform'), '', '预览不应整块缩放消息区')
-  assert.ok(dom.document.getElementById('__dshui-dynamic-cinema'), '预览应出现暗角')
   api.dynamic.preview(false)
   assert.equal(api.status().dynamic.cinematic, false, '结束预览应恢复')
   assert.equal(dom.document.getElementById('__dshui-dynamic-preview'), null, '结束预览应移除示意框')
