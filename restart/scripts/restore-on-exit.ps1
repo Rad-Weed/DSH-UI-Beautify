@@ -88,7 +88,9 @@ function Finish-Orchestrator {
     if ($Code -eq 0) { Write-Ok $Message } else { Write-ErrInfo $Message }
   }
   if (-not $NoPopup -and -not $DryRun -and $Message) {
-    Show-Popup -Title ('DSH 重启键 · ' + $Action) -Text $Message -Icon $Icon
+    $actionLabel = @{ install = '安装'; restore = '卸载还原'; restart = '重启' }[$Action]
+    if (-not $actionLabel) { $actionLabel = $Action }
+    Show-Popup -Title ('DSH 重启键 · ' + $actionLabel) -Text $Message -Icon $Icon
   }
   Write-Log ('退出码：' + $Code) 'DarkGray'
   exit $Code
@@ -237,9 +239,14 @@ if ($NoRestart) {
 
 if ($exitCode -eq 0) {
   $doneText = 'app.asar 已还原'
-  if ($Action -eq 'install') { $doneText = '桌面壳补丁已应用' }
-  if ($Action -eq 'restart') { $doneText = '状态已就绪，仅重启了 DSH' }
-  Finish-Orchestrator -Code 0 -Message ('完成：' + $doneText + '，DSH 已重新启动。') -Icon 64
+  if ($Action -eq 'install') { $doneText = '桌面壳补丁已应用并通过校验' }
+  if ($Action -eq 'restart') { $doneText = '重启键已就绪' }
+  if ($NoRestart) {
+    $tips = "未自动重启 DSH。`r`n请手动完全退出 DSH（右键系统托盘图标 → 退出）再重新打开，只关窗口可能只是隐藏到托盘。"
+  } else {
+    $tips = "DSH 已重新启动。`r`n如果窗口没有自动回来，请手动打开 DSH。`r`n`r`n首次安装后，标题栏「应用」「编辑」右侧应出现「重启」按钮。`r`n若按钮没出现：请确认已完全退出并重新打开 DSH，而不是只关闭窗口。"
+  }
+  Finish-Orchestrator -Code 0 -Message ('完成：' + $doneText + '。' + "`r`n`r`n" + $tips) -Icon 64
 } else {
   Finish-Orchestrator -Code $exitCode -Message '操作部分完成：app.asar 已处理，但四件套清理仍有残留（详见日志）。' -Icon 48
 }

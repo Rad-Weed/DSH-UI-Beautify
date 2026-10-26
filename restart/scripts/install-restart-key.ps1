@@ -238,6 +238,7 @@ if (-not $patchChanged) {
   if ($NoRestart) {
     Write-Info '已指定 -NoRestart：不自动重启；下次打开 DSH 后按钮生效。'
   } elseif (Test-DshRunning) {
+    Show-Popup -Title 'DSH 重启键 · 安装' -Text "插件包已安装。`r`n`r`n需要完全退出 DSH 再重新打开才会加载（只关窗口可能只是隐藏到系统托盘）。`r`n`r`n点「确定」后请：右键系统托盘里的 DSH 图标 → 退出；后台进程会在退出后自动重启 DSH。" -Icon 48
     Write-Info '将启动独立进程：等待 DSH 完全退出（托盘右键 → 退出）→ 自动重启 DSH。'
     $restartArgs = @(
       '-Action', 'restart',
@@ -275,6 +276,7 @@ $orchestratorArgs = @(
 )
 if ($script:LogPath) { $orchestratorArgs += @('-LogPath', $script:LogPath) }
 if ($NoRestart) { $orchestratorArgs += '-NoRestart' }
+Show-Popup -Title 'DSH 重启键 · 首次安装' -Text "首次安装需要先完全退出 DSH，再修改桌面壳。`r`n`r`n点「确定」后请：右键系统托盘里的 DSH 图标 → 退出（只关窗口可能只是隐藏到托盘）。`r`n`r`n退出后安装器会自动打补丁、校验并重新启动 DSH，完成后会再弹窗提示。" -Icon 48
 try {
   $worker = Start-DetachedWorker -WorkerPath $orchestrator -Arguments $orchestratorArgs
 } catch {
