@@ -2943,6 +2943,24 @@ test('动态分镜（0.8.24）：思考链出现→真实元素重排，正式�
   assert.ok(api.status().dynamic.layout.phases.thinking.backgroundTransform.scale > 1, '恢复默认分镜后应回到内置布局')
 })
 
+test('恢复默认设置（0.8.48）：首次启动快照当前参数，可一键恢复', async () => {
+  const dom = buildChatDom()
+  dom.window.localStorage.setItem('__dshui.mode', 'backdrop')
+  dom.window.localStorage.setItem('__dshui.custom.test', 'abc')
+  const { api } = runClient(dom)
+  await flush()
+  const raw = JSON.parse(dom.window.localStorage.getItem('__dshui.defaults.v1'))
+  assert.ok(raw && raw.items, '首次启动应写入默认快照')
+  assert.equal(raw.items['__dshui.mode'], 'backdrop', '快照应包含当前模式')
+  assert.equal(raw.items['__dshui.custom.test'], 'abc', '快照应包含全部 __dshui.* 参数')
+
+  dom.window.localStorage.setItem('__dshui.mode', 'off')
+  dom.window.localStorage.setItem('__dshui.custom.test', 'changed')
+  assert.equal(api.restoreDefaults(), true, '恢复应成功')
+  assert.equal(dom.window.localStorage.getItem('__dshui.mode'), 'backdrop', '恢复默认后模式回到快照值')
+  assert.equal(dom.window.localStorage.getItem('__dshui.custom.test'), 'abc', '恢复默认后其它参数也回到快照值')
+})
+
 test('切换器面板：点它不会触发背景恢复', async () => {
   const dom = buildChatDom()
   const { api } = runClient(dom)
