@@ -40,6 +40,7 @@ function Initialize-Common {
     [switch]$DryRun
   )
   # 统一按 UTF-8 解码子进程输出（pnpm/工具输出都是 UTF-8；PS5.1 默认 OEM 会乱码）
+  try { chcp 65001 | Out-Null } catch { }
   try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch { }
   try { $OutputEncoding = [System.Text.Encoding]::UTF8 } catch { }
   $script:LogName = $LogName
@@ -348,22 +349,39 @@ function Invoke-Capture {
     [Parameter(Mandatory = $true)][string]$FilePath,
     [string[]]$Arguments = @()
   )
-  $previous = $ErrorActionPreference
-  $ErrorActionPreference = 'Continue'
-  try {
-    $raw = & $FilePath @Arguments 2>&1
-    $code = $LASTEXITCODE
-    $lines = @()
-    foreach ($item in @($raw)) {
-      $text = ''
-      try { $text = [string]$item } catch { $text = '' }
-      foreach ($part in ($text -split "`r?`n")) {
-        if ($part -ne '') { $lines += $part }
-      }
+  # 用 ProcessStartInfo 显式按 UTF-8 解码子进程输出。
+  # 原因：orchestrator 由 WMI 逃逸启动时可能没有真实控制台，
+  # [Console]::OutputEncoding 设置会被静默忽略，node/pnpm 的 UTF-8 输出
+  # 会被 PS5.1 按 OEM(936) 解码 → 控制台/日志里出现“浠/閿”这类乱码。
+  $safeArgs = @()
+  foreach ($arg in @($Arguments)) {
+    $text = [string]$arg
+    if ($text -match '[\s"]') {
+      $text = '"' + $text.Replace('"', '\"') + '"'
     }
-    return [pscustomobject]@{ Code = $code; Lines = $lines }
+    $safeArgs += $text
+  }
+  $psi = New-Object System.Diagnostics.ProcessStartInfo
+  $psi.FileName = $FilePath
+  $psi.Arguments = ($safeArgs -join ' ')
+  $psi.UseShellExecute = $false
+  $psi.RedirectStandardOutput = $true
+  $psi.RedirectStandardError = $true
+  $psi.CreateNoWindow = $true
+  $psi.StandardOutputEncoding = [System.Text.Encoding]::UTF8
+  $psi.StandardErrorEncoding = [System.Text.Encoding]::UTF8
+  $proc = [System.Diagnostics.Process]::Start($psi)
+  try {
+    $stdout = $proc.StandardOutput.ReadToEnd()
+    $stderr = $proc.StandardError.ReadToEnd()
+    $proc.WaitForExit()
+    $lines = @()
+    foreach ($text in @(($stdout + "`n" + $stderr) -split "`r?`n")) {
+      if ($text -ne '') { $lines += $text }
+    }
+    return [pscustomobject]@{ Code = $proc.ExitCode; Lines = $lines }
   } finally {
-    $ErrorActionPreference = $previous
+    try { $proc.Dispose() } catch { }
   }
 }
 
@@ -389,54 +407,53 @@ function Invoke-CaptureWithTimeout {
     [int]$TimeoutSeconds = 1800,
     [string]$Activity = '外部命令'
   )
-  $job = Start-Job -ScriptBlock {
-    param($CommandPath, $CommandArguments)
-    try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch { }
-    $previous = $ErrorActionPreference
-    $ErrorActionPreference = 'Continue'
-    try {
-      $raw = & $CommandPath @CommandArguments 2>&1
-      $code = $LASTEXITCODE
-      $lines = @()
-      foreach ($item in @($raw)) {
-        $text = ''
-        try { $text = [string]$item } catch { $text = '' }
-        foreach ($part in ($text -split "`r?`n")) {
-          if ($part -ne '') { $lines += $part }
-        }
-      }
-      return [pscustomobject]@{ Code = $code; Lines = $lines }
-    } finally {
-      $ErrorActionPreference = $previous
-    }
-  } -ArgumentList $FilePath, (,$Arguments)
-
+  # 同 Invoke-Capture：显式 UTF-8 解码，避免 pnpm 输出在 GBK 控制台/日志里乱码。
+  $safeArgs = @()
+  foreach ($arg in @($Arguments)) {
+    $text = [string]$arg
+    if ($text -match '[\s"]') { $text = '"' + $text.Replace('"', '\"') + '"' }
+    $safeArgs += $text
+  }
+  $psi = New-Object System.Diagnostics.ProcessStartInfo
+  $psi.FileName = $FilePath
+  $psi.Arguments = ($safeArgs -join ' ')
+  $psi.UseShellExecute = $false
+  $psi.RedirectStandardOutput = $true
+  $psi.RedirectStandardError = $true
+  $psi.CreateNoWindow = $true
+  $psi.StandardOutputEncoding = [System.Text.Encoding]::UTF8
+  $psi.StandardErrorEncoding = [System.Text.Encoding]::UTF8
+  $proc = [System.Diagnostics.Process]::Start($psi)
+  $outTask = $proc.StandardOutput.ReadToEndAsync()
+  $errTask = $proc.StandardError.ReadToEndAsync()
   $startedAt = Get-Date
-  $deadline = $startedAt.AddSeconds($TimeoutSeconds)
-  $finished = $null
-  while ((Get-Date) -lt $deadline) {
-    $finished = Wait-Job -Job $job -Timeout 15
-    if ($finished) { break }
-    Write-Log ('  ' + $Activity + ' 仍在运行（已等 ' + [int]((Get-Date) - $startedAt).TotalSeconds + ' 秒）... 走 registry 时可能静默数分钟，请勿关闭窗口') 'DarkGray'
+  $finished = $false
+  try {
+    while (-not $proc.HasExited) {
+      if (((Get-Date) - $startedAt).TotalSeconds -ge $TimeoutSeconds) { break }
+      $null = $proc.WaitForExit(5000)
+      if (-not $proc.HasExited) {
+        Write-Log ('  ' + $Activity + ' 仍在运行（已等 ' + [int]((Get-Date) - $startedAt).TotalSeconds + ' 秒）... 走 registry 时可能静默数分钟，请勿关闭窗口') 'DarkGray'
+      }
+    }
+    $finished = $proc.HasExited
+    if (-not $finished) {
+      Write-Warn ($Activity + ' 超时（' + $TimeoutSeconds + ' 秒）—— 后台命令可能仍在收尾。请稍等片刻再重跑脚本，不要连续重复点击。')
+      try { $proc.Kill() } catch { }
+      return [pscustomobject]@{ Code = 124; Lines = @(); TimedOut = $true }
+    }
+    $stdout = ''
+    $stderr = ''
+    try { $stdout = $outTask.GetAwaiter().GetResult() } catch { }
+    try { $stderr = $errTask.GetAwaiter().GetResult() } catch { }
+    $lines = @()
+    foreach ($text in @(($stdout + "`n" + $stderr) -split "`r?`n")) {
+      if ($text -ne '') { $lines += $text }
+    }
+    return [pscustomobject]@{ Code = $proc.ExitCode; Lines = $lines; TimedOut = $false }
+  } finally {
+    try { $proc.Dispose() } catch { }
   }
-  if (-not $finished) {
-    Write-Warn ($Activity + ' 超时（' + $TimeoutSeconds + ' 秒）—— 后台命令可能仍在收尾。请稍等片刻再重跑脚本，不要连续重复点击。')
-    try { Stop-Job -Job $job -ErrorAction SilentlyContinue } catch { }
-    try { Remove-Job -Job $job -Force -ErrorAction SilentlyContinue } catch { }
-    return [pscustomobject]@{ Code = 124; Lines = @(); TimedOut = $true }
-  }
-  $output = @(Receive-Job -Job $job -ErrorAction SilentlyContinue)
-  try { Remove-Job -Job $job -Force -ErrorAction SilentlyContinue } catch { }
-  $result = $null
-  foreach ($item in $output) {
-    if ($null -ne $item -and $item.PSObject -and $item.PSObject.Properties['Code']) { $result = $item }
-  }
-  if ($null -eq $result) {
-    $texts = @()
-    foreach ($item in $output) { $texts += [string]$item }
-    return [pscustomobject]@{ Code = 1; Lines = $texts; TimedOut = $false }
-  }
-  return [pscustomobject]@{ Code = [int]$result.Code; Lines = @($result.Lines); TimedOut = $false }
 }
 
 # ── 项目/安装路径 ───────────────────────────────────────────────────────────
