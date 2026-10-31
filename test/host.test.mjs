@@ -184,9 +184,6 @@ test('apply(): 注册路由并注入前端脚本', () => {
       `exact ${ROUTE_PREFIX}/bg.png`,
       `exact ${ROUTE_PREFIX}/client.js`,
       `exact ${ROUTE_PREFIX}/splash.html`,
-      `exact ${ROUTE_PREFIX}/dynamic-layout.json`,
-      `exact ${ROUTE_PREFIX}/dynamic-bg-light.webp`,
-      `exact ${ROUTE_PREFIX}/dynamic-bg-dark.webp`,
       `exact ${ROUTE_PREFIX}/status.json`,
       `exact ${ROUTE_PREFIX}/restart-status.json`,
       `exact ${ROUTE_PREFIX}/restart-enable`,
@@ -763,7 +760,7 @@ test('路由：跨站请求被栅栏拒掉', async () => {
 
 test('卸载：ctx.effect 的 disposer 摘掉全部路由与注入', () => {
   const { webServer, root } = boot()
-  assert.equal(webServer.routes.size, 11)
+  assert.equal(webServer.routes.size, 8)
   assert.equal(webServer.taps.length, 1)
 
   for (const dispose of root.effects) dispose()

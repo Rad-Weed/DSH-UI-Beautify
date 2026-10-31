@@ -2721,7 +2721,7 @@ test('背景图缺失：层仍在，但记录错误且不崩', async () => {
   assert.match(String(api.status().error || ''), /bg missing|状态接口/)
 })
 
-test('切换器面板：关闭 / 静态（纹理|背景）/ 动态 + 浓度滑块，操作后面板保持打开', async () => {
+test('切换器面板：关闭 / 静态（纹理|背景）+ 浓度滑块，操作后面板保持打开', async () => {
   const dom = buildChatDom()
   const { api } = runClient(dom)
   await flush()
@@ -2731,10 +2731,10 @@ test('切换器面板：关闭 / 静态（纹理|背景）/ 动态 + 浓度滑�
   assert.equal(box.parentNode, dom.body)
   assert.equal(dom.document.querySelectorAll('#__dshui-switcher').length, 1)
 
-  // 顶层只有「关闭 / 静态 / 动态」三个分组按钮（0.8.22）
+  // 顶层只有「关闭 / 静态」两个分组按钮（0.9.0 移除动态）
   const groups = box.querySelectorAll('[data-mode-group]')
-  assert.deepEqual(groups.map((b) => b.getAttribute('data-mode-group')), ['off', 'static', 'dynamic'])
-  assert.deepEqual(groups.map((b) => b.textContent), ['关闭', '静态', '动态'])
+  assert.deepEqual(groups.map((b) => b.getAttribute('data-mode-group')), ['off', 'static'])
+  assert.deepEqual(groups.map((b) => b.textContent), ['关闭', '静态'])
   const current = () => dom.document.getElementById('__dshui-switcher')
 
   // 点「静态」→ 默认进入纹理；面板重建后出现 纹理/背景 子按钮，面板保持打开
@@ -2822,7 +2822,7 @@ test('切换器面板：关闭 / 静态（纹理|背景）/ 动态 + 浓度滑�
   assert.equal(layerOf(dom), null, '关闭后不该留层')
 })
 
-test('顶层分组（0.8.22）：关闭 / 静态 / 动态，静态记忆纹理|背景，动态持久化', async () => {
+test('顶层分组（0.9.0）：关闭 / 静态，静态记忆纹理|背景', async () => {
   const dom = buildChatDom()
   const { api } = runClient(dom)
   await flush()
@@ -2834,146 +2834,23 @@ test('顶层分组（0.8.22）：关闭 / 静态 / 动态，静态记忆纹理|�
   api.setMode('backdrop')
   assert.equal(api.status().mode, 'backdrop')
   assert.equal(api.status().modeGroup, 'static', '背景属于静态分组')
-  assert.equal(api.setGroup('dynamic'), '动态 · 开发中')
-  assert.equal(api.status().modeGroup, 'dynamic')
-  assert.equal(api.status().mode, 'backdrop', '动态暂复用最后一次静态模式')
-  assert.ok(dom.body.classList.contains('__dshui-dynamic'), '动态分组要加 body 类')
-  assert.equal(pillText(dom), 'DSH UI · 动态 · 开发中')
-  assert.equal(dom.window.localStorage.getItem('__dshui.group.v1'), 'dynamic')
-  api.setMode('multiply')
-  assert.equal(api.status().modeGroup, 'static')
-  assert.equal(dom.body.classList.contains('__dshui-dynamic'), false)
-
-  // 刷新/重启后动态分组要恢复（内部模式沿用最后静态模式）
-  const dom2 = buildChatDom()
-  dom2.window.localStorage.setItem('__dshui.group.v1', 'dynamic')
-  dom2.window.localStorage.setItem('__dshui.mode', 'multiply')
-  const b = runClient(dom2)
-  await flush()
-  assert.equal(b.api.status().modeGroup, 'dynamic')
-  assert.equal(b.api.status().mode, 'multiply', '动态组用保存的静态模式做底')
-  assert.ok(dom2.body.classList.contains('__dshui-dynamic'))
-})
-
-test('动态定位锚点（0.8.22）：四个锚点可保存/重置，面板可开定位工具', async () => {
-  const dom = buildChatDom()
-  const { api } = runClient(dom)
-  await flush()
-  const def = api.anchors.get()
-  assert.deepEqual(Object.keys(def), ['bg', 'bubble', 'thinkA', 'thinkB'])
-  assert.equal(def.bg.x, 0.5)
-
-  api.anchors.set('bg', 0.25, 0.75)
-  api.anchors.set('bubble', 0.8, 0.2)
-  const saved = api.anchors.save()
-  assert.equal(saved.bg.x, 0.25)
-  assert.equal(saved.bubble.y, 0.2)
-  const raw = JSON.parse(dom.window.localStorage.getItem('__dshui.dynamic.anchors.v1'))
-  assert.equal(raw.bg.x, 0.25)
-  assert.equal(raw.thinkA.y, 0.34)
-
-  assert.equal(api.setGroup('dynamic'), '动态 · 开发中')
-  api.switcher()
-  assert.ok(dom.document.querySelector('[data-dynamic-import]'), '动态分组面板应有导入分镜按钮')
-  assert.ok(dom.document.querySelector('[data-dynamic-reset]'), '动态分组面板应有恢复默认分镜按钮')
-  assert.ok(dom.document.querySelector('[data-dynamic-preview]'), '动态分组面板应有预览思考态按钮')
-
-  const reset = api.anchors.reset()
-  assert.equal(reset.bg.x, 0.5, '重置回默认')
-  const raw2 = JSON.parse(dom.window.localStorage.getItem('__dshui.dynamic.anchors.v1'))
-  assert.equal(raw2.bg.x, 0.5)
-})
-
-test('动态参考线（0.8.23）：实时预览四锚点影响，可开关，离开动态自动移除', async () => {
-  const dom = buildChatDom()
-  const { api } = runClient(dom)
-  await flush()
-  assert.equal(api.setGroup('dynamic'), '动态 · 开发中')
-  assert.equal(api.status().dynamicGuides, false)
-  assert.equal(api.anchors.showGuides(true), true)
-  assert.ok(dom.document.getElementById('__dshui-anchor-guides'), '参考线浮层应出现')
-  assert.ok(dom.document.querySelector('.__dshui-guide-ghost'), '输入气泡幽灵预览应出现')
-  assert.ok(dom.document.querySelectorAll('.__dshui-guide-ring').length >= 2, '背景脉冲应出现')
-  assert.ok(dom.document.querySelectorAll('.__dshui-guide-line').length >= 1, '思考链/气泡连线应出现')
-  assert.equal(api.status().dynamicGuides, true)
-  assert.equal(dom.window.localStorage.getItem('__dshui.dynamic.guides.v1'), '1')
-  api.switcher()
-  assert.ok(dom.document.querySelector('[data-dynamic-import]'), '动态面板应有分镜导入入口')
+  assert.equal(api.setGroup('off'), '关闭')
+  assert.equal(api.status().modeGroup, 'off')
+  assert.equal(api.setGroup('dynamic'), '无效分组：dynamic', '动态分组已移除')
   api.setGroup('static')
-  assert.equal(dom.document.getElementById('__dshui-anchor-guides'), null, '离开动态应移除参考线')
+  assert.equal(api.status().mode, 'backdrop', '静态分组记住最后一次背景模式')
 })
 
-test('动态分镜（0.8.24）：思考链出现→真实元素重排，正式输出→恢复普通布局', async () => {
+test('0.9.0 清理：启动时移除动态模式遗留的存档键', async () => {
   const dom = buildChatDom()
-  const { api } = runClient(dom)
+  dom.window.localStorage.setItem('__dshui.dynamic.anchors.v1', '{"bg":{"x":0.2,"y":0.8}}')
+  dom.window.localStorage.setItem('__dshui.dynamic.layout.v1', '{"version":2}')
+  dom.window.localStorage.setItem('__dshui.mode', 'multiply')
+  runClient(dom)
   await flush()
-  assert.equal(api.setGroup('dynamic'), '动态 · 开发中')
-  const doc = dom.document
-  const rect = (left, top, width, height) => ({ left, top, width, height, right: left + width, bottom: top + height })
-  const make = (attrs, box, text) => {
-    const el = doc.createElement('div')
-    for (const k of Object.keys(attrs)) el.setAttribute(k, attrs[k])
-    el._rect = rect(box[0], box[1], box[2], box[3])
-    if (text) el.textContent = text
-    doc.body.appendChild(el)
-    return el
-  }
-  const transcript = doc.createElement('div')
-  transcript.className = 'Dc7zOa_viewArea'
-  transcript._rect = rect(300, 120, 1800, 1150)
-  doc.body.appendChild(transcript)
-  const oldMsg = make({ 'data-chat-flow-key': 'old1', 'data-chat-flow-kind': 'user' }, [300, 200, 300, 70], 'old')
-  const user = make({ 'data-chat-flow-key': 'u1', 'data-chat-flow-kind': 'user' }, [620, 420, 300, 70], 'hi')
-  const stepWrap = make({ 'data-chat-flow-key': 's1', 'data-chat-flow-kind': 'assistant-step' }, [380, 190, 560, 320])
-  const step = doc.createElement('div')
-  step.setAttribute('data-step-process', '')
-  step._rect = rect(380, 190, 560, 260)
-  stepWrap.appendChild(step)
-
-  api.dynamic.evaluate()
-  const thinking = api.status().dynamic
-  assert.equal(thinking.phase, 'thinking', '有思考链应进入思考阶段')
-  assert.equal(thinking.cinematic, true, '思考中应进入分镜态')
-  assert.ok(thinking.layout && thinking.layout.phases.thinking.backgroundTransform.scale > 1, '应加载三阶段分镜布局')
-  const composer = dom.document.querySelector('[data-composer-card]')
-  assert.ok(composer, '应有输入卡片')
-  // 自动模式先只动壁纸，真实界面位移只在预览里执行（防流式抖动）
-  const layer = dom.document.getElementById('__dshui-layer')
-  assert.ok(layer, '应挂壁纸层')
-  assert.equal(String(layer.style.getPropertyValue('transform')||'').includes('scale('), false, '为防止整屏模糊，动态模式暂不缩放壁纸')
-  assert.ok(String(composer.style.getPropertyValue('transform')).includes('translate('), '自动思考应分区平移输入卡片')
-  assert.ok(String(user.style.getPropertyValue('transform')).includes('translate('), '自动思考应分区平移输入者气泡')
-  assert.equal(oldMsg.style.getPropertyValue('opacity'), '0', '思考态应把旧消息移出界面')
-  assert.equal(transcript.style.getPropertyValue('transform'), '', '自动思考不应整块缩放消息区')
-
-  // 正式回复出现 = 开始输出：立刻恢复普通布局
-  make({ 'data-chat-flow-key': 'r1' }, [380, 300, 620, 420], 'answer')
-  api.dynamic.evaluate()
-  const output = api.status().dynamic
-  assert.equal(output.phase, 'output', '出现正式回复应进入输出阶段')
-  assert.equal(output.cinematic, false, '输出开始应恢复普通布局')
-  assert.equal(composer.style.getPropertyValue('transform'), '', '输入卡片 transform 应被还原 (输出)')
-  assert.equal(user.style.getPropertyValue('transform'), '', '输入者气泡 transform 应被还原 (输出)')
-  assert.equal(oldMsg.style.getPropertyValue('opacity'), '', '输出开始应恢复旧消息')
-  assert.equal(transcript.style.getPropertyValue('transform'), '', '消息区 transform 应被还原 (输出)')
-
-  // 预览开关：不依赖真实对话也能看分镜效果
-  api.dynamic.preview(true)
-  assert.equal(api.status().dynamic.cinematic, true, '预览思考态应进入分镜')
-  assert.ok(dom.document.getElementById('__dshui-dynamic-preview'), '预览应出现消息区/输入卡片示意框')
-  assert.ok(String(composer.style.getPropertyValue('transform')).includes('translate('), '预览时输入卡片应被分区平移')
-  assert.ok(String(user.style.getPropertyValue('transform')).includes('translate('), '预览时输入者气泡应被分区平移')
-  assert.equal(transcript.style.getPropertyValue('transform'), '', '预览不应整块缩放消息区')
-  api.dynamic.preview(false)
-  assert.equal(api.status().dynamic.cinematic, false, '结束预览应恢复')
-  assert.equal(dom.document.getElementById('__dshui-dynamic-preview'), null, '结束预览应移除示意框')
-
-  // 分镜导入 / 恢复默认
-  const tiny = { phases: { thinking: { backgroundTransform: { x: 10, y: 20, scale: 2 }, boxes: [] } } }
-  api.dynamic.importLayout(JSON.stringify(tiny))
-  assert.equal(api.status().dynamic.layout.phases.thinking.backgroundTransform.scale, 2, '导入后应使用新分镜')
-  api.dynamic.resetLayout()
-  assert.ok(api.status().dynamic.layout.phases.thinking.backgroundTransform.scale > 1, '恢复默认分镜后应回到内置布局')
+  assert.equal(dom.window.localStorage.getItem('__dshui.dynamic.anchors.v1'), null, '动态锚点存档应清掉')
+  assert.equal(dom.window.localStorage.getItem('__dshui.dynamic.layout.v1'), null, '动态分镜存档应清掉')
+  assert.equal(dom.window.localStorage.getItem('__dshui.mode'), 'multiply', '不应误删普通设置')
 })
 
 test('恢复默认设置（0.8.48）：首次启动快照当前参数，可一键恢复', async () => {
