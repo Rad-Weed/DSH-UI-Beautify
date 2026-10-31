@@ -397,6 +397,22 @@ test('路由 /status.json：报告背景来源与大小', async () => {
   fs.rmSync(scratch.home, { recursive: true, force: true })
 })
 
+test('路由 /status.json?theme=dark：首装无偏好时默认返回暗夜图', async () => {
+  const scratch = scratchDesktop('status-dark-theme')
+  const { webServer } = boot({ home: scratch.home })
+
+  const payload = JSON.parse(
+    (await callRoute(webServer, `${ROUTE_PREFIX}/status.json`, {
+      url: `${ROUTE_PREFIX}/status.json?theme=dark`,
+    })).body,
+  )
+  assert.equal(payload.ok, true)
+  assert.equal(payload.file, 'DeepSeek 暗夜模式.png', '深色首装应直接给暗夜图')
+  assert.ok(String(payload.url).includes('img='), '暗夜图 URL 应带 img 参数')
+  assert.equal(payload.theme, 'dark')
+  fs.rmSync(scratch.home, { recursive: true, force: true })
+})
+
 test('路由 /bg.png：桌面原图出 PNG 字节（按魔数），带 ETag 与 304', async () => {
   const scratch = scratchDesktop('bg')
   const desktopFile = path.join(scratch.desktop, DESKTOP_IMAGE_NAME)

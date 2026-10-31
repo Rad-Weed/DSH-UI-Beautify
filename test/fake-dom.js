@@ -126,13 +126,17 @@ class FakeNode {
   }
 
   setAttribute(name, value) {
+    const oldValue = Object.prototype.hasOwnProperty.call(this.attributes, name) ? this.attributes[name] : null
     this.attributes[name] = String(value)
+    notifyAttribute(this, name, oldValue)
   }
   getAttribute(name) {
     return Object.prototype.hasOwnProperty.call(this.attributes, name) ? this.attributes[name] : null
   }
   removeAttribute(name) {
+    const oldValue = Object.prototype.hasOwnProperty.call(this.attributes, name) ? this.attributes[name] : null
     delete this.attributes[name]
+    notifyAttribute(this, name, oldValue)
   }
   hasAttribute(name) {
     return Object.prototype.hasOwnProperty.call(this.attributes, name)
@@ -373,6 +377,18 @@ function notifyMutation(target, added, removed) {
   }
 }
 
+function notifyAttribute(target, name, oldValue) {
+  for (const observer of mutationObservers) {
+    for (const sub of observer._subs) {
+      if (!sub.attributes) continue
+      if (sub.target !== target) continue
+      if (sub.attributeFilter && sub.attributeFilter.indexOf(name) === -1) continue
+      observer._queue.push({ type: 'attributes', target, attributeName: name, oldValue })
+      break
+    }
+  }
+}
+
 class FakeMutationObserver {
   constructor(callback) {
     this._cb = callback
@@ -382,7 +398,7 @@ class FakeMutationObserver {
   }
   observe(target, options) {
     const opts = options || {}
-    this._subs.push({ target, childList: !!opts.childList, subtree: !!opts.subtree })
+    this._subs.push({ target, childList: !!opts.childList, subtree: !!opts.subtree, attributes: !!opts.attributes, attributeFilter: opts.attributeFilter || null })
   }
   disconnect() {
     this._subs = []

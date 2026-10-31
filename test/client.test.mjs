@@ -1989,6 +1989,39 @@ test('深浅色主题壁纸（0.8.7）：深色自动用暗夜图，浅色仍用
   assert.equal(lightButtons.length, 2, '浅色图片栏仍是两张')
 })
 
+test('首装深色时序（0.8.49）：启动后才投影深色主题，也要把浅色壁纸换成暗夜图', async () => {
+  const lightImages = [
+    { name: 'deepseek 4k.png', label: 'deepseek', bytes: 11, source: 'desktop' },
+    { name: 'deepseek 黑白无水面.png', label: 'deepseek 黑白无水面', bytes: 22, source: 'desktop' },
+  ]
+  const darkImages = [{ name: 'DeepSeek 暗夜模式.png', label: '暗夜', bytes: 33, source: 'desktop' }]
+  const dom = buildChatDom()
+  const { api, requested } = runClient(dom, { statusImages: lightImages, statusDarkImages: darkImages })
+  await flush()
+  api.setMode('backdrop')
+  await flush()
+  dom.advance(700)
+  await flush()
+  assert.equal(api.status().image, 'deepseek 4k.png', '浅色启动先用浅色图')
+
+  // DSH 在插件启动之后才把深色投影到 body（首装重启的真实时序）
+  dom.body.setAttribute('data-ds-dark-theme', '')
+  dom.flushMutations()
+  await flush()
+  dom.advance(700)
+  await flush()
+
+  assert.equal(api.status().theme, 'dark', '应识别到晚到的深色主题')
+  assert.equal(api.status().image, 'DeepSeek 暗夜模式.png', '晚到的深色主题也必须换暗夜图')
+  const layer = dom.document.querySelector('#__dshui-layer')
+  assert.ok(layer, '背景层应存在')
+  assert.ok(
+    decodeURIComponent(layer.style.getPropertyValue('background-image')).includes('DeepSeek 暗夜模式.png'),
+    'layer 的 background-image 必须是暗夜图，实际：' + layer.style.getPropertyValue('background-image'),
+  )
+  assert.ok(requested.some((url) => String(url).includes('theme=dark')), '状态请求应带上当前主题')
+})
+
 test('面板白层滑块：拖动即时生效、写进存档、刷新后读回（只管二级面板）', async () => {
   const dom = buildChatDom()
   // 放一个鲸鱼面板进去，好让诊断里出现「二级面板」那一段
