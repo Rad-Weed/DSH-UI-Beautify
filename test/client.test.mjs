@@ -1872,6 +1872,20 @@ test('纹理模式 AI 思考过程视效（0.8.5）：默认开、语义选择�
   assert.ok(bdToggle, '背景模式面板也应有 AI 视觉开关')
 })
 
+test('0.9.1：diff 统计常显红绿；思考链动画只挂新行', async () => {
+  const dom = buildChatDom()
+  const { api } = runClient(dom)
+  await flush()
+  api.setMode('multiply')
+  await flush()
+  const css = styleTagOf(dom).textContent
+  assert.ok(css.includes('[class*="diffAdded"]'), '应有 diffAdded 常显色规则')
+  assert.ok(css.includes('[class*="diffRemoved"]'), '应有 diffRemoved 常显色规则')
+  assert.ok(css.includes('__dshui-ai-fresh'), '动画应只挂在 fresh 类')
+  assert.ok(!css.includes('body.__dshui-aireplyfx:not(.__dshui-motion-paused) [data-chat-flow-kind="turn-process"]'), '不应再给所有步骤行全局套动画')
+  assert.ok(api, 'client 应正常启动')
+})
+
 test('AI 思维链只读读取（0.8.5）：thinkingRows() 能取到行数/文字摘要，且不报错', async () => {
   const dom = buildChatDom()
   const { api } = runClient(dom)

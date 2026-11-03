@@ -2,7 +2,7 @@
 
 给 DSH 桌面端页面加**壁纸 + 毛玻璃**的轻量美化插件：不碰布局、不改宿主代码，自带开屏动画、方块光标、重启键与深浅色主题适配。
 
-- **版本：v0.9.0** · 包名 `dsh-ui-beautify` · 路由 `/dsh-ui-beautify/*` · 全局 `__DSHUI__` · 存储键 `__dshui.*`
+- **版本：v0.9.1** · 包名 `dsh-ui-beautify` · 路由 `/dsh-ui-beautify/*` · 全局 `__DSHUI__` · 存储键 `__dshui.*`
 - 支持 Windows 10/11 + DSH 桌面端；所有改动都发生在本插件自己的节点/样式里。
 - 详细开发记录、实测数据与决策记录见 [HANDOFF.md](HANDOFF.md)；重启键独立说明见 [restart/README.md](restart/README.md)。
 
@@ -30,7 +30,7 @@
 
 **要求**：Windows 10/11、DSH 桌面端（Chromium/Electron）。
 
-1. 下载 `dsh-ui-beautify-0.9.0.zip` 并解压；
+1. 下载 `dsh-ui-beautify-0.9.1.zip` 并解压；
 2. 在 DSH 插件管理里安装本地目录（target 用绝对路径，例如 `file:C:/path/to/dsh-ui-beautify`）；
 3. 重启 DSH 一次。
 
@@ -109,9 +109,14 @@ node test/client.test.mjs    # client 侧（fake DOM）
 powershell -ExecutionPolicy Bypass -File tools/build-dist.ps1  # 出 zip
 ```
 
-当前测试：host **31/31** · client **109/109**。
+当前测试：host **31/31** · client **111/111**。
 
 ## 版本
+
+### v0.9.1（2026-11-03）
+- 思考链文件修改统计 `+xx / -xx` 恢复常显绿色/红色（DSH 原生只在 hover/展开时上色）。
+- 蓝条纹淡入只给**新文字**：启动后 2 秒历史加载窗口只登记不播放；已完成行重渲染/折叠/切主题不再重播。
+- 新增回归测试；client 111/111。
 
 ### v0.9.0（2026-10-31，清理版）
 - **移除「动态」模式**：删除动态分镜引擎、定位锚点/参考线、动态导入与预览入口，以及专用 2× 壁纸和分镜 JSON；主包只保留「关闭 / 静态（纹理|背景）」。
