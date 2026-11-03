@@ -1882,6 +1882,8 @@ test('0.9.1：diff 统计常显红绿；思考链动画只挂新行', async () =
   assert.ok(css.includes('[class*="diffAdded"]'), '应有 diffAdded 常显色规则')
   assert.ok(css.includes('[class*="diffRemoved"]'), '应有 diffRemoved 常显色规则')
   assert.ok(css.includes('__dshui-ai-fresh'), '动画应只挂在 fresh 类')
+  assert.ok(css.includes('__dshui-ai-pending'), '新行动画前应先隐藏条纹')
+  assert.ok(!css.includes('[data-step-process-body] [data-turn-process-member]'), '不应再匹配外层 member 造成双条纹')
   assert.ok(!css.includes('body.__dshui-aireplyfx:not(.__dshui-motion-paused) [data-chat-flow-kind="turn-process"]'), '不应再给所有步骤行全局套动画')
   assert.ok(api, 'client 应正常启动')
 })
