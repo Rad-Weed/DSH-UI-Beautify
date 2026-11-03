@@ -2,7 +2,7 @@
 
 给 DSH 桌面端页面加**壁纸 + 毛玻璃**的轻量美化插件：不碰布局、不改宿主代码，自带开屏动画、方块光标、重启键与深浅色主题适配。
 
-- **版本：v0.9.1** · 包名 `dsh-ui-beautify` · 路由 `/dsh-ui-beautify/*` · 全局 `__DSHUI__` · 存储键 `__dshui.*`
+- **版本：v0.9.3** · 包名 `dsh-ui-beautify` · 路由 `/dsh-ui-beautify/*` · 全局 `__DSHUI__` · 存储键 `__dshui.*`
 - 支持 Windows 10/11 + DSH 桌面端；所有改动都发生在本插件自己的节点/样式里。
 - 详细开发记录、实测数据与决策记录见 [HANDOFF.md](HANDOFF.md)；重启键独立说明见 [restart/README.md](restart/README.md)。
 
@@ -30,7 +30,7 @@
 
 **要求**：Windows 10/11、DSH 桌面端（Chromium/Electron）。
 
-1. 下载 `dsh-ui-beautify-0.9.1.zip` 并解压；
+1. 下载 `dsh-ui-beautify-0.9.3.zip` 并解压；
 2. 在 DSH 插件管理里安装本地目录（target 用绝对路径，例如 `file:C:/path/to/dsh-ui-beautify`）；
 3. 重启 DSH 一次。
 
@@ -112,6 +112,17 @@ powershell -ExecutionPolicy Bypass -File tools/build-dist.ps1  # 出 zip
 当前测试：host **31/31** · client **111/111**。
 
 ## 版本
+
+### v0.9.3（2026-11-03）
+- 思考链入场动画改为**只在新插入的行**触发；流式文字更新不再重播，避免每 500ms 整行闪一次；
+- 动画继续用 WAAPI，不依赖会被 React 重写的 class；pending 先隐藏条纹，动画启动再显示；
+- 测试：host 31/31 · client 111/111。
+
+### v0.9.2（2026-11-03）
+- 思考链条纹动画改用 **WAAPI**（`element.animate`），不再依赖会被 React 重写掉的 class；
+- 流式文字更新时也先挂 pending 隐藏条纹，动画启动再显示；
+- 动画统一挂在 `[data-variant]`（渐变/细线同一节点），8px + opacity 0→1；
+- 测试：host 31/31 · client 111/111。
 
 ### v0.9.1（2026-11-03）
 - 思考链文件修改统计 `+xx / -xx` 恢复常显绿色/红色（DSH 原生只在 hover/展开时上色）。
