@@ -1772,7 +1772,7 @@ test('视觉更新（0.9）：玻璃径向渐变内透外亮 + 外阴影；思�
   assert.match(css, /box-shadow:inset 0 0 0 1px rgba\(255,255,255,\.35\),0 14px 36px rgba\(17,18,20,\.14\)!important/)
   // 思维链颜色已按用户反馈移除：样式表里不应再有 data-variant 颜色覆盖
   assert.doesNotMatch(css, /\[data-variant=/, '思考区域保持 DSH 原样（不再覆盖颜色）')
-  assert.ok(css.includes('body.__dshui-texture [data-composer-card].__dshui-frost-surface{backdrop-filter:none!important'), '纹理模式输入卡片应关掉 backdrop-filter')
+  assert.ok(css.includes('body.__dshui-frost [data-composer-card].__dshui-frost-surface{backdrop-filter:none!important'), '输入卡片应关掉 backdrop-filter 防 hover 闪烁')
   // 悬浮防闪（0.8.28）：发送键 hover 过渡要关掉
   assert.match(css, /aria-label="发送消息"[^{]*{transition:none!important/, '发送键 hover 过渡要关掉')
   // 方块光标：原生 caret 透明 + 闪烁小方格（莱茵生命 warning 同款）
