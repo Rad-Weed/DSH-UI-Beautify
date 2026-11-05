@@ -2,7 +2,7 @@
 
 给 DSH 桌面端页面加**壁纸 + 毛玻璃**的轻量美化插件：不碰布局、不改宿主代码，自带开屏动画、方块光标、重启键与深浅色主题适配。
 
-- **版本：v0.9.5** · 包名 `dsh-ui-beautify` · 路由 `/dsh-ui-beautify/*` · 全局 `__DSHUI__` · 存储键 `__dshui.*`
+- **版本：v0.9.6** · 包名 `dsh-ui-beautify` · 路由 `/dsh-ui-beautify/*` · 全局 `__DSHUI__` · 存储键 `__dshui.*`
 - 支持 Windows 10/11 + DSH 桌面端；所有改动都发生在本插件自己的节点/样式里。
 - 详细开发记录、实测数据与决策记录见 [HANDOFF.md](HANDOFF.md)；重启键独立说明见 [restart/README.md](restart/README.md)。
 
@@ -30,7 +30,7 @@
 
 **要求**：Windows 10/11、DSH 桌面端（Chromium/Electron）。
 
-1. 下载 `dsh-ui-beautify-0.9.5.zip` 并解压；
+1. 下载 `dsh-ui-beautify-0.9.6.zip` 并解压；
 2. 在 DSH 插件管理里安装本地目录（target 用绝对路径，例如 `file:C:/path/to/dsh-ui-beautify`）；
 3. 重启 DSH 一次。
 
@@ -112,6 +112,13 @@ powershell -ExecutionPolicy Bypass -File tools/build-dist.ps1  # 出 zip
 当前测试：host **31/31** · client **111/111**。
 
 ## 版本
+
+### v0.9.6（2026-11-06）
+- **批量插入修复**：一次 DOM 变化插入多行思考步骤时，旧逻辑只给 `querySelector` 找到的第一行排队，其余行保持静止；现在遍历全部匹配行，逐行动画。
+- 清理动态模式遗留的锚点常量与参考线 CSS。
+- 新增 `ai-rows` 诊断的 `replayCount`，便于确认新行是否真的触发。
+- 全量动效 debug：WAAPI 单行/批量、diff 红绿、主题交叉淡化、毛玻璃开关、方块光标、发送键 hover 均已做浏览器实测。
+- host 31/31 · client 111/111。
 
 ### v0.9.5（2026-11-04）
 - 修复输入后鼠标悬浮发送键闪烁：输入卡在所有毛玻璃模式下关闭 `backdrop-filter`，发送键去掉 hover 变色和过渡；
