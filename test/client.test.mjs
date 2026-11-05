@@ -1835,7 +1835,7 @@ test('纹理模式 AI 思考过程视效（0.8.5）：默认开、语义选择�
   assert.equal(api.status().frost.aiReplyFx, true, '默认开')
   assert.ok(dom.body.classList.contains('__dshui-aireplyfx'), '纹理模式应加 AI 回复视觉类')
   const css = styleTagOf(dom).textContent
-  assert.match(css, /body\.__dshui-aireplyfx \[data-chat-flow\] \[data-chat-flow-key\]:not\(\[data-chat-flow-kind\]\)\{/)
+  assert.match(css, /body\.__dshui-aireplyfx \[data-chat-flow\] \[data-chat-flow-key\]:not\(\[data-chat-flow-kind\]\):not\(:has\(\[data-step-process\]\)\):not\(:has\(\[data-variant\]\)\)\{/)
   assert.match(css, /box-shadow:inset 2px 0 0 rgba\(57,100,254,\.5\)!important/)
   // 每行思维链：同一套细线/渐变 + 动效闸门下的淡入动画
   assert.ok(css.includes('[data-chat-flow-kind="turn-process"] [data-variant]'), '应命中 turn-process 的步骤行')

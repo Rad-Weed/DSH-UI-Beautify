@@ -2,7 +2,7 @@
 
 给 DSH 桌面端页面加**壁纸 + 毛玻璃**的轻量美化插件：不碰布局、不改宿主代码，自带开屏动画、方块光标、重启键与深浅色主题适配。
 
-- **版本：v0.9.6** · 包名 `dsh-ui-beautify` · 路由 `/dsh-ui-beautify/*` · 全局 `__DSHUI__` · 存储键 `__dshui.*`
+- **版本：v0.9.7** · 包名 `dsh-ui-beautify` · 路由 `/dsh-ui-beautify/*` · 全局 `__DSHUI__` · 存储键 `__dshui.*`
 - 支持 Windows 10/11 + DSH 桌面端；所有改动都发生在本插件自己的节点/样式里。
 - 详细开发记录、实测数据与决策记录见 [HANDOFF.md](HANDOFF.md)；重启键独立说明见 [restart/README.md](restart/README.md)。
 
@@ -30,7 +30,7 @@
 
 **要求**：Windows 10/11、DSH 桌面端（Chromium/Electron）。
 
-1. 下载 `dsh-ui-beautify-0.9.6.zip` 并解压；
+1. 下载 `dsh-ui-beautify-0.9.7.zip` 并解压；
 2. 在 DSH 插件管理里安装本地目录（target 用绝对路径，例如 `file:C:/path/to/dsh-ui-beautify`）；
 3. 重启 DSH 一次。
 
@@ -112,6 +112,13 @@ powershell -ExecutionPolicy Bypass -File tools/build-dist.ps1  # 出 zip
 当前测试：host **31/31** · client **111/111**。
 
 ## 版本
+
+### v0.9.7（2026-11-06）
+- 修复思考链“两条蓝色竖线”：AI 回复容器的左侧线现在排除包含 step/variant 的容器，只保留真正的回复块；
+- 步骤行只匹配最深一层 `[data-variant]`，避免内外两层同时画线；
+- pending 规则提高特异性，真正能在动画前隐藏条纹；启动时清理旧版残留 pending；队列溢出时也清理被丢弃行的 pending。
+- 浏览器实测嵌套容器只有一条线。
+- host 31/31 · client 111/111。
 
 ### v0.9.6（2026-11-06）
 - **批量插入修复**：一次 DOM 变化插入多行思考步骤时，旧逻辑只给 `querySelector` 找到的第一行排队，其余行保持静止；现在遍历全部匹配行，逐行动画。
