@@ -32,7 +32,7 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 $entries = @(
   'package.json', 'cordis.patch.yml', 'README.md', 'LICENSE',
   'lib/client.js', 'lib/index.js',
-  'assets/deepseek-4k.webp', 'assets/deepseek-bw-nowater.webp', 'assets/deepseek-dark.webp', 'assets/splash.html',
+  'assets/deepseek-4k.webp', 'assets/deepseek-bw-nowater.webp', 'assets/deepseek-dark.webp', 'assets/splash.html', 'assets/plugin-icon.png',
   'scripts/uninstall-cleanup.ps1',
   'restart/README.md', 'restart/USAGE.txt',
   'restart/install-restart-key.cmd', 'restart/uninstall-restart-key.cmd', 'restart/verify-restart-key.cmd',
@@ -50,7 +50,7 @@ try {
   foreach ($rel in $entries) {
     $src = Join-Path $pluginDir ($rel -replace '/', '\')
     if (-not (Test-Path $src)) { throw "missing file: $rel" }
-    [void][System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, (Resolve-Path $src), "$plugin/$rel", 'Optimal')
+    [void][System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, (Resolve-Path $src), "$plugin-$version/$rel", 'Optimal')
   }
 } finally { $zip.Dispose() }
 
