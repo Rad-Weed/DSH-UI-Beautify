@@ -3153,7 +3153,7 @@ test('开屏动画（0.8.0）：默认挂载同源 iframe，播完自动淡出�
   assert.ok(node, '默认应挂载开屏覆盖层')
   const frame = node.querySelector('iframe')
   assert.ok(frame, '覆盖层里应是 iframe（样式隔离，不碰页面 CSS）')
-  assert.match(String(frame.src), /\/dsh-ui-beautify\/splash\.html\?v=[\d.\-]+&cfg=/, '地址带版本号和配置')
+  assert.match(String(frame.src), /\/dsh-ui-beautify\/splash\.html\?v=[0-9A-Za-z.\-]+&cfg=/, '地址带版本号和配置')
   assert.equal(api.status().splash.status, 'playing', '状态应为播放中')
   assert.match(api.diagnose(), /开屏: 播放中/, '诊断里要有开屏行')
   assert.equal(layoutSnapshot(dom), before, '开屏层不能改变页面已有元素的布局样式')
