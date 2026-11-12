@@ -3608,3 +3608,5 @@ test('脚本重复注入：只保留一份样式', async () => {
   assert.equal(dom.document.querySelectorAll('#__dshui-style').length, 1)
   assert.equal(dom.document.querySelectorAll('#__dshui-layer').length, 1)
 })
+
+

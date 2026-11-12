@@ -1,4 +1,4 @@
-# build-dist.ps1 - packaging recipe (HANDOFF section 10, scripted since 0.3.0)
+﻿# build-dist.ps1 - packaging recipe (HANDOFF section 10, scripted since 0.3.0)
 #   Checks the 3 version spots match, builds <workspace>/dist/dsh-ui-beautify-<version>.zip
 #   (28 entries: plugin + splash + restart shell-patch tooling), prints entries / bytes / SHA256.
 # NOTE 1: keep this file pure ASCII - Windows PowerShell 5.1 reads BOM-less files as ANSI.
@@ -61,3 +61,4 @@ try {
 } finally { $z.Dispose() }
 Get-Item $out | ForEach-Object { "zip: $($_.FullName)"; "zip bytes: $($_.Length)" }
 Get-FileHash $out -Algorithm SHA256 | ForEach-Object { "SHA256: $($_.Hash)" }
+

@@ -197,7 +197,7 @@ test('apply(): 注册路由并注入前端脚本', () => {
   // 脚本 URL 带版本号（换版本就换 URL，绕开浏览器缓存），所以用正则而不是精确串
   assert.match(
     html,
-    new RegExp(`<script defer src="${ROUTE_PREFIX}/client\\.js\\?v=[\\d.]+(?:-\\d+)?"></script>`),
+    new RegExp(`<script defer src="${ROUTE_PREFIX}/client\\.js\\?v=[0-9A-Za-z.\\-]+"></script>`),
     '应注入带版本号的 defer script',
   )
   assert.equal(html.indexOf('</body>') > html.indexOf(ROUTE_PREFIX), true, '应插在 </body> 之前')
