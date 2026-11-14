@@ -32,7 +32,7 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 $entries = @(
   'package.json', 'cordis.patch.yml', 'README.md', 'LICENSE',
   'lib/client.js', 'lib/index.js',
-  'assets/deepseek-4k.webp', 'assets/deepseek-bw-nowater.webp', 'assets/deepseek-dark.webp', 'assets/splash.html', 'assets/plugin-icon.png',
+  'assets/deepseek-4k.webp', 'assets/deepseek-4k-1080.webp', 'assets/deepseek-4k-1440.webp', 'assets/deepseek-bw-nowater.webp', 'assets/deepseek-bw-nowater-1080.webp', 'assets/deepseek-bw-nowater-1440.webp', 'assets/deepseek-dark.webp', 'assets/deepseek-dark-1080.webp', 'assets/deepseek-dark-1440.webp', 'assets/splash.html', 'assets/plugin-icon.png',
   'scripts/uninstall-cleanup.ps1',
   'restart/README.md', 'restart/USAGE.txt',
   'restart/install-restart-key.cmd', 'restart/uninstall-restart-key.cmd', 'restart/verify-restart-key.cmd',
@@ -61,4 +61,5 @@ try {
 } finally { $z.Dispose() }
 Get-Item $out | ForEach-Object { "zip: $($_.FullName)"; "zip bytes: $($_.Length)" }
 Get-FileHash $out -Algorithm SHA256 | ForEach-Object { "SHA256: $($_.Hash)" }
+
 
