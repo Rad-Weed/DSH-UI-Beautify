@@ -1833,7 +1833,7 @@ test('纹理模式气泡视觉（0.8.5）：默认开、只作用于纹理模式
   assert.equal(dom.body.classList.contains('__dshui-bubblefx'), true)
   api.setMode('backdrop')
   dom.advance(600)
-  assert.equal(dom.body.classList.contains('__dshui-bubblefx'), false, '背景模式不启用纹理气泡视觉')
+  assert.equal(dom.body.classList.contains('__dshui-bubblefx'), true, '背景模式同样启用气泡高光/阴影（0.9.13）')
 })
 test('纹理模式 AI 思考过程视效（0.8.5）：默认开、语义选择器、面板/API 开关、存档、零布局', async () => {
   const dom = buildChatDom()
